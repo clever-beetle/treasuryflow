@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Treasury Flow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    
+    <style>
+        /* Mengatur background body sesuai desain (gambar air) */
+        body {
+            background-image: url('https://picsum.photos/1920/1080?grayscale&blur=2'); 
+            background-size: cover;
+            background-position: center;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Styling Card Utama */
+        .auth-card {
+            background: rgba(255, 255, 255, 1);
+            border-radius: 40px; 
+            padding: 40px 35px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 420px; 
+        }
+        
+        /* Styling Input Field */
+        .form-control-custom {
+            background-color: #f1f1f1;
+            border: none;
+            color: #555;
+            padding: 12px 15px;
+            height: auto;
+            transition: all 0.3s ease;
+            border-radius: 10px !important;
+        }
+
+        /* Styling Input Group */
+        .input-group-custom {
+            border-radius: 10px;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .input-group-custom .form-control {
+            border-radius: 10px 0 0 10px !important;
+        }
+        .input-group-custom .input-group-text {
+            border-radius: 0 10px 10px 0 !important;
+            background-color: #f1f1f1;
+            border: none;
+            color: #555;
+            cursor: pointer; /* Kursor untuk ikon mata */
+        }
+        
+        /* Styling Tombol Utama (Hitam) */
+        .btn-main {
+            background-color: #000000;
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+        }
+
+        /* Styling Tombol Sekunder (Abu-abu Muda) */
+        .btn-secondary-custom {
+            background-color: #e0e0e0;
+            color: #555555;
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+        }
+
+        /* Styling Separator "Or" */
+        .separator {
+            display: flex;
+            align-items: center;
+            text-align: center;
+            color: #a0a0a0;
+            margin: 20px 0;
+        }
+        .separator::before, .separator::after {
+            content: '';
+            flex: 1;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .separator:not(:empty)::before { margin-right: .5em; }
+        .separator:not(:empty)::after { margin-left: .5em; }
+        
+        .form-label {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <h1 class="text-center mb-5" style="font-weight: 900; letter-spacing: 2px;">TREASURY FLOW</h1>
+        
+        <h2 class="mb-4" style="font-weight: bold;">Sign Up</h2>
+
+        {% if error %}
+            <div class="alert alert-danger" role="alert">
+                <strong>Error:</strong> {{ error }}
+            </div>
+        {% endif %}
+        
+        <form method="post">
+            <div class="mb-3">
+                <label for="fullname" class="form-label">Full Name</label>
+                <input type="text" id="fullname" name="fullname" class="form-control form-control-custom" placeholder="Fernando Capital" required>
+            </div>
+            
+            <div class="mb-4">
+                <label for="username" class="form-label">Username</label>
+                <input type="text" id="username" name="username" class="form-control form-control-custom" placeholder="Username" required>
+            </div>
+            
+            <div class="row mb-5">
+                <div class="col-6">
+                    <label for="password-reg" class="form-label">Password</label>
+                    <div class="input-group input-group-custom">
+                        <input type="password" id="password-reg" name="password" class="form-control form-control-custom" required>
+                        <span class="input-group-text" id="togglePasswordReg">
+                            <i class="fas fa-eye-slash"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <label for="confirm_password" class="form-label">Confirm Password</label>
+                    <div class="input-group input-group-custom">
+                        <input type="password" id="confirm_password" name="confirm_password" class="form-control form-control-custom" required>
+                        <span class="input-group-text" id="toggleConfirmPasswordReg">
+                            <i class="fas fa-eye-slash"></i>
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-main w-100">Create Account</button>
+        </form>
+        
+        <div class="separator">Or</div>
+
+        <a href="{{ url_for('login') }}" class="btn btn-secondary-custom w-100">Log In</a>
+    </div>
+
+    <script>
+        // Toggle Password Register
+        const togglePasswordReg = document.querySelector('#togglePasswordReg');
+        const passwordReg = document.querySelector('#password-reg');
+
+        togglePasswordReg.addEventListener('click', function (e) {
+            const type = passwordReg.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordReg.setAttribute('type', type);
+            
+            const icon = this.querySelector('i');
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        });
+
+        // Toggle Confirm Password Register
+        const toggleConfirmPasswordReg = document.querySelector('#toggleConfirmPasswordReg');
+        const confirmPasswordReg = document.querySelector('#confirm_password');
+
+        toggleConfirmPasswordReg.addEventListener('click', function (e) {
+            const type = confirmPasswordReg.getAttribute('type') === 'password' ? 'text' : 'password';
+            confirmPasswordReg.setAttribute('type', type);
+            
+            const icon = this.querySelector('i');
+            icon.classList.toggle('fa-eye');
+            icon.classList.toggle('fa-eye-slash');
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Treasury Flow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        /* Gaya Minimalis & Konsisten */
+        body { 
+            background-color: #f8faff; 
+            color: #333;
+        }
+        .navbar {
+            border-bottom: 1px solid #e0e0e0;
+            background-color: #ffffff !important;
+        }
+        .navbar-brand {
+            font-weight: 700;
+            color: #333 !important;
+        }
+        .card-saldo, .card-stats {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s;
+            background-color: #ffffff; 
+        }
+        .card-saldo {
+            background-color: #007bff; 
+            color: white;
+        }
+        .card-stats {
+            color: #333;
+        }
+        .list-group-item {
+            border-radius: 8px !important;
+            margin-bottom: 4px;
+            border-left: 4px solid #007bff;
+        }
+        
+        /* Warna Khusus E-Wallet (untuk ikon) */
+        .wallet-GOPAY { color: #00AA13; }
+        .wallet-DANA { color: #108DE6; }
+        .wallet-OVO { color: #4C248D; }
+        .wallet-LINKAJA { color: #FF2700; }
+        .wallet-SHOPEEPAY { color: #EE4D2D; }
+        /* Warna Khusus Bank (Simulasi Logo) */
+        .bank-BCA { color: #005f9c; } 
+        .bank-BRI { color: #0037a3; } 
+        .bank-BNI { color: #fcc000; } 
+        .bank-MANDIRI { color: #004C92; } 
+        .bank-BSI { color: #00b050; } 
+        .bank-SEABANK { color: #87ceeb; } 
+        .icon-CASH { color: #5a5a5a; } 
+
+        .footer-branding {
+            font-size: 0.8rem;
+            color: #ccc;
+            margin-top: 50px;
+            padding-bottom: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+{% macro get_account_icon(account_name) %}
+    {% set name_parts = account_name.split('] ') %}
+    {% set detail_name = name_parts[1] if name_parts|length > 1 else account_name %}
+    {% set category = account_name.split(']')[0].replace('[', '') if '[' in account_name else 'CASH' %}
+
+    {% if category == 'CASH' %}
+        <i class="fas fa-money-bill-wave icon-CASH me-2"></i>
+    {% elif category == 'E-WALLET' %}
+        {% set icon_class = 'fas fa-wallet' %}
+        {% set color_class = 'wallet-' ~ detail_name|upper %}
+        <i class="{{ icon_class }} {{ color_class }} me-2"></i>
+    {% elif category == 'BANK' %}
+        {% set icon_class = 'fas fa-university' %}
+        {% set color_class = 'bank-' ~ detail_name|upper %}
+        <i class="{{ icon_class }} {{ color_class }} me-2"></i>
+    {% else %}
+        <i class="fas fa-credit-card me-2"></i>
+    {% endif %}
+{% endmacro %}
+
+
+<nav class="navbar bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('dashboard') }}">TREASURY FLOW</a>
+        
+        <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Menu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
+                    <li class="nav-item">
+                        <a class="nav-link active" aria-current="page" href="{{ url_for('dashboard') }}"><i class="fas fa-home me-2"></i> Dashboard</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('setup_account') }}"><i class="fas fa-wallet me-2"></i> Accounts</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('settings') }}"><i class="fas fa-user-cog me-2"></i> Settings</a>
+                    </li>
+                    <li class="nav-item mt-3">
+                         <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#logoutModal">
+                            <i class="fas fa-sign-out-alt me-2"></i> Logout
+                         </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        </div>
+</nav>
+<div class="container mt-5">
+    <h1 class="mb-4">Halo, {{ session.get('fullname') or 'Pengguna' }}!</h1>
+
+    <div class="row">
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card card-saldo p-3">
+                <div class="card-body">
+                    <h5 class="card-title text-white"><i class="fas fa-coins me-2"></i> TOTAL SALDO</h5>
+                    <p class="card-text fs-2 fw-bold text-white">{{ total_saldo | rupiah }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card card-stats p-3">
+                <div class="card-body">
+                    <h5 class="card-title text-danger"><i class="fas fa-calendar-week me-2"></i> PENGELUARAN 7 HARI</h5>
+                    <p class="card-text fs-2 fw-bold text-danger">{{ expense_7d | rupiah }}</p>
+                </div>
+            </div>
+        </div>
+         
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card card-stats p-3">
+                <div class="card-body">
+                    <h5 class="card-title text-secondary"><i class="fas fa-calendar-day me-2"></i> PENGELUARAN HARI INI</h5>
+                    <p class="card-text fs-2 fw-bold text-secondary">{{ expense_1d | rupiah }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card card-stats p-3 border-danger">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="fas fa-money-bill-wave me-2"></i> TOTAL PENGELUARAN</h5>
+                    <p class="card-text fs-4 fw-bold text-danger">{{ total_expense | rupiah }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mb-5">
+        <a href="{{ url_for('add_transaction') }}" class="btn btn-success me-3 py-2 px-4 shadow-sm fw-bold">
+            <i class="fas fa-plus"></i> Catat Transaksi Baru
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-5 mb-4">
+            <h3 class="mb-3">Daftar Accounts</h3>
+            <ul class="list-group">
+                {% for account in accounts %}
+                <li class="list-group-item d-flex justify-content-between align-items-center card-stats">
+                    <div>
+                         {{ get_account_icon(account.name) }} 
+                         <strong>{{ account.name }}</strong>
+                    </div>
+                    <span class="badge bg-primary rounded-pill p-2">{{ account.initial_balance | rupiah }}</span>
+                </li>
+                {% else %}
+                <li class="list-group-item list-group-item-light">Belum ada akun terdaftar. <a href="{{ url_for('setup_account') }}">Atur sekarang</a>.</li>
+                {% endfor %}
+            </ul>
+            <a href="{{ url_for('setup_account') }}" class="btn btn-sm btn-outline-secondary mt-3"><i class="fas fa-edit"></i> Kelola Accounts</a>
+        </div>
+
+        <div class="col-md-7 mb-4">
+            <h3 class="mb-3">Transaksi Terbaru</h3>
+            
+            <form method="GET" class="row g-2 mb-3 align-items-center card-stats p-3 rounded-3">
+                <div class="col-md-5">
+                    <select name="account_id" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="all" {% if filter_account_id == 'all' or filter_account_id == None %}selected{% endif %}>Semua Akun</option>
+                        {% for acc in accounts %}
+                            <option value="{{ acc.id }}" {% if filter_account_id|string == acc.id|string %}selected{% endif %}>{{ acc.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="all" {% if filter_type == 'all' or filter_type == None %}selected{% endif %}>Semua Tipe</option>
+                        <option value="income" {% if filter_type == 'income' %}selected{% endif %}>Pemasukan</option>
+                        <option value="expense" {% if filter_type == 'expense' %}selected{% endif %}>Pengeluaran</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary w-100">Reset</a>
+                </div>
+            </form>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover mt-3">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>Tgl</th>
+                            <th>Akun</th>
+                            <th>Deskripsi</th>
+                            <th>Jumlah</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for t in latest_transactions %}
+                        <tr>
+                            <td>{{ t.date }}</td>
+                            <td>{{ t.account_name }}</td>
+                            <td>{{ t.description or '-' }}</td>
+                            <td class="fw-bold
+                                {% if t.type == 'income' %}text-success
+                                {% elif t.type == 'expense' %}text-danger
+                                {% endif %}">
+                                {{ t.amount | rupiah }}
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">{% if filter_account_id or filter_type %}Tidak ada transaksi yang cocok dengan filter.{% else %}Belum ada transaksi tercatat.{% endif %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="logoutModalLabel">Konfirmasi Logout</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Apakah Anda yakin ingin keluar dari sesi Treasury Flow?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">Ya, Logout</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer-branding">
+    Powered by <strong>Fernando Capital</strong>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
