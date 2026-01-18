@@ -323,11 +323,6 @@
                     nameDetailGroup.show();
                 }
 
-                if (selectedKey === 'CASH') {
-                    nameDetailSelect.empty().append(new Option("Cash", "Cash", true, true)).trigger('change');
-                    nameDetailSelect.prop('disabled', true);
-                    nameDetailGroup.show(); 
-                }
             });
             
             const initialCategory = categorySelect.val();
