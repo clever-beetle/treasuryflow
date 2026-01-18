@@ -1,30 +1,31 @@
 # ==============================================================================
-# File: app.py (Revisi Total Code, FINAL BUILD + HAPUS AKUN)
+# File: app.py (Revisi Total - FIX VITAL: Database Migration & Fungsionalitas)
 # ==============================================================================
 
 import os
 import sqlite3
+import locale
 from datetime import datetime, timedelta 
 from functools import wraps
-from flask import Flask, render_template, request, url_for, redirect, session, g
-import socket 
-import locale 
+from flask import Flask, render_template, request, url_for, redirect, session, g, flash
+from werkzeug.security import generate_password_hash, check_password_hash
 
-# Inisialisasi Aplikasi Flask
+# --- KONFIGURASI APLIKASI ---
 app = Flask(__name__)
-app.secret_key = 'kunci_rahasia_dan_aman_sekali' 
+app.secret_key = os.environ.get('SECRET_KEY', 'kunci_rahasia_default_yang_harus_diganti')
+
+# Lokasi Database
 DATABASE = 'treasury_flow.db'
 
-# --- Konfigurasi Locale untuk Rupiah ---
-try:
-    locale.setlocale(locale.LC_ALL, 'id_ID.utf8')
-except locale.Error:
-    try:
-        locale.setlocale(locale.LC_ALL, 'indonesian')
-    except locale.Error:
-        pass 
+# Daftar Kategori untuk Transaksi
+CATEGORIES = {
+    'income': ['Gaji', 'Investasi', 'Hadiah', 'Penjualan Aset', 'Lainnya (Pemasukan)'],
+    'expense': ['Makanan & Minuman', 'Transportasi', 'Belanja', 'Tagihan', 
+                'Hiburan', 'Kesehatan', 'Pendidikan', 'Cicilan & Utang', 'Lainnya (Pengeluaran)']
+}
 
-# --- Custom Jinja Filter: format_rupiah (FIXED None Bug) ---
+# --- FUNGSI FORMATTING ---
+
 def format_rupiah(value):
     if value is None:
         return 'Rp 0,00'
@@ -44,7 +45,6 @@ def format_rupiah(value):
         abs_value = abs(value)
         return sign + 'Rp {:.2f}'.format(abs_value).replace('.', '#').replace(',', '.').replace('#', ',')
 
-# --- Custom Jinja Filter: format_rupiah_input ---
 def format_rupiah_input(value):
     if value is None:
         return '0,00'
@@ -54,12 +54,19 @@ def format_rupiah_input(value):
     except Exception:
         return '{:.2f}'.format(value).replace('.', '#').replace(',', '.').replace('#', ',')
 
-
 app.jinja_env.filters['rupiah'] = format_rupiah
 app.jinja_env.filters['format_rupiah_input'] = format_rupiah_input
 
+try:
+    locale.setlocale(locale.LC_ALL, 'id_ID.utf8')
+except locale.Error:
+    try:
+        locale.setlocale(locale.LC_ALL, 'indonesian')
+    except locale.Error:
+        pass 
 
-# --- Konfigurasi Database ---
+
+# --- FUNGSI DATABASE & MIGRATION FIX ---
 
 def get_db():
     db = getattr(g, '_database', None)
@@ -68,25 +75,28 @@ def get_db():
         db.row_factory = sqlite3.Row
     return db
 
-def close_db_connection(exception):
+@app.teardown_appcontext
+def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
 
-app.teardown_appcontext(close_db_connection)
-
 def init_db():
     with app.app_context():
         db = get_db()
-        db.execute('''
+        cursor = db.cursor()
+        
+        # 1. Pastikan tabel dasar ada
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                fullname TEXT NOT NULL,
-                username TEXT NOT NULL UNIQUE,
+                fullname TEXT, 
+                username TEXT UNIQUE NOT NULL,
                 password TEXT NOT NULL
-            );
+            )
         ''')
-        db.execute('''
+        
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS accounts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -94,9 +104,10 @@ def init_db():
                 initial_balance REAL NOT NULL DEFAULT 0.0,
                 FOREIGN KEY (user_id) REFERENCES users (id),
                 UNIQUE (user_id, name)
-            );
+            )
         ''')
-        db.execute('''
+        
+        cursor.execute('''
             CREATE TABLE IF NOT EXISTS transactions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
@@ -105,30 +116,66 @@ def init_db():
                 type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
                 amount REAL NOT NULL,
                 description TEXT,
+                category TEXT,  
                 FOREIGN KEY (user_id) REFERENCES users (id),
                 FOREIGN KEY (account_id) REFERENCES accounts (id)
-            );
+            )
         ''')
+        
+        # 2. MIGRATION CHECK (FIX ERROR: no such column: t.category)
+        try:
+            # Jika kolom 'category' belum ada, SQLite akan error saat mencoba SELECT.
+            # Kita gunakan PRAGMA table_info untuk memeriksa.
+            cursor.execute("PRAGMA table_info(transactions)")
+            columns = [info['name'] for info in cursor.fetchall()]
+            
+            if 'category' not in columns:
+                print(">>> Menjalankan ALTER TABLE: Menambahkan kolom 'category' ke tabel transactions")
+                cursor.execute("ALTER TABLE transactions ADD COLUMN category TEXT")
+        except Exception as e:
+            # Ini mungkin terjadi jika tabel transactions belum ada, tapi CREATE TABLE di atas sudah mengatasinya.
+            print(f"Error saat migrasi database: {e}")
+            pass
+            
         db.commit()
 
 if not os.path.exists(DATABASE):
-    with app.app_context():
-        init_db()
+    init_db()
 
-# --- Fungsi Utility ---
 
-def check_login():
-    return 'user_id' in session
-
+# --- DECORATOR OTENTIKASI ---
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not check_login():
+        if 'user_id' not in session:
+            flash('Anda harus login untuk mengakses halaman ini.', 'danger')
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated_function
 
-# --- Rute Autentikasi ---
+# --- ROUTES OTENTIKASI ---
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    error = None
+    if request.method == 'POST':
+        db = get_db()
+        username = request.form['username']
+        password = request.form['password']
+        
+        user = db.execute('SELECT id, password FROM users WHERE username = ?', (username,)).fetchone()
+
+        if user and user['password'] == password: 
+            session.clear()
+            session['user_id'] = user['id']
+            
+            user_data = db.execute('SELECT fullname FROM users WHERE id = ?', (user['id'],)).fetchone()
+            session['fullname'] = user_data['fullname'] if user_data and user_data['fullname'] else user['username']
+            return redirect(url_for('dashboard'))
+        else:
+            error = "Username atau password salah."
+    
+    return render_template('login.html', error=error)
 
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -138,7 +185,7 @@ def register():
         fullname = request.form['fullname']
         username = request.form['username']
         password = request.form['password']
-
+        
         if not fullname or not username or not password:
             error = "Semua field harus diisi."
         elif db.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone():
@@ -147,42 +194,18 @@ def register():
             db.execute('INSERT INTO users (fullname, username, password) VALUES (?, ?, ?)',
                        (fullname, username, password))
             db.commit()
+            flash('Registrasi berhasil! Silakan login.', 'success')
             return redirect(url_for('login', registered=True))
-    
+            
     return render_template('register.html', error=error)
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    error = None
-    registered = request.args.get('registered')
-    message = "Registrasi berhasil! Silakan login." if registered else None
 
-    if request.method == 'POST':
-        db = get_db()
-        username = request.form['username']
-        password = request.form['password']
-        
-        user = db.execute('SELECT id, fullname, username, password FROM users WHERE username = ? AND password = ?',
-                          (username, password)).fetchone()
-
-        if user is None:
-            error = "Username atau password salah."
-        else:
-            session.clear()
-            session['user_id'] = user['id']
-            session['fullname'] = user['fullname']
-            return redirect(url_for('dashboard'))
-    
-    return render_template('login.html', error=error, message=message)
-
-# Rute Logout Baru dengan Konfirmasi
 @app.route('/logout')
 def logout():
-    # Clear session jika langsung diakses (tanpa konfirmasi)
     session.clear()
     return redirect(url_for('login'))
 
-# --- Rute Dashboard dan Logika Statistik ---
+# --- ROUTES DASHBOARD & ACCOUNT MANAGEMENT ---
 
 @app.route('/')
 @login_required
@@ -209,33 +232,37 @@ def dashboard():
     
     total_saldo = sum(account_balances.values()) 
 
-    # --- Perhitungan Pengeluaran Statistik (FIXED None Handling) ---
+    # --- Perhitungan Pengeluaran Statistik ---
     today = datetime.now().date()
     today_str = today.strftime('%Y-%m-%d')
-    seven_days_ago_str = (today - timedelta(days=7)).strftime('%Y-%m-%d')
-
-    total_expense_result = db.execute(
+    
+    days_range = request.args.get('days', type=int, default=7) 
+    
+    if days_range <= 0: days_range = 7
+    days_ago_str = (today - timedelta(days=days_range)).strftime('%Y-%m-%d')
+    
+    # --- Statistik ---
+    
+    total_expense = db.execute(
         "SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense'", 
         (user_id,)
     ).fetchone()[0]
-    total_expense = total_expense_result
 
-    expense_1d_result = db.execute(
+    expense_1d = db.execute(
         "SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND date = ?", 
         (user_id, today_str)
     ).fetchone()[0]
-    expense_1d = expense_1d_result
 
-    expense_7d_result = db.execute(
+    expense_custom_range = db.execute(
         "SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND date BETWEEN ? AND ?", 
-        (user_id, seven_days_ago_str, today_str)
+        (user_id, days_ago_str, today_str)
     ).fetchone()[0]
-    expense_7d = expense_7d_result
+    
     # --- Akhir Perhitungan Statistik ---
 
     # Ambil Transaksi Terbaru dengan Filter
     query = '''
-        SELECT t.date, t.description, t.type, t.amount, a.name as account_name
+        SELECT t.id, t.date, t.description, t.type, t.amount, a.name as account_name
         FROM transactions t
         JOIN accounts a ON t.account_id = a.id
         WHERE t.user_id = ?
@@ -258,7 +285,8 @@ def dashboard():
                            total_saldo=total_saldo, 
                            total_expense=total_expense, 
                            expense_1d=expense_1d, 
-                           expense_7d=expense_7d, 
+                           expense_custom_range=expense_custom_range,
+                           days_range=days_range,
                            accounts=accounts, 
                            latest_transactions=filtered_transactions, 
                            filter_account_id=filter_account_id,
@@ -325,7 +353,7 @@ def setup_account():
     account_to_edit = None
 
     # --- Data untuk Dropdown Akun ---
-    CATEGORIES = {
+    ACCOUNT_TYPES = {
         'CASH': ['Cash'],
         'E-WALLET': [
             'DANA', 'GoPay', 'LinkAja', 'OVO', 'ShopeePay', 
@@ -338,12 +366,11 @@ def setup_account():
         ]
     }
     
-    CATEGORIES['E-WALLET'].sort()
-    CATEGORIES['BANK'].sort()
+    ACCOUNT_TYPES['E-WALLET'].sort()
+    ACCOUNT_TYPES['BANK'].sort()
 
     # --- Logika Hapus Akun ---
     if delete_id:
-        # Cek apakah akun memiliki transaksi
         has_transactions = db.execute(
             'SELECT COUNT(id) FROM transactions WHERE account_id = ? AND user_id = ?', 
             (delete_id, user_id)
@@ -359,7 +386,6 @@ def setup_account():
             db.commit()
             message = f"{account_name} berhasil dihapus."
         
-        # Bersihkan query string setelah aksi
         return redirect(url_for('setup_account', message=message, error=error))
 
 
@@ -390,15 +416,17 @@ def setup_account():
 
             elif action == 'add':
                 category_key = request.form['category_key'] 
-                name_detail = request.form['name_detail'] 
-
-                if category_key not in CATEGORIES or name_detail not in CATEGORIES[category_key]:
-                     raise ValueError("Pilihan kategori atau nama tidak valid.")
-
+                
                 if category_key == 'CASH':
+                    name_detail = 'Cash' 
                     final_name = "Cash"
                 else:
+                    name_detail = request.form['name_detail'] 
                     final_name = f"[{category_key}] {name_detail}"
+                
+                if category_key not in ACCOUNT_TYPES or name_detail not in ACCOUNT_TYPES[category_key]:
+                     raise ValueError("Pilihan kategori atau nama tidak valid.")
+
                 
                 existing_account = db.execute('SELECT id FROM accounts WHERE user_id = ? AND name = ?', 
                                               (user_id, final_name)).fetchone()
@@ -424,31 +452,38 @@ def setup_account():
                            accounts=accounts, 
                            message=message, 
                            error=error,
-                           categories=CATEGORIES,
+                           categories=ACCOUNT_TYPES,
                            account_to_edit=account_to_edit)
+
+
+# --- ROUTES TRANSAKSI (FIX BUG PENCATATAN & DROPDOWN) ---
 
 @app.route('/add/transaction', methods=['GET', 'POST'])
 @login_required
 def add_transaction():
-    db = get_db()
     user_id = session['user_id']
-    error = None
-    message = None
+    db = get_db()
     
     accounts = db.execute('SELECT id, name FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
+    
+    if not accounts:
+        flash('Anda harus membuat minimal satu Akun (Cash, Bank, E-Wallet) sebelum mencatat transaksi.', 'warning')
+        return redirect(url_for('setup_account'))
 
+    error = None
     if request.method == 'POST':
         try:
             date_str = request.form['date']
             account_id = request.form['account_id']
             type = request.form['type']
+            category = request.form['category'] 
             
             raw_amount = request.form['amount'].replace('.', '').replace(',', '.')
             amount = float(raw_amount)
             
             description = request.form['description']
             
-            if not date_str or not account_id or not type or amount <= 0:
+            if not date_str or not account_id or not type or amount <= 0 or not category:
                 raise ValueError("Semua field wajib diisi dengan benar.")
 
             selected_account = db.execute('SELECT name FROM accounts WHERE id = ? AND user_id = ?', 
@@ -456,13 +491,14 @@ def add_transaction():
             if not selected_account:
                 raise ValueError("Akun tidak ditemukan.")
             
+            # Simpan Transaksi
             db.execute('''
-                INSERT INTO transactions (user_id, date, account_id, type, amount, description) 
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (user_id, date_str, account_id, type, amount, description))
+                INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (user_id, date_str, account_id, type, amount, description, category))
             db.commit()
             
-            message = f"Transaksi {type.capitalize()} sebesar Rp {amount:,.0f} berhasil dicatat di akun {selected_account['name']}."
+            flash(f"Transaksi {type.capitalize()} sebesar {format_rupiah(amount)} berhasil dicatat di akun {selected_account['name']}.", 'success')
             return redirect(url_for('dashboard'))
 
         except ValueError as e:
@@ -475,36 +511,58 @@ def add_transaction():
                            accounts=accounts, 
                            today=today, 
                            error=error, 
-                           message=message)
+                           categories=CATEGORIES)
 
-# --- App Runner ---
 
-def get_local_ip():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        s.connect(('10.255.255.255', 1))
-        IP = s.getsockname()[0]
-    except Exception:
-        IP = '127.0.0.1'
-    finally:
-        s.close()
-    return IP
+# --- FITUR: MANAJEMEN TRANSAKSI (LIST & HAPUS) ---
+
+@app.route('/transactions_list')
+@login_required
+def transactions_list():
+    """Menampilkan semua transaksi pengguna (FIXED BUG VITAL)."""
+    user_id = session.get('user_id')
+    db = get_db()
+    
+    transactions = db.execute('''
+        SELECT 
+            t.id, t.date, t.type, t.amount, t.description, t.category, 
+            a.name AS account_name
+        FROM transactions t
+        JOIN accounts a ON t.account_id = a.id
+        WHERE t.user_id = ?
+        ORDER BY t.date DESC, t.id DESC
+    ''', (user_id,)).fetchall()
+    
+    return render_template('transactions_list.html', transactions=transactions)
+
+@app.route('/delete_transaction/<int:transaction_id>', methods=['POST'])
+@login_required
+def delete_transaction(transaction_id):
+    """Menghapus transaksi."""
+    user_id = session.get('user_id')
+    db = get_db()
+    
+    transaction = db.execute('SELECT account_id, type, amount FROM transactions WHERE id = ? AND user_id = ?', 
+                   (transaction_id, user_id)).fetchone()
+
+    if transaction:
+        try:
+            db.execute('DELETE FROM transactions WHERE id = ?', (transaction_id,))
+            db.commit()
+            flash('Transaksi berhasil dihapus.', 'success')
+        except Exception as e:
+            flash(f'Gagal menghapus transaksi: {e}', 'danger')
+    else:
+        flash('Transaksi tidak ditemukan atau Anda tidak memiliki akses.', 'danger')
+        
+    return redirect(url_for('transactions_list'))
 
 
 if __name__ == '__main__':
-    TARGET_HOST = '0.0.0.0' 
-    TARGET_PORT = 5000
-    
-    try:
-        LOCAL_IP = get_local_ip()
-    except Exception:
-        LOCAL_IP = '127.0.0.1'
-
-    print("-" * 50)
-    print("🚀 TREASURY FLOW BERJALAN DI SERVER AMAN")
-    print("-" * 50)
-    print(f"1. Akses dari Laptop (Browser): http://127.0.0.1:{TARGET_PORT}/")
-    print(f"2. Akses dari HP (Di Jaringan WiFi Sama): http://{LOCAL_IP}:{TARGET_PORT}/")
-    print("-" * 50)
-    
-    app.run(debug=True, host=TARGET_HOST, port=TARGET_PORT)
+    # Memastikan migrasi database berjalan saat aplikasi dimulai jika file DB sudah ada
+    if os.path.exists(DATABASE):
+        with app.app_context():
+            init_db() 
+    else:
+        init_db()
+    app.run(debug=True)

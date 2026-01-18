@@ -40,7 +40,7 @@
             border-left: 4px solid #007bff;
         }
         
-        /* Warna Khusus E-Wallet (untuk ikon) */
+        /* Warna Khusus E-Wallet (untuk ikon) - CONSISTENCY FIX */
         .wallet-GOPAY { color: #00AA13; }
         .wallet-DANA { color: #108DE6; }
         .wallet-OVO { color: #4C248D; }
@@ -111,6 +111,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('settings') }}"><i class="fas fa-user-cog me-2"></i> Settings</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('transactions_list') }}"><i class="fas fa-list me-2"></i> Daftar Transaksi</a>
+                    </li>
                     <li class="nav-item mt-3">
                          <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#logoutModal">
                             <i class="fas fa-sign-out-alt me-2"></i> Logout
@@ -123,6 +126,14 @@
 </nav>
 <div class="container mt-5">
     <h1 class="mb-4">Halo, {{ session.get('fullname') or 'Pengguna' }}!</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
 
     <div class="row">
         <div class="col-lg-4 col-md-6 mb-4">
@@ -137,8 +148,21 @@
         <div class="col-lg-4 col-md-6 mb-4">
             <div class="card card-stats p-3">
                 <div class="card-body">
-                    <h5 class="card-title text-danger"><i class="fas fa-calendar-week me-2"></i> PENGELUARAN 7 HARI</h5>
-                    <p class="card-text fs-2 fw-bold text-danger">{{ expense_7d | rupiah }}</p>
+                    <h5 class="card-title text-danger">
+                        <i class="fas fa-calendar-alt me-2"></i> PENGELUARAN 
+                        <div class="btn-group float-end">
+                            <button type="button" class="btn btn-sm btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                {{ days_range }} Hari
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', days=3) }}">3 Hari Terakhir</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', days=7) }}">7 Hari Terakhir</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', days=30) }}">30 Hari Terakhir</a></li>
+                                <li><a class="dropdown-item" href="{{ url_for('dashboard', days=365) }}">1 Tahun Terakhir</a></li>
+                            </ul>
+                        </div>
+                    </h5>
+                    <p class="card-text fs-2 fw-bold text-danger">{{ expense_custom_range | rupiah }}</p>
                 </div>
             </div>
         </div>
@@ -166,6 +190,9 @@
         <a href="{{ url_for('add_transaction') }}" class="btn btn-success me-3 py-2 px-4 shadow-sm fw-bold">
             <i class="fas fa-plus"></i> Catat Transaksi Baru
         </a>
+        <a href="{{ url_for('transactions_list') }}" class="btn btn-outline-secondary py-2 px-4 shadow-sm fw-bold">
+            <i class="fas fa-list"></i> Lihat Semua Transaksi
+        </a>
     </div>
 
     <div class="row">
@@ -184,7 +211,6 @@
                 <li class="list-group-item list-group-item-light">Belum ada akun terdaftar. <a href="{{ url_for('setup_account') }}">Atur sekarang</a>.</li>
                 {% endfor %}
             </ul>
-            <a href="{{ url_for('setup_account') }}" class="btn btn-sm btn-outline-secondary mt-3"><i class="fas fa-edit"></i> Kelola Accounts</a>
         </div>
 
         <div class="col-md-7 mb-4">
@@ -254,7 +280,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        Apakah Anda yakin ingin keluar dari sesi Treasury Flow?
+        Apakah Anda yakin ingin keluar dari Treasury Flow?
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>

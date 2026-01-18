@@ -47,12 +47,13 @@
         .select2-container .select2-selection--single .select2-selection__arrow { height: 36px; }
         .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 24px; }
         
-        /* Logo dan Warna */
+        /* Logo dan Warna - CONSISTENCY FIX */
         .wallet-GOPAY { color: #00AA13; }
         .wallet-DANA { color: #108DE6; }
         .wallet-OVO { color: #4C248D; }
         .wallet-LINKAJA { color: #FF2700; }
         .wallet-SHOPEEPAY { color: #EE4D2D; }
+        /* Warna Khusus Bank (Simulasi Logo) */
         .bank-BCA { color: #005f9c; }
         .bank-BRI { color: #0037a3; } 
         .bank-BNI { color: #fcc000; }
@@ -120,6 +121,9 @@
                         <li class="nav-item">
                             <a class="nav-link" href="{{ url_for('settings') }}"><i class="fas fa-user-cog me-2"></i> Settings</a>
                         </li>
+                         <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('transactions_list') }}"><i class="fas fa-list me-2"></i> Daftar Transaksi</a>
+                        </li>
                         <li class="nav-item mt-3">
                             <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#logoutModal">
                                 <i class="fas fa-sign-out-alt me-2"></i> Logout
@@ -135,12 +139,13 @@
         <h1><i class="fas fa-university"></i> Kelola Accounts</h1>
         <hr>
         
-        {% if message %}
-            <div class="alert alert-success">{{ message }}</div>
-        {% endif %}
-        {% if error %}
-            <div class="alert alert-danger">{{ error }}</div>
-        {% endif %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
 
         <div class="row">
             <div class="col-md-5 mb-4">
@@ -270,7 +275,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        Apakah Anda yakin ingin keluar dari sesi Treasury Flow?
+        Apakah Anda yakin ingin keluar dari Treasury Flow?
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -303,7 +308,7 @@
                  width: '100%'
              });
 
-            // Logika Dropdown Dinamis
+            // Logika Dropdown Dinamis (FIX: Cash tidak memerlukan name detail)
             categorySelect.on('change', function() {
                 const selectedKey = $(this).val();
                 const names = categoriesData[selectedKey];
@@ -311,7 +316,12 @@
                 nameDetailSelect.empty().val(null).trigger('change').prop('disabled', true);
                 nameDetailGroup.hide();
 
-                if (names && names.length > 0) {
+                if (selectedKey === 'CASH') {
+                    // FIX: Untuk CASH, input name detail diabaikan/disembunyikan
+                    nameDetailSelect.empty().append(new Option("Cash", "Cash", true, true)).trigger('change');
+                    nameDetailSelect.prop('disabled', true);
+                    nameDetailGroup.show(); 
+                } else if (names && names.length > 0) {
                     nameDetailSelect.append(new Option("Cari atau Pilih Nama Bank/E-Wallet", "", true, true)).trigger('change');
                     
                     names.forEach(name => {
@@ -322,7 +332,7 @@
                     nameDetailSelect.prop('disabled', false).trigger('change');
                     nameDetailGroup.show();
                 }
-
+                
             });
             
             const initialCategory = categorySelect.val();
