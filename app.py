@@ -102,6 +102,7 @@ def init_db():
                 user_id INTEGER NOT NULL,
                 name TEXT NOT NULL,
                 initial_balance REAL NOT NULL DEFAULT 0.0,
+                current_balance REAL NOT NULL DEFAULT 0.0,
                 FOREIGN KEY (user_id) REFERENCES users (id),
                 UNIQUE (user_id, name)
             )
@@ -216,21 +217,13 @@ def dashboard():
     filter_account_id = request.args.get('account_id', type=str)
     filter_type = request.args.get('type', type=str)
     
-    accounts = db.execute('SELECT id, name, initial_balance FROM accounts WHERE user_id = ?', 
-                          (user_id,)).fetchall()
+    accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     
     account_balances = {acc['id']: acc['initial_balance'] for acc in accounts}
     
-    transactions_for_balance = db.execute('SELECT account_id, type, amount FROM transactions WHERE user_id = ?', 
-                                          (user_id,)).fetchall()
+    transactions_for_balance = db.execute('SELECT SUM(current_balance) FROM accounts WHERE user_id = ?', (user_id,)).fetchone()[0] or 0
 
-    for t in transactions_for_balance:
-        if t['type'] == 'income':
-            account_balances[t['account_id']] += t['amount']
-        elif t['type'] == 'expense':
-            account_balances[t['account_id']] -= t['amount']
-    
-    total_saldo = sum(account_balances.values()) 
+    total_saldo = db.execute('SELECT SUM(current_balance) FROM accounts WHERE user_id = ?', (user_id,)).fetchone()[0] or 0
 
     # --- Perhitungan Pengeluaran Statistik ---
     today = datetime.now().date()
@@ -433,10 +426,9 @@ def setup_account():
                 if existing_account:
                      error = f"Akun '{final_name}' sudah terdaftar."
                 else:
-                    db.execute('INSERT INTO accounts (user_id, name, initial_balance) VALUES (?, ?, ?)',
-                               (user_id, final_name, balance))
-                    db.commit()
+                    db.execute('INSERT INTO accounts (user_id, name, initial_balance, current_balance) VALUES (?, ?, ?, ?)', (user_id, final_name, balance, balance))
                     message = f"Akun '{final_name}' berhasil ditambahkan."
+                    db.commit()
         
         except ValueError as e:
             error = str(e) or "Input saldo harus berupa angka yang valid (gunakan format angka ID: titik ribuan, koma desimal)."
@@ -496,6 +488,11 @@ def add_transaction():
                 INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (user_id, date_str, account_id, type, amount, description, category))
+
+            adjustment = amount if type == 'income' else -amount
+            db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', 
+                       (adjustment, account_id))
+            
             db.commit()
             
             flash(f"Transaksi {type.capitalize()} sebesar {format_rupiah(amount)} berhasil dicatat di akun {selected_account['name']}.", 'success')
@@ -508,10 +505,10 @@ def add_transaction():
 
     today = datetime.now().strftime('%Y-%m-%d')
     return render_template('add_transaction.html', 
-                           accounts=accounts, 
+                           accounts=accounts,
+                           categories=CATEGORIES, 
                            today=today, 
-                           error=error, 
-                           categories=CATEGORIES)
+                           error=error)
 
 
 # --- FITUR: MANAJEMEN TRANSAKSI (LIST & HAPUS) ---
@@ -547,8 +544,14 @@ def delete_transaction(transaction_id):
 
     if transaction:
         try:
+            adjustment = -transaction['amount'] if transaction['type'] == 'income' else transaction['amount']
+            db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', 
+                       (adjustment, transaction['account_id']))
+
             db.execute('DELETE FROM transactions WHERE id = ?', (transaction_id,))
+
             db.commit()
+            
             flash('Transaksi berhasil dihapus.', 'success')
         except Exception as e:
             flash(f'Gagal menghapus transaksi: {e}', 'danger')

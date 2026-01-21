@@ -96,7 +96,7 @@
                     <div class="card-body">
                         <form method="post">
                             <div class="mb-3">
-                                <label class="form-label">Tipe Transaksi</label>
+                                <label class="form-label small fw-bold">Tipe Transaksi</label>
                                 <div class="btn-group w-100" role="group">
                                     <input type="radio" class="btn-check" name="type" id="income" value="income" required checked>
                                     <label class="btn btn-outline-success" for="income"><i class="fas fa-arrow-up"></i> Pemasukan</label>
@@ -121,6 +121,11 @@
                                 </select>
                             </div>
 
+                            <div class="mb-3">
+                                <label class="form-label">Kategori</label>
+                                <select id="category" name="category" class="form-select form-control-custom" required> </select>
+                            </div>
+                            
                             <div class="mb-3">
                                 <label for="description" class="form-label">Deskripsi/Catatan</label>
                                 <input type="text" id="description" name="description" class="form-control form-control-custom" placeholder="Contoh: Gaji bulan ini, Beli kopi">
@@ -166,8 +171,44 @@
 </div>
 
     <script>
-        document.getElementById('date').value = new Date().toISOString().slice(0, 10);
+        // Data ini diambil dari Python (app.py)
+        const categoriesData = {{ categories | tojson | safe }};
+
+        function updateCategories() {
+            // Ambil tipe yang dipilih (income atau expense)
+            const typeElement = document.querySelector('input[name="type"]:checked');
+            if (!typeElement) return;
+
+            const selectedType = typeElement.value;
+            const categorySelect = document.getElementById('category');
+            
+            // Bersihkan dropdown dan beri placeholder
+            categorySelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori --</option>';
+            
+            // Ambil daftar dari variabel categoriesData sesuai tipenya
+            const list = categoriesData[selectedType];
+            
+            // Masukkan data ke dalam dropdown secara dinamis
+            list.forEach(function(item) {
+                const opt = document.createElement('option');
+                opt.value = item;
+                opt.innerHTML = item;
+                categorySelect.appendChild(opt);
+            });
+        }
+
+        // Jalankan saat halaman pertama kali dibuka
+        document.addEventListener('DOMContentLoaded', function() {
+            updateCategories();
+            
+            // Tambahkan perintah: "Kalau tombol radio diganti, update kategorinya"
+            document.querySelectorAll('input[name="type"]').forEach(radio => {
+                radio.addEventListener('change', updateCategories);
+            });
+        });
     </script>
+    
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>

@@ -97,42 +97,53 @@
     {% endif %}
 {% endmacro %}
 
-    <nav class="navbar bg-light">
+        <nav class="navbar bg-white border-bottom p-3">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{{ url_for('dashboard') }}">TREASURY FLOW</a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
-                <span class="navbar-toggler-icon"></span>
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">TREASURY FLOW</a>
+        
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
+            <i class="fas fa-bars fa-lg"></i>
             </button>
-            
+        
             <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
-                <div class="offcanvas-header">
-                    <h5 class="offcanvas-title" id="offcanvasNavbarLabel">Menu</h5>
+                <div class="offcanvas-header border-bottom">
+                    <h5 class="offcanvas-title fw-bold" id="offcanvasNavbarLabel text-primary">MENU UTAMA</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                 </div>
                 <div class="offcanvas-body">
-                    <ul class="navbar-nav justify-content-end flex-grow-1 pe-3">
+                    <ul class="navbar-nav justify-content-end flex-grow-1">
+                        <li class="nav-item mb-2">
+                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">
+                                <i class="fas fa-home me-3 text-primary"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}">
+                                <i class="fas fa-wallet me-3 text-success"></i> Kelola Accounts
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}">
+                                <i class="fas fa-list me-3 text-info"></i> Riwayat Transaksi
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}">
+                                <i class="fas fa-user-cog me-3 text-secondary"></i> Pengaturan Akun
+                            </a>
+                        </li>
+                    
+                        <hr class="my-4">
+                    
                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('dashboard') }}"><i class="fas fa-home me-2"></i> Dashboard</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" aria-current="page" href="{{ url_for('setup_account') }}"><i class="fas fa-wallet me-2"></i> Accounts</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('settings') }}"><i class="fas fa-user-cog me-2"></i> Settings</a>
-                        </li>
-                         <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('transactions_list') }}"><i class="fas fa-list me-2"></i> Daftar Transaksi</a>
-                        </li>
-                        <li class="nav-item mt-3">
-                            <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#logoutModal">
-                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            <button type="button" class="btn btn-danger w-100 p-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px;">
+                                <i class="fas fa-sign-out-alt me-2"></i> Keluar Aplikasi
                             </button>
                         </li>
                     </ul>
                 </div>
             </div>
-            </div>
+        </div>
     </nav>
 
     <div class="container mt-5 setup-container">
