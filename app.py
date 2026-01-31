@@ -5,9 +5,11 @@
 import os
 import sqlite3
 import locale
+import csv 
+from io import StringIO 
 from datetime import datetime, timedelta 
 from functools import wraps
-from flask import Flask, render_template, request, url_for, redirect, session, g, flash
+from flask import Flask, render_template, request, url_for, redirect, session, g, flash, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # --- KONFIGURASI APLIKASI ---
@@ -354,8 +356,8 @@ def setup_account():
         ],
         'BANK': [
             'BCA', 'BNI', 'BRI', 'BSI', 'CIMB Niaga', 'Mandiri', 'Maybank', 'Permata Bank', 'SeaBank', 
-            'Superbank', 'Bank DKI', 'Bank Mega', 'BJB', 'Jenius', 'OCBC NISP', 'Panin Bank', 'DBS/Digibank', 
-            'Bank Neo Commerce', 'BTN', 'Commonwealth Bank', 'CitiBank', 'HSBC', 'Standard Chartered'
+            'Superbank', 'Bank DKI', 'Bank Mega', 'BJB', 'Jenius', 'OCBC NISP', 'Panin Bank', 
+            'Bank Neo Commerce', 'BTN', 'HSBC'
         ]
     }
     
@@ -456,56 +458,81 @@ def add_transaction():
     user_id = session['user_id']
     db = get_db()
     
+    # Mengambil daftar akun milik user
     accounts = db.execute('SELECT id, name FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     
     if not accounts:
-        flash('Anda harus membuat minimal satu Akun (Cash, Bank, E-Wallet) sebelum mencatat transaksi.', 'warning')
+        flash('Anda harus membuat minimal satu Akun sebelum mencatat transaksi.', 'warning')
         return redirect(url_for('setup_account'))
 
     error = None
     if request.method == 'POST':
         try:
+            t_type = request.form.get('type') # income, expense, atau transfer
             date_str = request.form['date']
-            account_id = request.form['account_id']
-            type = request.form['type']
-            category = request.form['category'] 
-            
             raw_amount = request.form['amount'].replace('.', '').replace(',', '.')
             amount = float(raw_amount)
-            
             description = request.form['description']
-            
-            if not date_str or not account_id or not type or amount <= 0 or not category:
-                raise ValueError("Semua field wajib diisi dengan benar.")
 
-            selected_account = db.execute('SELECT name FROM accounts WHERE id = ? AND user_id = ?', 
-                                          (account_id, user_id)).fetchone()
-            if not selected_account:
-                raise ValueError("Akun tidak ditemukan.")
-            
-            # Simpan Transaksi
-            db.execute('''
-                INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, date_str, account_id, type, amount, description, category))
+            # --- LOGIKA KHUSUS TRANSFER ---
+            if t_type == 'transfer':
+                from_id = request.form['account_id'] # Sumber
+                to_id = request.form['to_account_id'] # Tujuan
+                
+                if not to_id:
+                    raise ValueError("Harap pilih akun tujuan transfer.")
+                if from_id == to_id:
+                    raise ValueError("Akun asal dan tujuan tidak boleh sama.")
 
-            adjustment = amount if type == 'income' else -amount
-            db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', 
-                       (adjustment, account_id))
+                # Ambil nama akun untuk catatan histori
+                acc_from = db.execute('SELECT name FROM accounts WHERE id = ?', (from_id,)).fetchone()['name']
+                acc_to = db.execute('SELECT name FROM accounts WHERE id = ?', (to_id,)).fetchone()['name']
+                clean_from = acc_from.split('] ')[1] if '] ' in acc_from else acc_from
+                clean_to = acc_to.split('] ')[1] if '] ' in acc_to else acc_to
+
+                # 1. Simpan transaksi Keluar (dari sumber)
+                db.execute('''
+                    INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, date_str, from_id, 'expense', amount, f"Transfer ke {clean_to}: {description}", "Transfer Out"))
+                
+                # 2. Simpan transaksi Masuk (ke tujuan)
+                db.execute('''
+                    INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, date_str, to_id, 'income', amount, f"Terima dari {clean_from}: {description}", "Transfer In"))
+
+                # 3. Update Saldo kedua akun
+                db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (amount, from_id))
+                db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', (amount, to_id))
+            
+            # --- LOGIKA TRANSAKSI BIASA (INCOME/EXPENSE) ---
+            else:
+                account_id = request.form['account_id']
+                category = request.form['category']
+                
+                if not category:
+                    raise ValueError("Kategori wajib dipilih.")
+
+                db.execute('''
+                    INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, date_str, account_id, t_type, amount, description, category))
+
+                adjustment = amount if t_type == 'income' else -amount
+                db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', 
+                           (adjustment, account_id))
             
             db.commit()
-            
-            flash(f"Transaksi {type.capitalize()} sebesar {format_rupiah(amount)} berhasil dicatat di akun {selected_account['name']}.", 'success')
+            flash("Data berhasil disimpan!", 'success')
             return redirect(url_for('dashboard'))
 
-        except ValueError as e:
-            error = str(e)
         except Exception as e:
-            error = f"Terjadi kesalahan saat mencatat transaksi: {e}"
+            error = str(e)
 
     today = datetime.now().strftime('%Y-%m-%d')
     return render_template('add_transaction.html', 
-                           accounts=accounts,
+                           accounts=accounts, 
                            categories=CATEGORIES, 
                            today=today, 
                            error=error)
@@ -560,6 +587,52 @@ def delete_transaction(transaction_id):
         
     return redirect(url_for('transactions_list'))
 
+# --- FITUR BARU: EXPORT DATA KE EXCEL (CSV) ---
+@app.route('/export_csv')
+@login_required
+def export_csv():
+    user_id = session.get('user_id')
+    db = get_db()
+    
+    # Ambil semua data transaksi lengkap dengan nama akun
+    transactions = db.execute('''
+        SELECT t.date, a.name as account_name, t.type, t.category, t.amount, t.description
+        FROM transactions t
+        JOIN accounts a ON t.account_id = a.id
+        WHERE t.user_id = ?
+        ORDER BY t.date DESC
+    ''', (user_id,)).fetchall()
+
+    # Siapkan file di memori
+    si = StringIO()
+    cw = csv.writer(si)
+    
+    # Header kolom di Excel nanti
+    cw.writerow(['Tanggal', 'Akun', 'Tipe', 'Kategori', 'Jumlah', 'Deskripsi'])
+    
+    for t in transactions:
+        # Bersihkan nama akun dari [BANK] dsb sebelum masuk Excel
+        full_name = t['account_name']
+        clean_name = full_name.split('] ')[1] if '] ' in full_name else full_name
+        
+        cw.writerow([
+            t['date'], 
+            clean_name, 
+            t['type'].capitalize(), 
+            t['category'], 
+            t['amount'], 
+            t['description']
+        ])
+
+    output = si.getvalue()
+    si.close()
+
+    # Kirim file sebagai download-an
+    return Response(
+        output,
+        mimetype="text/csv",
+        headers={"Content-disposition": "attachment; filename=history_transaksi_treasury.csv"}
+    )
 
 if __name__ == '__main__':
     # Memastikan migrasi database berjalan saat aplikasi dimulai jika file DB sudah ada

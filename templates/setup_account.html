@@ -12,24 +12,34 @@
     <style>
         /* Gaya Minimalis & Konsisten */
         body { 
-            background-color: #f8faff; 
-            color: #333;
+            background-color: #f5f5f5; 
+            color: #111827;
+        }
+        /* Revisi: Pastikan navbar tetap di atas dan punya bayangan halus */
+        .navbar { 
+            position: sticky; 
+            top: 0; 
+            z-index: 1050;
         }
         .navbar {
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #f5f5f5;
             background-color: #ffffff !important;
         }
         .navbar-brand {
             font-weight: 700;
-            color: #333 !important;
+            color: #11237e !important;
         }
+        .btn-primary { background-color: #ef4444; color: white; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: none; }
+        .btn-secondary { background-color: #6c757d; color: white; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: none; }
+        .btn-success { background-color: #ef4444; color: white; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: none; }
+        .btn-danger { background-color: #ef4444; color: white; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: none; }
         .setup-card { 
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
             border: none;
         }
         .card-header-custom {
-            background-color: #007bff;
+            background-color: #007aff;
             color: white;
             border-top-left-radius: 12px;
             border-top-right-radius: 12px;
@@ -37,42 +47,65 @@
         .list-group-item {
             border-radius: 8px !important;
             margin-bottom: 4px;
-            border-left: 4px solid #007bff;
+            border-left: 4px solid #007aff;
         }
         
         /* Gaya Select2 */
         .select2-container .select2-selection--single {
-            height: 38px; padding: 6px 12px; border: 1px solid #ced4da; border-radius: 0.375rem;
+            height: 38px; padding: 6px 12px; border: 1px solid #6c757d; border-radius: 0.375rem;
         }
         .select2-container .select2-selection--single .select2-selection__arrow { height: 36px; }
         .select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 24px; }
-        
-        /* Logo dan Warna - CONSISTENCY FIX */
-        .wallet-GOPAY { color: #00AA13; }
-        .wallet-DANA { color: #108DE6; }
-        .wallet-OVO { color: #4C248D; }
-        .wallet-LINKAJA { color: #FF2700; }
-        .wallet-SHOPEEPAY { color: #EE4D2D; }
-        /* Warna Khusus Bank (Simulasi Logo) */
-        .bank-BCA { color: #005f9c; }
-        .bank-BRI { color: #0037a3; } 
-        .bank-BNI { color: #fcc000; }
-        .bank-MANDIRI { color: #004C92; }
-        .bank-BSI { color: #00b050; } 
-        .bank-SEABANK { color: #87ceeb; } 
-        .icon-CASH { color: #5a5a5a; } 
-        
-        /* Ikon Default untuk Bank/E-Wallet yang tidak punya warna khusus di CSS */
-        .fas.fa-university { color: #000; } 
-        .fas.fa-wallet { color: #ff9900; }
 
         .footer-branding {
             font-size: 0.8rem;
-            color: #ccc;
+            color: #6c757d;
             margin-top: 50px;
             padding-bottom: 10px;
             text-align: center;
         }
+        
+        .logo-provider {
+            height: 20px !important;
+            width: auto !important;
+            margin-right: 10px !important;
+            vertical-align: middle !important;
+            object-fit: contain !important;
+            display: inline-block !important;
+        }
+
+        .list-group-item div {
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-logo {
+            /* --- DI SINI TEMPAT NGATURNYA --- */
+            height: 70px;  /* <--- UBAH ANGKA INI UNTUK BESAR/KECIL */
+            
+            width: auto;   /* Biar gak gepeng, lebar ngikutin tinggi */
+            margin-right: 5px; 
+            object-fit: contain;
+            
+            /* --- TAMBAHAN UNTUK GESER POSISI (KETINGGIAN) --- */
+            margin-top: -13px; /* <--- Kasih angka minus (misal -5px) kalau mau naikin logo */
+            margin-bottom: 0px; /* <--- Kasih angka (misal 5px) kalau mau nurunin logo */
+
+            /* --- PENGATURAN KANAN KIRI --- */
+            margin-left: -25px;   /* Jarak logo dari pinggir kiri layar */
+            margin-right: 0px;  /* Jarak logo dari teks "TREASURY FLOW" (sebelah kanan) */
+        }
+
+        .navbar-brand span {
+            color: #11237e; /* Warna biru tua brand kamu */
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+
+        .modal-header.bg-danger {
+            background-color: #ef4444 !important; /* Merah yang lebih modern */
+        }
+
     </style>
 </head>
 <body>
@@ -81,63 +114,92 @@
     {% set name_parts = account_name.split('] ') %}
     {% set detail_name = name_parts[1] if name_parts|length > 1 else account_name %}
     {% set category = account_name.split(']')[0].replace('[', '') if '[' in account_name else 'CASH' %}
+    {% set d = detail_name | upper %}
 
     {% if category == 'CASH' %}
-        <i class="fas fa-money-bill-wave icon-CASH me-2"></i>
-    {% elif category == 'E-WALLET' %}
-        {% set icon_class = 'fas fa-wallet' %}
-        {% set color_class = 'wallet-' ~ detail_name|upper %}
-        <i class="{{ icon_class }} {{ color_class }} me-2"></i>
+        <img src="https://ozip.com.au/wp-content/uploads/2020/08/100_2.png" class="logo-provider">
+
     {% elif category == 'BANK' %}
-        {% set icon_class = 'fas fa-university' %}
-        {% set color_class = 'bank-' ~ detail_name|upper %}
-        <i class="{{ icon_class }} {{ color_class }} me-2"></i>
+        {% if 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="logo-provider">
+        {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="logo-provider">
+        {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="logo-provider">
+        {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="logo-provider">
+        {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia_2021.svg" class="logo-provider">
+        {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/0/0e/CIMB_Niaga_logo.svg" class="logo-provider">
+        {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="logo-provider">
+        {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f3/Logo_Jenius.png" class="logo-provider">
+        {% elif 'NEO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Bank_Neo_Commerce_logo.svg" class="logo-provider">
+        {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/30/OCBC_Bank_logo.svg" class="logo-provider">
+        {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="logo-provider">
+        {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Permata_Bank_logo.svg" class="logo-provider">
+        {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/18/Bank_BTN_logo.svg" class="logo-provider">
+        {% elif 'MAYBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Maybank-Logo.svg" class="logo-provider">
+        {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="logo-provider">
+        {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="logo-provider">
+        {% else %}<i class="fas fa-university me-2 text-primary"></i>
+        {% endif %}
+
+    {% elif category == 'E-WALLET' %}
+        {% if 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="logo-provider">
+        {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_danain.png" class="logo-provider">
+        {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="logo-provider">
+        {% elif 'SHOPEE' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/ShopeePay_logo.svg" class="logo-provider">
+        {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/83/LinkAja.svg" class="logo-provider">
+        {% elif 'ASTRAPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/AstraPay_logo.png" class="logo-provider">
+        {% elif 'QRIS' in d %}<i class="fas fa-qrcode me-2 text-primary"></i>
+        {% elif 'SAKUKU' in d or 'BLUEPAY' in d or 'ISAKU' in d %}<i class="fas fa-wallet me-2 text-info"></i>
+        {% else %}<i class="fas fa-wallet me-2 text-primary"></i>
+        {% endif %}
+
     {% else %}
-        <i class="fas fa-credit-card me-2"></i>
+        <i class="fas fa-money-bill-wave icon-CASH me-2"></i>
     {% endif %}
 {% endmacro %}
 
         <nav class="navbar bg-white border-bottom p-3">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">TREASURY FLOW</a>
-        
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
+            <span>TREASURY FLOW</span>
+        </a>
+    
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
-            <i class="fas fa-bars fa-lg"></i>
+                <i class="fas fa-bars fa-lg"></i>
             </button>
-        
+    
             <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
                 <div class="offcanvas-header border-bottom">
-                    <h5 class="offcanvas-title fw-bold" id="offcanvasNavbarLabel text-primary">MENU UTAMA</h5>
+                    <h5 class="offcanvas-title fw-bold" id="offcanvasNavbarLabel" style="color: #11237e;">MENU</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                 </div>
-                <div class="offcanvas-body">
+                <div class="offcanvas-body" style="background-color: #f5f5f5;">
                     <ul class="navbar-nav justify-content-end flex-grow-1">
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">
+                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827;">
                                 <i class="fas fa-home me-3 text-primary"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}">
-                                <i class="fas fa-wallet me-3 text-success"></i> Kelola Accounts
+                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827;">
+                                <i class="fas fa-wallet me-3 text-success"></i> Manage Accounts
                             </a>
                         </li>
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}">
-                                <i class="fas fa-list me-3 text-info"></i> Riwayat Transaksi
+                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827;">
+                                <i class="fas fa-list me-3 text-info"></i> Transaction History
                             </a>
                         </li>
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}">
-                                <i class="fas fa-user-cog me-3 text-secondary"></i> Pengaturan Akun
+                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827;">
+                                <i class="fas fa-user-cog me-3 text-secondary"></i> Settings
                             </a>
                         </li>
-                    
+                
                         <hr class="my-4">
-                    
+                
                         <li class="nav-item">
-                            <button type="button" class="btn btn-danger w-100 p-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px;">
-                                <i class="fas fa-sign-out-alt me-2"></i> Keluar Aplikasi
+                            <button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px;">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
                             </button>
                         </li>
                     </ul>
@@ -147,8 +209,7 @@
     </nav>
 
     <div class="container mt-5 setup-container">
-        <h1><i class="fas fa-university"></i> Kelola Accounts</h1>
-        <hr>
+        <h1><i class="fas fa-university"></i> Manage Accounts</h1>
         
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -164,9 +225,9 @@
                     <div class="card-header card-header-custom">
                         <h5 class="my-1">
                             {% if account_to_edit %}
-                                <i class="fas fa-edit"></i> Edit Saldo Awal Akun
+                                <i class="fas fa-edit"></i> Edit Balance
                             {% else %}
-                                <i class="fas fa-plus"></i> Tambah Account Baru
+                                <i class="fas fa-plus"></i> Add New Account
                             {% endif %}
                         </h5>
                     </div>
@@ -178,28 +239,28 @@
                                 <input type="hidden" name="edit_account_id" value="{{ account_to_edit.id }}">
                                 
                                 <div class="mb-3">
-                                    <label class="form-label">Nama Akun:</label>
+                                    <label class="form-label">Account Name:</label>
                                     <input type="text" class="form-control" value="{{ account_to_edit.name }}" disabled>
-                                    <small class="text-muted">Nama akun tidak bisa diubah.</small>
+                                    <small class="text-muted">Account name cannot be changed.</small>
                                 </div>
 
                                 <div class="mb-3">
-                                    <label for="initial_balance" class="form-label">Saldo Awal Baru (IDR):</label>
+                                    <label for="initial_balance" class="form-label">New Balance (IDR):</label>
                                     <input type="text" id="initial_balance" name="initial_balance" class="form-control" 
                                            placeholder="Cth: 1.250.000,00" required 
                                            value="{{ account_to_edit.initial_balance | format_rupiah_input }}">
                                 </div>
                                 
-                                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-save"></i> Update Saldo Awal</button>
-                                <a href="{{ url_for('setup_account') }}" class="btn btn-secondary w-100 mt-2">Batal Edit</a>
+                                <button type="submit" class="btn btn-primary w-100"><i class="fas fa-save"></i> Update Balance</button>
+                                <a href="{{ url_for('setup_account') }}" class="btn btn-secondary w-100 mt-2">Cancel Edit</a>
 
                             {% else %}
                                 <input type="hidden" name="action" value="add">
 
                                 <div class="mb-3">
-                                    <label for="category_key" class="form-label">Kategori:</label>
+                                    <label for="category_key" class="form-label">Category:</label>
                                     <select id="category_key" name="category_key" class="form-select" required>
-                                        <option value="" disabled selected>Pilih Kategori</option>
+                                        <option value="" disabled selected>Select Category</option>
                                         {% for key in categories.keys() %}
                                         <option value="{{ key }}">{{ key }}</option>
                                         {% endfor %}
@@ -207,19 +268,19 @@
                                 </div>
 
                                 <div class="mb-3" id="name_detail_group" style="display:none;">
-                                    <label for="name_detail" class="form-label">Nama Bank/E-Wallet:</label>
+                                    <label for="name_detail" class="form-label">Name Bank/E-Wallet:</label>
                                     <select id="name_detail" name="name_detail" class="form-select searchable-select" required disabled>
                                     </select>
                                 </div>
                                 
                                 <div class="mb-3">
-                                    <label for="initial_balance" class="form-label">Saldo Awal (IDR):</label>
+                                    <label for="initial_balance" class="form-label">Initial Balance (IDR):</label>
                                     <input type="text" id="initial_balance" name="initial_balance" class="form-control" placeholder="Cth: 1.250.000,00" required>
                                 </div>
                                 
                                 <div class="d-flex justify-content-between">
-                                    <button type="submit" class="btn btn-success me-2"><i class="fas fa-check"></i> Selesai Input</button>
-                                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary"><i class="fas fa-home"></i> Ke Dashboard</a>
+                                    <button type="submit" class="btn btn-success me-2"><i class="fas fa-check"></i> Finish Input</button>
+                                    <a href="{{ url_for('dashboard') }}" class="btn btn-secondary"><i class="fas fa-home"></i> Dashboard</a>
                                 </div>
                                 
                             {% endif %}
@@ -229,15 +290,15 @@
             </div>
 
             <div class="col-md-7">
-                <h3>Daftar Accounts Saat Ini</h3>
+                <h3>Accounts List</h3>
                 <div class="list-group">
                 {% if accounts %}
                     {% for acc in accounts %}
                         <div class="list-group-item d-flex justify-content-between align-items-center setup-card bg-white">
                             <div>
-                                {{ get_account_icon(acc.name) }} 
-                                <strong>{{ acc.name }}</strong>
+                                {{ get_account_icon(acc.name) }}
                             </div>
+
                             <div class="d-flex align-items-center">
                                 <span class="badge bg-primary text-white me-3 p-2">{{ acc.initial_balance | rupiah }}</span>
                                 
@@ -252,7 +313,7 @@
                         </div>
                     {% endfor %}
                 {% else %}
-                    <div class="list-group-item text-muted">Belum ada akun terdaftar. Silakan tambahkan di samping.</div>
+                    <div class="list-group-item text-muted">No account yet. Please add.</div>
                 {% endif %}
                 </div>
             </div>
@@ -267,12 +328,12 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        Apakah Anda yakin ingin menghapus akun **<span id="accountNameToDelete" class="fw-bold"></span>**? <br>
+        Apakah Anda yakin ingin menghapus akun <span id="accountNameToDelete" style="color: #28a745 !important;" class="fw-bold"></span>?
         <small class="text-danger fw-bold">Penghapusan hanya berhasil jika akun tidak memiliki transaksi terkait.</small>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-        <a id="deleteAccountLink" href="#" class="btn btn-danger">Ya, Hapus Permanen</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a id="deleteAccountLink" href="#" class="btn btn-danger">Yes, Delete</a>
       </div>
     </div>
   </div>
@@ -282,15 +343,15 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="logoutModalLabel">Konfirmasi Logout</h5>
+        <h5 class="modal-title" id="logoutModalLabel">Confirmation Logout</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        Apakah Anda yakin ingin keluar dari Treasury Flow?
+        Are you sure you want to logout from Treasury Flow?
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-        <a href="{{ url_for('logout') }}" class="btn btn-danger">Ya, Logout</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">Yes, Logout</a>
       </div>
     </div>
   </div>
@@ -306,10 +367,31 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
 
     <script>
+        const balanceInput = document.getElementById('initial_balance');
+        if (balanceInput) {
+            balanceInput.addEventListener('keyup', function() {
+                this.value = formatRupiah(this.value);
+            });
+        }
+
         const categoriesData = {{ categories | tojson }}; 
         const categorySelect = $('#category_key');
         const nameDetailSelect = $('#name_detail');
         const nameDetailGroup = $('#name_detail_group');
+
+        function formatRupiah(angka) {
+            var number_string = angka.replace(/[^,\d]/g, '').toString(),
+                split = number_string.split(','),
+                sisa = split[0].length % 3,
+                rupiah = split[0].substr(0, sisa),
+                ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+
+            if (ribuan) {
+                let separator = sisa ? '.' : '';
+                rupiah += separator + ribuan.join('.');
+            }
+            return split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+        }
 
         $(document).ready(function() {
              // Inisialisasi Select2
@@ -361,8 +443,8 @@
                 const modalBodyName = deleteModal.querySelector('#accountNameToDelete');
                 const modalFooterLink = deleteModal.querySelector('#deleteAccountLink');
 
-                modalBodyName.textContent = accountName;
-                // Atur URL hapus
+                const cleanName = accountName.includes('] ') ? accountName.split('] ')[1] : accountName;
+                modalBodyName.textContent = cleanName;
                 modalFooterLink.href = "{{ url_for('setup_account') }}?delete_id=" + accountId;
             });
         });

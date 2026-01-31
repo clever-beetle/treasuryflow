@@ -9,16 +9,26 @@
     <style>
         /* Gaya Minimalis & Konsisten */
         body { 
-            background-color: #f8faff; 
-            color: #333;
+            background-color: #f5f5f5; 
+            color: #111827;
         }
         .navbar {
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #f5f5f5;
             background-color: #ffffff !important;
         }
+        .navbar { 
+            position: sticky; 
+            top: 0; 
+            z-index: 1050; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .btn-outline-secondary { background-color: #28a745; color: white; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: none; }
+        .btn-success { background-color: #ef4444; color: white; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: none; }
+        .btn-light { background-color: #f5f5f5; color: white; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: none; }
+        /* .btn-sm { background-color: #ef4444; color: white; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: none; } */
         .navbar-brand {
             font-weight: 700;
-            color: #333 !important;
+            color: #11237e !important;
         }
         .card-saldo, .card-stats {
             border: none;
@@ -28,16 +38,16 @@
             background-color: #ffffff; 
         }
         .card-saldo {
-            background-color: #007bff; 
+            background-color: #007aff; 
             color: white;
         }
         .card-stats {
-            color: #333;
+            color: #6c757d;
         }
         .list-group-item {
             border-radius: 8px !important;
             margin-bottom: 4px;
-            border-left: 4px solid #007bff;
+            border-left: 4px solid #ef4444;
         }
         
         /* Warna Khusus E-Wallet (untuk ikon) - CONSISTENCY FIX */
@@ -57,11 +67,60 @@
 
         .footer-branding {
             font-size: 0.8rem;
-            color: #ccc;
+            color: #6c757d;
             margin-top: 50px;
             padding-bottom: 10px;
             text-align: center;
         }
+
+        .logo-provider {
+            height: 20px !important;
+            width: auto !important;
+            margin-right: 10px !important;
+            vertical-align: middle !important;
+            object-fit: contain !important;
+            display: inline-block !important;
+        }
+
+        .list-group-item div {
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand {
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .navbar-logo {
+            /* --- DI SINI TEMPAT NGATURNYA --- */
+            height: 70px;  /* <--- UBAH ANGKA INI UNTUK BESAR/KECIL */
+            
+            width: auto;   /* Biar gak gepeng, lebar ngikutin tinggi */
+            margin-right: 5px; 
+            object-fit: contain;
+            
+            /* --- TAMBAHAN UNTUK GESER POSISI (KETINGGIAN) --- */
+            margin-top: -13px; /* <--- Kasih angka minus (misal -5px) kalau mau naikin logo */
+            margin-bottom: 0px; /* <--- Kasih angka (misal 5px) kalau mau nurunin logo */
+
+            /* --- PENGATURAN KANAN KIRI --- */
+            margin-left: -25px;   /* Jarak logo dari pinggir kiri layar */
+            margin-right: 0px;  /* Jarak logo dari teks "TREASURY FLOW" (sebelah kanan) */
+        }
+
+        .navbar-brand span {
+            color: #11237e; /* Warna biru tua brand kamu */
+            font-size: 1.25rem;
+            line-height: 1;
+        }
+
+        .modal-header.bg-danger {
+            background-color: #ef4444 !important; /* Merah yang lebih modern */
+        }
+
+        .btn-danger { background-color: #ef4444; color: white; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: none; }
+
     </style>
 </head>
 <body>
@@ -70,64 +129,93 @@
     {% set name_parts = account_name.split('] ') %}
     {% set detail_name = name_parts[1] if name_parts|length > 1 else account_name %}
     {% set category = account_name.split(']')[0].replace('[', '') if '[' in account_name else 'CASH' %}
+    {% set d = detail_name | upper %}
 
     {% if category == 'CASH' %}
-        <i class="fas fa-money-bill-wave icon-CASH me-2"></i>
-    {% elif category == 'E-WALLET' %}
-        {% set icon_class = 'fas fa-wallet' %}
-        {% set color_class = 'wallet-' ~ detail_name|upper %}
-        <i class="{{ icon_class }} {{ color_class }} me-2"></i>
+        <img src="https://ozip.com.au/wp-content/uploads/2020/08/100_2.png" class="logo-provider">
+
     {% elif category == 'BANK' %}
-        {% set icon_class = 'fas fa-university' %}
-        {% set color_class = 'bank-' ~ detail_name|upper %}
-        <i class="{{ icon_class }} {{ color_class }} me-2"></i>
+        {% if 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="logo-provider">
+        {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="logo-provider">
+        {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="logo-provider">
+        {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="logo-provider">
+        {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia_2021.svg" class="logo-provider">
+        {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/0/0e/CIMB_Niaga_logo.svg" class="logo-provider">
+        {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="logo-provider">
+        {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f3/Logo_Jenius.png" class="logo-provider">
+        {% elif 'NEO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Bank_Neo_Commerce_logo.svg" class="logo-provider">
+        {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/30/OCBC_Bank_logo.svg" class="logo-provider">
+        {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="logo-provider">
+        {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Permata_Bank_logo.svg" class="logo-provider">
+        {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/18/Bank_BTN_logo.svg" class="logo-provider">
+        {% elif 'MAYBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/d/da/Maybank-Logo.svg" class="logo-provider">
+        {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="logo-provider">
+        {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="logo-provider">
+        {% else %}<i class="fas fa-university me-2 text-primary"></i>
+        {% endif %}
+
+    {% elif category == 'E-WALLET' %}
+        {% if 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="logo-provider">
+        {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_danain.png" class="logo-provider">
+        {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="logo-provider">
+        {% elif 'SHOPEE' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/ShopeePay_logo.svg" class="logo-provider">
+        {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/83/LinkAja.svg" class="logo-provider">
+        {% elif 'ASTRAPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a3/AstraPay_logo.png" class="logo-provider">
+        {% elif 'QRIS' in d %}<i class="fas fa-qrcode me-2 text-primary"></i>
+        {% elif 'SAKUKU' in d or 'BLUEPAY' in d or 'ISAKU' in d %}<i class="fas fa-wallet me-2 text-info"></i>
+        {% else %}<i class="fas fa-wallet me-2 text-primary"></i>
+        {% endif %}
+
     {% else %}
-        <i class="fas fa-credit-card me-2"></i>
+        <i class="fas fa-money-bill-wave icon-CASH me-2"></i>
     {% endif %}
 {% endmacro %}
 
 
     <nav class="navbar bg-white border-bottom p-3">
         <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">TREASURY FLOW</a>
-        
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
+            <span>TREASURY FLOW</span>
+        </a>
+    
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
-            <i class="fas fa-bars fa-lg"></i>
+                <i class="fas fa-bars fa-lg"></i>
             </button>
-        
+    
             <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
                 <div class="offcanvas-header border-bottom">
-                    <h5 class="offcanvas-title fw-bold" id="offcanvasNavbarLabel text-primary">MENU UTAMA</h5>
+                    <h5 class="offcanvas-title fw-bold" id="offcanvasNavbarLabel" style="color: #11237e;">MENU</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
                 </div>
-                <div class="offcanvas-body">
+                <div class="offcanvas-body" style="background-color: #f5f5f5;">
                     <ul class="navbar-nav justify-content-end flex-grow-1">
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}">
+                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827;">
                                 <i class="fas fa-home me-3 text-primary"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}">
-                                <i class="fas fa-wallet me-3 text-success"></i> Kelola Accounts
+                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827;">
+                                <i class="fas fa-wallet me-3 text-success"></i> Manage Accounts
                             </a>
                         </li>
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}">
-                                <i class="fas fa-list me-3 text-info"></i> Riwayat Transaksi
+                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827;">
+                                <i class="fas fa-list me-3 text-info"></i> Transaction History
                             </a>
                         </li>
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded {{ 'active bg-light fw-bold' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}">
-                                <i class="fas fa-user-cog me-3 text-secondary"></i> Pengaturan Akun
+                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827;">
+                                <i class="fas fa-user-cog me-3 text-secondary"></i> Settings
                             </a>
                         </li>
-                    
+                
                         <hr class="my-4">
-                    
+                
                         <li class="nav-item">
-                            <button type="button" class="btn btn-danger w-100 p-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px;">
-                                <i class="fas fa-sign-out-alt me-2"></i> Keluar Aplikasi
+                            <button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px;">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
                             </button>
                         </li>
                     </ul>
@@ -135,8 +223,9 @@
             </div>
         </div>
     </nav>
+    
 <div class="container mt-5">
-    <h1 class="mb-4">Halo, {{ session.get('fullname') or 'Pengguna' }}!</h1>
+    <h1 class="mb-4">Hi, {{ session.get('fullname') or 'Pengguna' }}!</h1>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
@@ -151,25 +240,36 @@
             <div class="card card-saldo p-3">
                 <div class="card-body">
                     <h5 class="card-title text-white"><i class="fas fa-coins me-2"></i> TOTAL SALDO</h5>
-                    <p class="card-text fs-2 fw-bold text-white">{{ total_saldo | rupiah }}</p>
+                    <div class="d-flex align-items-center justify-content-start">
+                        <p class="card-text fs-2 fw-bold text-white mb-0" id="main-balance" data-value="{{ total_saldo | rupiah }}">
+                            {{ total_saldo | rupiah }}
+                        </p>
+                        
+                        <button type="button" id="btn-eye" class="btn btn-link text-white p-0 ms-3" style="text-decoration: none; border: none; box-shadow: none;">
+                            <i class="fas fa-eye" id="eye-icon" style="font-size: 1.2rem; opacity: 0.8;"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
-        
+        </div>  
+    
         <div class="col-lg-4 col-md-6 mb-4">
             <div class="card card-stats p-3">
                 <div class="card-body">
-                    <h5 class="card-title text-danger">
-                        <i class="fas fa-calendar-alt me-2"></i> PENGELUARAN 
-                        <div class="btn-group float-end">
-                            <button type="button" class="btn btn-sm btn-outline-danger dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                    <h5 class="card-title text-danger d-flex justify-content-between align-items-center">
+                        <span><i class="fas fa-calendar-alt me-2"></i> PERIODE</span>
+                        
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-sm btn-outline-danger dropdown-toggle py-0 px-2" data-bs-toggle="dropdown" style="font-size: 0.75rem; height: 24px;">
                                 {{ days_range }} Hari
                             </button>
-                            <ul class="dropdown-menu">
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', days=3) }}">3 Hari Terakhir</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', days=7) }}">7 Hari Terakhir</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', days=30) }}">30 Hari Terakhir</a></li>
-                                <li><a class="dropdown-item" href="{{ url_for('dashboard', days=365) }}">1 Tahun Terakhir</a></li>
+                            <ul class="dropdown-menu shadow">
+                                <li><a class="dropdown-item small" href="{{ url_for('dashboard', days=3) }}">3 Hari terakhir</a></li>
+                                <li><a class="dropdown-item small" href="{{ url_for('dashboard', days=7) }}">7 Hari terakhir</a></li>
+                                <li><a class="dropdown-item small" href="{{ url_for('dashboard', days=30) }}">30 Hari terakhir</a></li>
+                                <li><a class="dropdown-item small" href="{{ url_for('dashboard', days=90) }}">3 Bulan terakhir</a></li>
+                                <li><a class="dropdown-item small" href="{{ url_for('dashboard', days=180) }}">6 Bulan terakhir</a></li>
+                                <li><a class="dropdown-item small" href="{{ url_for('dashboard', days=365) }}">1 Tahun terakhir</a></li>
                             </ul>
                         </div>
                     </h5>
@@ -186,40 +286,37 @@
                 </div>
             </div>
         </div>
-
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="card card-stats p-3 border-danger">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="fas fa-money-bill-wave me-2"></i> TOTAL PENGELUARAN</h5>
-                    <p class="card-text fs-4 fw-bold text-danger">{{ total_expense | rupiah }}</p>
-                </div>
+    </div>
+    
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="d-grid d-md-inline-block">
+                <a href="{{ url_for('add_transaction') }}" class="btn btn-success py-3 px-4 shadow-sm fw-bold mb-2 mb-md-0">
+                    <i class="fas fa-plus me-1"></i> Catat Transaksi Baru
+                </a>
+                
+                <a href="{{ url_for('transactions_list') }}" class="btn btn-outline-secondary py-3 px-4 shadow-sm fw-bold ms-md-3">
+                    <i class="fas fa-list me-1"></i> Lihat Semua Transaksi
+                </a>
             </div>
         </div>
     </div>
-    
-    <div class="mb-5">
-        <a href="{{ url_for('add_transaction') }}" class="btn btn-success me-3 py-2 px-4 shadow-sm fw-bold">
-            <i class="fas fa-plus"></i> Catat Transaksi Baru
-        </a>
-        <a href="{{ url_for('transactions_list') }}" class="btn btn-outline-secondary py-2 px-4 shadow-sm fw-bold">
-            <i class="fas fa-list"></i> Lihat Semua Transaksi
-        </a>
-    </div>
 
-    <div class="row">
+    <div class="row g-3 mb-4">
         <div class="col-md-5 mb-4">
-            <h3 class="mb-3">Daftar Accounts</h3>
+            <h3 class="mb-3">Accounts List</h3>
             <ul class="list-group">
                 {% for account in accounts %}
-                <li class="list-group-item d-flex justify-content-between align-items-center card-stats">
-                    <div>
-                         {{ get_account_icon(account.name) }} 
-                         <strong>{{ account.name }}</strong>
+                <li class="list-group-item d-flex justify-content-between align-items-center card-stats p-3">
+                    <div class="d-flex align-items-center">
+                        {{ get_account_icon(account.name) }}
                     </div>
-                    <span class="badge bg-primary rounded-pill p-2">{{ account.current_balance | rupiah }}</span>
+                    <span class="badge bg-primary rounded-pill p-2 px-3">{{ account.current_balance | rupiah }}</span>
                 </li>
                 {% else %}
-                <li class="list-group-item list-group-item-light">Belum ada akun terdaftar. <a href="{{ url_for('setup_account') }}">Atur sekarang</a>.</li>
+                <li class="list-group-item list-group-item-light text-center py-3">
+                    Belum ada akun terdaftar. <a href="{{ url_for('setup_account') }}" class="fw-bold">Atur sekarang</a>.
+                </li>
                 {% endfor %}
             </ul>
         </div>
@@ -227,32 +324,40 @@
         <div class="col-md-7 mb-4">
             <h3 class="mb-3">Transaksi Terbaru</h3>
             
-            <form method="GET" class="row g-2 mb-3 align-items-center card-stats p-3 rounded-3">
-                <div class="col-md-5">
-                    <select name="account_id" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="all" {% if filter_account_id == 'all' or filter_account_id == None %}selected{% endif %}>Semua Akun</option>
+            <form method="GET" class="row g-2 mb-3 align-items-end card-stats p-3 rounded-3 shadow-sm bg-white">
+                <div class="col-md-5 col-6">
+                    <label class="small fw-bold text-muted mb-1">Akun</label>
+                    <select name="account_id" class="form-select form-select-sm bg-light border-0" onchange="this.form.submit()" style="height: 38px;">
+                        <option value="all">Semua Akun</option>
                         {% for acc in accounts %}
-                            <option value="{{ acc.id }}" {% if filter_account_id|string == acc.id|string %}selected{% endif %}>{{ acc.name }}</option>
+                            <option value="{{ acc.id }}" {% if filter_account_id|string == acc.id|string %}selected{% endif %}>
+                                {{ acc.name.split('] ')[1] if '] ' in acc.name else acc.name }}
+                            </option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-5">
-                    <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
-                        <option value="all" {% if filter_type == 'all' or filter_type == None %}selected{% endif %}>Semua Tipe</option>
+
+                <div class="col-md-4 col-6">
+                    <label class="small fw-bold text-muted mb-1">Tipe</label>
+                    <select name="type" class="form-select form-select-sm bg-light border-0" onchange="this.form.submit()" style="height: 38px;">
+                        <option value="all">Semua</option>
                         <option value="income" {% if filter_type == 'income' %}selected{% endif %}>Pemasukan</option>
                         <option value="expense" {% if filter_type == 'expense' %}selected{% endif %}>Pengeluaran</option>
                     </select>
                 </div>
-                <div class="col-md-2">
-                    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-outline-secondary w-100">Reset</a>
+
+                <div class="col-md-3 col-12">
+                    <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-light border w-100 d-flex align-items-center justify-content-center fw-bold text-muted" style="height: 38px; font-size: 0.8rem;">
+                        <i class="fas fa-undo me-2"></i> RESET
+                    </a>
                 </div>
             </form>
 
-            <div class="table-responsive">
+            <div class="table-responsive bg-white rounded-3 shadow-sm p-2">
                 <table class="table table-striped table-hover mt-3">
                     <thead class="bg-light">
                         <tr>
-                            <th>Tgl</th>
+                            <th>Tanggal</th>
                             <th>Akun</th>
                             <th>Deskripsi</th>
                             <th>Jumlah</th>
@@ -262,7 +367,7 @@
                         {% for t in latest_transactions %}
                         <tr>
                             <td>{{ t.date }}</td>
-                            <td>{{ t.account_name }}</td>
+                            <td>{{ t.account_name.split('] ')[1] if '] ' in t.account_name else t.account_name }}</td>
                             <td>{{ t.description or '-' }}</td>
                             <td class="fw-bold
                                 {% if t.type == 'income' %}text-success
@@ -287,15 +392,15 @@
   <div class="modal-dialog">
     <div class="modal-content">
       <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="logoutModalLabel">Konfirmasi Logout</h5>
+        <h5 class="modal-title" id="logoutModalLabel">Confirmation Logout</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        Apakah Anda yakin ingin keluar dari Treasury Flow?
+        Are you sure you want to logout from Treasury Flow?
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-        <a href="{{ url_for('logout') }}" class="btn btn-danger">Ya, Logout</a>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger">Yes, Logout</a>
       </div>
     </div>
   </div>
@@ -306,5 +411,37 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const balanceText = document.getElementById('main-balance');
+    const eyeIcon = document.getElementById('eye-icon');
+    const btnEye = document.getElementById('btn-eye');
+
+    if (!btnEye || !balanceText) return; // Mencegah error kalau elemen belum ada
+
+    let isHidden = localStorage.getItem('balanceHidden') === 'true';
+
+    function updateView() {
+        const originalValue = balanceText.getAttribute('data-value');
+        if (isHidden) {
+            balanceText.innerText = "Rp ••••••••••";
+            eyeIcon.classList.replace('fa-eye', 'fa-eye-slash');
+        } else {
+            balanceText.innerText = originalValue;
+            eyeIcon.classList.replace('fa-eye-slash', 'fa-eye');
+        }
+    }
+
+    updateView();
+
+    btnEye.addEventListener('click', function(e) {
+        e.preventDefault();
+        isHidden = !isHidden;
+        localStorage.setItem('balanceHidden', isHidden);
+        updateView();
+    });
+});
+</script>
 </body>
 </html>

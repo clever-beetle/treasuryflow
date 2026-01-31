@@ -32,9 +32,9 @@
         
         /* Styling Input Field */
         .form-control-custom {
-            background-color: #f1f1f1;
+            background-color: #f5f5f5;
             border: none;
-            color: #555;
+            color: #6c757d;
             padding: 12px 15px;
             height: auto;
             transition: all 0.3s ease;
@@ -53,9 +53,9 @@
         }
         .input-group-custom .input-group-text {
             border-radius: 0 10px 10px 0 !important;
-            background-color: #f1f1f1;
+            background-color: #f5f5f5;
             border: none;
-            color: #555;
+            color: #6c757d;
             cursor: pointer; /* Kursor untuk ikon mata */
         }
         
@@ -71,8 +71,8 @@
 
         /* Styling Tombol Sekunder (Abu-abu Muda) */
         .btn-secondary-custom {
-            background-color: #e0e0e0;
-            color: #555555;
+            background-color: #f5f5f5;
+            color: #6c757d;
             border: none;
             border-radius: 10px;
             padding: 12px;
@@ -84,13 +84,13 @@
             display: flex;
             align-items: center;
             text-align: center;
-            color: #a0a0a0;
+            color: #6c757d;
             margin: 20px 0;
         }
         .separator::before, .separator::after {
             content: '';
             flex: 1;
-            border-bottom: 1px solid #e0e0e0;
+            border-bottom: 1px solid #f5f5f5;
         }
         .separator:not(:empty)::before { margin-right: .5em; }
         .separator:not(:empty)::after { margin-left: .5em; }
@@ -99,13 +99,22 @@
             font-weight: 600;
             margin-bottom: 5px;
         }
+        /* REVISI: Ukuran logo khusus halaman Login agar profesional */
+        .auth-logo {
+            height: 150px; /* Ukuran pas untuk branding di tengah */
+            width: auto;
+            display: block;
+            margin: -40px auto 5px auto; /* Margin auto agar ke tengah, bawah 15px untuk jarak ke teks */
+            object-fit: contain;
+        }
     </style>
 </head>
 <body>
     <div class="auth-card">
-        <h1 class="text-center mb-5" style="font-weight: 900; letter-spacing: 2px;">TREASURY FLOW</h1>
-        
-        <h2 class="mb-4" style="font-weight: bold;">Sign Up</h2>
+                <div class="text-center mb-4">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="auth-logo">
+            <h1 style="font-weight: 900; letter-spacing: 2px; margin-top: 10px;">TREASURY FLOW</h1>
+        </div>
 
         {% if error %}
             <div class="alert alert-danger" role="alert">
