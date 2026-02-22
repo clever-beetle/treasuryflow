@@ -1,7 +1,3 @@
-# ==============================================================================
-# File: app.py (Revisi Total - FIX VITAL: Database Migration & Fungsionalitas)
-# ==============================================================================
-
 import os
 import sqlite3
 import locale
@@ -10,6 +6,8 @@ from io import StringIO
 from datetime import datetime, timedelta 
 from functools import wraps
 from flask import Flask, render_template, request, url_for, redirect, session, g, flash, Response
+from flask import jsonify
+from fpdf import FPDF
 from werkzeug.security import generate_password_hash, check_password_hash
 
 # --- KONFIGURASI APLIKASI ---
@@ -66,7 +64,6 @@ except locale.Error:
         locale.setlocale(locale.LC_ALL, 'indonesian')
     except locale.Error:
         pass 
-
 
 # --- FUNGSI DATABASE & MIGRATION FIX ---
 
@@ -125,20 +122,18 @@ def init_db():
             )
         ''')
         
-        # 2. MIGRATION CHECK (FIX ERROR: no such column: t.category)
-        try:
-            # Jika kolom 'category' belum ada, SQLite akan error saat mencoba SELECT.
-            # Kita gunakan PRAGMA table_info untuk memeriksa.
-            cursor.execute("PRAGMA table_info(transactions)")
-            columns = [info['name'] for info in cursor.fetchall()]
-            
-            if 'category' not in columns:
-                print(">>> Menjalankan ALTER TABLE: Menambahkan kolom 'category' ke tabel transactions")
-                cursor.execute("ALTER TABLE transactions ADD COLUMN category TEXT")
-        except Exception as e:
-            # Ini mungkin terjadi jika tabel transactions belum ada, tapi CREATE TABLE di atas sudah mengatasinya.
-            print(f"Error saat migrasi database: {e}")
-            pass
+        # 2. AUTO-FIX: Cek Kolom Password & Category (Biar gak perlu migrasi manual)
+        cursor.execute("PRAGMA table_info(users)")
+        user_cols = [info[1] for info in cursor.fetchall()]
+        if 'password' not in user_cols:
+            print(">>> Fixing: Menambahkan kolom password...")
+            cursor.execute("ALTER TABLE users ADD COLUMN password TEXT DEFAULT '12345'")
+
+        cursor.execute("PRAGMA table_info(transactions)")
+        trans_cols = [info[1] for info in cursor.fetchall()]
+        if 'category' not in trans_cols:
+            print(">>> Fixing: Menambahkan kolom category...")
+            cursor.execute("ALTER TABLE transactions ADD COLUMN category TEXT")
             
         db.commit()
 
@@ -594,51 +589,194 @@ def export_csv():
     user_id = session.get('user_id')
     db = get_db()
     
-    # Ambil semua data transaksi lengkap dengan nama akun
-    transactions = db.execute('''
+    # Ambil parameter tanggal dari URL
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    query = '''
         SELECT t.date, a.name as account_name, t.type, t.category, t.amount, t.description
         FROM transactions t
         JOIN accounts a ON t.account_id = a.id
         WHERE t.user_id = ?
-        ORDER BY t.date DESC
-    ''', (user_id,)).fetchall()
+    '''
+    params = [user_id]
 
-    # Siapkan file di memori
+    # Tambahkan filter jika user milih tanggal
+    if start_date and end_date:
+        query += " AND t.date BETWEEN ? AND ?"
+        params.extend([start_date, end_date])
+    
+    query += " ORDER BY t.date DESC"
+    transactions = db.execute(query, params).fetchall()
+
     si = StringIO()
     cw = csv.writer(si)
-    
-    # Header kolom di Excel nanti
     cw.writerow(['Tanggal', 'Akun', 'Tipe', 'Kategori', 'Jumlah', 'Deskripsi'])
     
     for t in transactions:
-        # Bersihkan nama akun dari [BANK] dsb sebelum masuk Excel
         full_name = t['account_name']
         clean_name = full_name.split('] ')[1] if '] ' in full_name else full_name
-        
-        cw.writerow([
-            t['date'], 
-            clean_name, 
-            t['type'].capitalize(), 
-            t['category'], 
-            t['amount'], 
-            t['description']
-        ])
+        cw.writerow([t['date'], clean_name, t['type'].capitalize(), t['category'], t['amount'], t['description']])
 
     output = si.getvalue()
     si.close()
 
-    # Kirim file sebagai download-an
     return Response(
         output,
         mimetype="text/csv",
-        headers={"Content-disposition": "attachment; filename=history_transaksi_treasury.csv"}
+        headers={"Content-disposition": "attachment; filename=riwayat_transaksi.csv"}
     )
 
+@app.route('/export_pdf')
+@login_required
+def export_pdf():
+    user_id = session.get('user_id')
+    db = get_db()
+    
+    # Ambil parameter tanggal dari URL
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    query = '''
+        SELECT t.date, a.name as account_name, t.type, t.category, t.amount, t.description
+        FROM transactions t
+        JOIN accounts a ON t.account_id = a.id
+        WHERE t.user_id = ?
+    '''
+    params = [user_id]
+
+    if start_date and end_date:
+        query += " AND t.date BETWEEN ? AND ?"
+        params.extend([start_date, end_date])
+        
+    query += " ORDER BY t.date DESC"
+    transactions = db.execute(query, params).fetchall()
+
+    class PDF(FPDF):
+        def header(self):
+            logo_path = os.path.join(app.root_path, 'static', 'img', 'logo.png')
+            if os.path.exists(logo_path):
+                self.image(logo_path, 7, 5, 31)
+            
+            self.set_font('Arial', 'B', 15)
+            self.set_text_color(17, 35, 126) 
+            self.set_y(10) 
+            self.cell(0, 8, 'LAPORAN TRANSAKSI', 0, 1, 'R')
+            
+            self.set_font('Arial', 'B', 9)
+            self.set_text_color(100, 100, 100)
+            
+            # JUDUL DINAMIS: Kalau ada filter, tampilin rentang tanggalnya
+            tagline = 'Treasury Flow by Fernando Capital'
+            if start_date and end_date:
+                tagline = f'Periode: {start_date} s/d {end_date}'
+            self.cell(0, 5, tagline, 0, 1, 'R')
+            
+            self.ln(2)
+            self.set_font('Arial', '', 8)
+            self.set_text_color(150, 150, 150)
+            waktu_cetak = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            self.cell(0, 4, f'Dicetak pada: {waktu_cetak}', 0, 1, 'R')
+            self.cell(0, 4, f'User: {session.get("fullname", "User")}', 0, 1, 'R')
+            
+            self.ln(2)
+            self.set_draw_color(17, 35, 126)
+            self.set_line_width(0.8)
+            self.line(10, 36, 200, 36) 
+            self.ln(10)
+
+        def footer(self):
+            self.set_y(-15)
+            self.set_font('Arial', 'I', 8)
+            self.set_text_color(128, 128, 128)
+            self.cell(0, 10, f'Halaman {self.page_no()} / {{nb}}', 0, 0, 'C')
+
+    pdf = PDF()
+    pdf.alias_nb_pages() 
+    pdf.add_page()
+    
+    # Header Tabel
+    pdf.set_fill_color(17, 35, 126)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font('Arial', 'B', 10)
+    
+    pdf.cell(30, 10, 'TANGGAL', 1, 0, 'C', True)
+    pdf.cell(40, 10, 'KATEGORI', 1, 0, 'C', True)
+    pdf.cell(25, 10, 'TIPE', 1, 0, 'C', True)
+    pdf.cell(40, 10, 'JUMLAH', 1, 0, 'C', True)
+    pdf.cell(55, 10, 'KETERANGAN', 1, 1, 'C', True)
+
+    # Isi Tabel
+    pdf.set_text_color(0)
+    pdf.set_font('Arial', '', 9)
+    fill = False
+    
+    for t in transactions:
+        pdf.set_fill_color(245, 245, 245)
+        pdf.cell(30, 8, str(t['date']), 1, 0, 'C', fill)
+        pdf.cell(40, 8, str(t['category']), 1, 0, 'L', fill)
+        
+        if t['type'] == 'income':
+            pdf.set_text_color(40, 167, 69)
+            tipe_txt = 'Masuk'
+        else:
+            pdf.set_text_color(239, 68, 68)
+            tipe_txt = 'Keluar'
+            
+        pdf.cell(25, 8, tipe_txt, 1, 0, 'C', fill)
+        pdf.set_text_color(0)
+        
+        pdf.cell(40, 8, f"Rp {t['amount']:,.2f}", 1, 0, 'R', fill)
+        pdf.cell(55, 8, str(t['description'])[:30], 1, 1, 'L', fill)
+        fill = not fill
+
+    # Gunakan 'ignore' pada encode agar tidak crash jika ada karakter non-latin1
+    response = Response(pdf.output(dest='S').encode('latin-1', 'ignore'))
+    response.headers.set('Content-Disposition', 'attachment', filename='Laporan_Keuangan.pdf')
+    response.headers.set('Content-Type', 'application/pdf')
+    return response
+
+@app.route('/api/data-kalender')
+@login_required
+def data_kalender():
+    user_id = session.get('user_id')
+    db = get_db()
+    db.row_factory = sqlite3.Row 
+    
+    query = '''
+        SELECT date, 
+               SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END) as total_in,
+               SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END) as total_out
+        FROM transactions 
+        WHERE user_id = ?
+        GROUP BY date
+    '''
+    rows = db.execute(query, (user_id,)).fetchall()
+    
+    events = []
+    for row in rows:
+        # Pemasukan
+        if row['total_in'] > 0:
+            events.append({
+                'title': f"+{row['total_in']:,.0f}",
+                'start': row['date'],
+                'backgroundColor': '#E8EAF6',
+                'textColor': '#11237E',
+                'display': 'block'
+            })
+        # Pengeluaran
+        if row['total_out'] > 0:
+            events.append({
+                'title': f"-{row['total_out']:,.0f}",
+                'start': row['date'],
+                'backgroundColor': '#FEE2E2',
+                'textColor': '#EF4444',
+                'display': 'block'
+            })
+            
+    return jsonify(events) 
+
 if __name__ == '__main__':
-    # Memastikan migrasi database berjalan saat aplikasi dimulai jika file DB sudah ada
-    if os.path.exists(DATABASE):
-        with app.app_context():
-            init_db() 
-    else:
+    with app.app_context():
         init_db()
     app.run(debug=True)
