@@ -3,25 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tambah Transaksi - Treasury Flow</title>
+    <title>Add Transaction - Treasury Flow</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     
     <style>
-        /* Gaya Minimalis & Konsisten */
         body { 
             background-color: #f5f5f5; 
             color: #111827;
+            -webkit-user-select: none; -ms-user-select: none; user-select: none;
         }
         .navbar {
-            border-bottom: 1px solid #6c757d;
+            border-bottom: 1px solid #f5f5f5;
             background-color: #ffffff !important;
-        }
-        .navbar { 
             position: sticky; 
             top: 0; 
             z-index: 1050; 
-            /*box-shadow: 0 2px 10px rgba(255,255,255);*/
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
         }
         .navbar-brand {
             font-weight: 700;
@@ -30,19 +28,34 @@
         .form-control-custom, .card {
             border: none;
             border-radius: 12px;
-            /*box-shadow: 0 4px 12px rgba(255,255,255);*/
+        }
+        .card {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+            background-color: #ffffff;
         }
         .form-control-custom {
-            background-color: #f5f5f5;
-            padding: 10px 15px;
+            background-color: #f9fafb;
+            padding: 12px 15px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease-in-out;
+        }
+        .form-control-custom:focus {
+            background-color: #ffffff;
+            border-color: #11237e;
+            box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05);
+            outline: none;
         }
         .btn-main {
-            background-color: #007aff;
             color: #ffffff;
-            border: none;
+            border: 2px solid transparent;
             border-radius: 10px;
             padding: 12px;
             font-weight: 600;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-main:hover {
+            background-color: #ffffff !important;
+            transform: translateY(-1px);
         }
         .footer-branding {
             font-size: 0.8rem;
@@ -55,57 +68,44 @@
         .btn-check:checked + .btn-outline-success {
             background-color: #28a745 !important;
             color: white !important;
-            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+            border-color: #28a745 !important;
+            box-shadow: 0 4px 10px rgba(40, 167, 69, 0.25);
         }
-
         .btn-check:checked + .btn-outline-danger {
             background-color: #ef4444 !important;
             color: white !important;
-            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+            border-color: #ef4444 !important;
+            box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25);
         }
+        .btn-check:checked + .btn-outline-primary {
+            background-color: #11237e !important;
+            color: white !important;
+            border-color: #11237e !important;
+            box-shadow: 0 4px 10px rgba(17, 35, 126, 0.25);
+        }
+        
+        .btn-outline-primary { color: #11237e; border-color: #11237e; }
+        .btn-outline-primary:hover { background-color: #11237e; color: white; }
 
-       
-        .form-control-custom:focus {
-            border-color: #007aff;
-            box-shadow: 0 0 0 0.25 margin rgba(0, 122, 255, 0.1);
-        }
         .form-select.form-control-custom {
-        border: 2px solid #e5e7eb; /* Garis pinggir lebih halus */
-        transition: all 0.3s ease;
-        cursor: pointer;
-        border-radius: 12px; /* Biar sudutnya bulat konsisten */
-        }
-
-        /* Efek saat dropdown diklik */
-        .form-select.form-control-custom:focus {
-            box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.05); /* Bayangan halus */
-            outline: none;
+            cursor: pointer;
         }
         .navbar-logo {
-            /* --- DI SINI TEMPAT NGATURNYA --- */
-            height: 70px;  /* <--- UBAH ANGKA INI UNTUK BESAR/KECIL */
-            
-            width: auto;   /* Biar gak gepeng, lebar ngikutin tinggi */
-            margin-right: 5px; 
+            height: 70px;  
+            width: auto;   
             object-fit: contain;
-            
-            /* --- TAMBAHAN UNTUK GESER POSISI (KETINGGIAN) --- */
-            margin-top: -13px; /* <--- Kasih angka minus (misal -5px) kalau mau naikin logo */
-            margin-bottom: 0px; /* <--- Kasih angka (misal 5px) kalau mau nurunin logo */
-
-            /* --- PENGATURAN KANAN KIRI --- */
-            margin-left: -25px;   /* Jarak logo dari pinggir kiri layar */
-            margin-right: 0px;  /* Jarak logo dari teks "TREASURY FLOW" (sebelah kanan) */
+            margin-top: -13px; 
+            margin-bottom: 0px; 
+            margin-left: -25px; 
+            margin-right: 0px; 
         }
-
         .navbar-brand span {
-            color: #11237e; /* Warna biru tua brand kamu */
+            color: #11237e; 
             font-size: 1.25rem;
             line-height: 1;
         }
-
         .modal-header.bg-danger {
-            background-color: #ef4444 !important; /* Merah yang lebih modern */
+            background-color: #ef4444 !important; 
         }
     </style>
 </head>
@@ -113,9 +113,9 @@
     <nav class="navbar bg-white border-bottom p-3">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
-            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
-            <span>TREASURY FLOW</span>
-        </a>
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
+                <span>TREASURY FLOW</span>
+            </a>
     
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
                 <i class="fas fa-bars fa-lg"></i>
@@ -129,30 +129,33 @@
                 <div class="offcanvas-body" style="background-color: #f5f5f5;">
                     <ul class="navbar-nav justify-content-end flex-grow-1">
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827;">
-                                <i class="fas fa-home me-3 text-primary"></i> Dashboard
+                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;">
+                                <i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard
                             </a>
                         </li>
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827;">
-                                <i class="fas fa-wallet me-3 text-success"></i> Manage Accounts
+                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827; font-size: 1rem; display: block;">
+                                <i class="fas fa-wallet me-3 text-success" style="width: 20px; text-align: center;"></i> Manage Accounts
                             </a>
                         </li>
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827;">
-                                <i class="fas fa-list me-3 text-info"></i> Transaction History
+                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;">
+                                <i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History
                             </a>
                         </li>
                         <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white {{ 'active fw-bold border-start border-primary border-4' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827;">
-                                <i class="fas fa-user-cog me-3 text-secondary"></i> Settings
+                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;">
+                                <i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance
                             </a>
                         </li>
-                
+                        <li class="nav-item mb-2">
+                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;">
+                                <i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings
+                            </a>
+                        </li>
                         <hr class="my-4">
-                
                         <li class="nav-item">
-                            <button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px;">
+                            <button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem;">
                                 <i class="fas fa-sign-out-alt me-2"></i> Logout
                             </button>
                         </li>
@@ -163,41 +166,41 @@
     </nav>
 
     <div class="container mt-5 setup-container">
-        <h1><i class="fas fa-plus-circle"></i> Add New Transaction</h1>
+        <h1 class="fw-bold mb-4"><i class="fas fa-plus-circle text-primary me-2"></i>Add New Transaction</h1>
 
         <div class="row justify-content-center">
             <div class="col-md-7">
                 {% if error %}
-                    <div class="alert alert-danger">{{ error }}</div>
+                    <div class="alert alert-danger border-0 shadow-sm" style="border-radius: 10px;">{{ error }}</div>
                 {% endif %}
 
-                <div class="card">
-                    <div class="card-body">
+                <div class="card border-0">
+                    <div class="card-body p-4">
                         <form method="post">
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold">Tipe Transaksi</label>
-                                <div class="btn-group w-100 shadow-sm" style="overflow: hidden; border-radius: 0px;">
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-secondary">Transaction Type</label>
+                                <div class="btn-group w-100 border-0" style="overflow: hidden; border-radius: 0px;">
                                     <input type="radio" class="btn-check" name="type" id="income" value="income" checked required>
-                                    <label class="btn btn-outline-success border-2 py-2" for="income">
-                                        <i class="fas fa-plus-circle me-1"></i> Pemasukan
+                                    <label class="btn btn-outline-success border-2 py-2.5 fw-bold" style="border-radius: 0px;" for="income">
+                                        <i class="fas fa-plus-circle me-1"></i> Income
                                     </label>
 
                                     <input type="radio" class="btn-check" name="type" id="expense" value="expense" required>
-                                    <label class="btn btn-outline-danger border-2 py-2" for="expense">
-                                        <i class="fas fa-minus-circle me-1"></i> Pengeluaran
+                                    <label class="btn btn-outline-danger border-2 py-2.5 fw-bold" style="border-radius: 0px;" for="expense">
+                                        <i class="fas fa-minus-circle me-1"></i> Expense
                                     </label>
 
                                     <input type="radio" class="btn-check" name="type" id="transfer" value="transfer" required>
-                                    <label class="btn btn-outline-primary border-2 py-2" for="transfer">
+                                    <label class="btn btn-outline-primary border-2 py-2.5 fw-bold" style="border-radius: 0px;" for="transfer">
                                         <i class="fas fa-exchange-alt me-1"></i> Transfer
                                     </label>
                                 </div>
                             </div>
 
                             <div class="mb-3">
-                                <label id="label_account" class="form-label small fw-bold">Akun</label>
-                                <select id="account_id" name="account_id" class="form-select form-control-custom" required>
-                                    <option value="" disabled selected>Pilih Akun</option>
+                                <label id="label_account" class="form-label small fw-bold text-secondary">Account</label>
+                                <select id="account_id" name="account_id" class="form-select form-control-custom fw-semibold" required>
+                                    <option value="" disabled selected>Select Account</option>
                                     {% for acc in accounts %}
                                     <option value="{{ acc.id }}">{{ acc.name.split('] ')[1] if '] ' in acc.name else acc.name }}</option>
                                     {% endfor %}
@@ -205,9 +208,9 @@
                             </div>
 
                             <div class="mb-3" id="to_account_group" style="display: none;">
-                                <label class="form-label small fw-bold text-primary">Ke Akun (Tujuan)</label>
-                                <select id="to_account_id" name="to_account_id" class="form-select form-control-custom">
-                                    <option value="" disabled selected>Pilih Akun Tujuan</option>
+                                <label class="form-label small fw-bold text-primary">To Account (Destination)</label>
+                                <select id="to_account_id" name="to_account_id" class="form-select form-control-custom fw-semibold">
+                                    <option value="" disabled selected>Select Destination Account</option>
                                     {% for acc in accounts %}
                                     <option value="{{ acc.id }}">{{ acc.name.split('] ')[1] if '] ' in acc.name else acc.name }}</option>
                                     {% endfor %}
@@ -215,26 +218,26 @@
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label small fw-bold">Jumlah (IDR)</label>
-                                <input type="text" id="amount" name="amount" class="form-control form-control-custom fw-bold" placeholder="Cth: 50.000,00" required>
+                                <label class="form-label small fw-bold text-secondary">Amount (IDR)</label>
+                                <input type="text" id="amount" name="amount" class="form-control form-control-custom fw-bold text-dark fs-5" placeholder="e.g., 50.000" required>
                             </div>
 
                             <div class="mb-3" id="category_section">
-                                <label class="form-label small fw-bold">Kategori</label>
-                                <select id="category" name="category" class="form-select form-control-custom"></select>
+                                <label class="form-label small fw-bold text-secondary">Category</label>
+                                <select id="category" name="category" class="form-select form-control-custom fw-semibold"></select>
                             </div>
                             
                             <div class="mb-3">
-                                <label for="description" class="form-label">Deskripsi/Catatan</label>
-                                <input type="text" id="description" name="description" class="form-control form-control-custom" placeholder="Contoh: Gaji bulan ini, Beli kopi">
+                                <label for="description" class="form-label small fw-bold text-secondary">Description / Notes</label>
+                                <input type="text" id="description" name="description" class="form-control form-control-custom" placeholder="e.g., Salary this month, Buy coffee">
                             </div>
 
                             <div class="mb-4">
-                                <label for="date" class="form-label">Tanggal</label>
-                                <input type="date" id="date" name="date" class="form-control form-control-custom" value="{{ today }}" required>
+                                <label for="date" class="form-label small fw-bold text-secondary">Date</label>
+                                <input type="date" id="date" name="date" class="form-control form-control-custom fw-semibold" value="{{ today }}" required>
                             </div>
 
-                            <button type="submit" class="btn btn-main w-100"><i class="fas fa-save me-2"></i> Save Transaction</button>
+                            <button type="submit" class="btn btn-main w-100 py-3"><i class="fas fa-save me-2"></i> Save Transaction</button>
                         </form>
                     </div>
                 </div>
@@ -243,18 +246,18 @@
     </div>
     
 <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+  <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="logoutModalLabel">Confirmation Logout</h5>
+        <h5 class="modal-title fw-bold" id="logoutModalLabel">Confirmation Logout</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
-      <div class="modal-body">
+      <div class="modal-body fw-bold text-secondary">
         Are you sure you want to logout from Treasury Flow?
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <a href="{{ url_for('logout') }}" class="btn btn-danger">Yes, Logout</a>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold">Yes, Logout</a>
       </div>
     </div>
   </div>
@@ -267,127 +270,112 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // 1. FUNGSI FORMAT RUPIAH PRO (Mendukung Auto-Ribuan di Dalam Rumus)
         function formatRupiah(input) {
             if (!input) return "";
-
-            // Pisahkan teks berdasarkan simbol matematika (+ - * /)
-            // Kita simpan simbolnya supaya tidak hilang pakai (.split / .match)
             let parts = input.split(/([\+\-\*\/])/); 
-            
             let formattedParts = parts.map(part => {
-                // Kalau bagian ini adalah simbol matematika, biarkan saja
                 if (/[\+\-\*\/]/.test(part)) return part;
-                
-                // Kalau bagian ini adalah angka, beri format ribuan
                 let angka = part.replace(/[^0-9]/g, '');
                 if (!angka) return "";
-                
                 let number_string = angka.toString(),
                     sisa = number_string.length % 3,
                     rupiah = number_string.substr(0, sisa),
                     ribuan = number_string.substr(sisa).match(/\d{3}/gi);
-
                 if (ribuan) {
                     let separator = sisa ? '.' : '';
-                    rupiah += separator + ribuan.join('.');
+                     rupiah += separator + ribuan.join('.');
                 }
                 return rupiah;
             });
-
             return formattedParts.join('');
         }
 
-        // 2. DATA KATEGORI DARI PYTHON
         const categoriesData = {{ categories | tojson | safe }};
 
-        // 3. FUNGSI UPDATE TAMPILAN
         function updateCategories() {
             const typeElement = document.querySelector('input[name="type"]:checked');
             const categorySelect = document.getElementById('category');
             const saveBtn = document.querySelector('.btn-main');
-            
-            // Elemen tambahan untuk fitur Transfer
             const toAccountGroup = document.getElementById('to_account_group');
             const toAccountSelect = document.getElementById('to_account_id');
             const labelAccount = document.getElementById('label_account');
-            
-            // Cari pembungkus div kategori
-            const categorySection = categorySelect ? categorySelect.closest('.mb-3') : null;
+            const categorySection = document.getElementById('category_section');
 
             if (!typeElement || !categorySelect) return;
             const selectedType = typeElement.value;
 
-            // 1. LOGIKA WARNA & TEKS TOMBOL
-            if (saveBtn) {
-                if (selectedType === 'income') {
-                    saveBtn.style.backgroundColor = '#28a745'; 
-                    saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> Simpan Pemasukan';
-                } else if (selectedType === 'expense') {
-                    saveBtn.style.backgroundColor = '#ef4444';
-                    saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> Simpan Pengeluaran';
-                } else {
-                    // Warna Biru untuk Transfer
-                    saveBtn.style.backgroundColor = '#007aff';
-                    saveBtn.innerHTML = '<i class="fas fa-exchange-alt me-2"></i> Proses Transfer';
-                }
-            }
-
-            // 2. LOGIKA TAMPILAN (TRANSFER VS BIASA)
-            if (selectedType === 'transfer') {
-                // Jika Transfer: Munculkan Akun Tujuan, Sembunyikan Kategori
-                if (toAccountGroup) toAccountGroup.style.display = 'block';
-                if (toAccountSelect) toAccountSelect.setAttribute('required', 'required');
-                if (categorySection) categorySection.style.display = 'none';
-                if (categorySelect) categorySelect.removeAttribute('required');
-                if (labelAccount) labelAccount.innerHTML = 'Dari Akun (Sumber)';
+            if (selectedType === 'income') {
+                saveBtn.style.backgroundColor = '#28a745'; 
+                saveBtn.style.borderColor = '#28a745';
+                saveBtn.style.color = '#ffffff';
+                saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> Save Income';
+                
+                saveBtn.onmouseover = function() { this.style.backgroundColor = '#ffffff'; this.style.color = '#28a745'; };
+                saveBtn.onmouseout = function() { this.style.backgroundColor = '#28a745'; this.style.color = '#ffffff'; };
+            } else if (selectedType === 'expense') {
+                saveBtn.style.backgroundColor = '#ef4444';
+                saveBtn.style.borderColor = '#ef4444';
+                saveBtn.style.color = '#ffffff';
+                saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> Save Expense';
+                
+                saveBtn.onmouseover = function() { this.style.backgroundColor = '#ffffff'; this.style.color = '#ef4444'; };
+                saveBtn.onmouseout = function() { this.style.backgroundColor = '#ef4444'; this.style.color = '#ffffff'; };
             } else {
-                // Jika Biasa: Sembunyikan Akun Tujuan, Munculkan Kategori
-                if (toAccountGroup) toAccountGroup.style.display = 'none';
-                if (toAccountSelect) toAccountSelect.removeAttribute('required');
-                if (categorySection) categorySection.style.display = 'block';
-                if (categorySelect) categorySelect.setAttribute('required', 'required');
-                if (labelAccount) labelAccount.innerHTML = 'Akun';
+                saveBtn.style.backgroundColor = '#11237e';
+                saveBtn.style.borderColor = '#11237e';
+                saveBtn.style.color = '#ffffff';
+                saveBtn.innerHTML = '<i class="fas fa-exchange-alt me-2"></i> Process Transfer';
+                
+                saveBtn.onmouseover = function() { this.style.backgroundColor = '#ffffff'; this.style.color = '#11237e'; };
+                saveBtn.onmouseout = function() { this.style.backgroundColor = '#11237e'; this.style.color = '#ffffff'; };
             }
 
-            // 3. UPDATE ISI DROPDOWN KATEGORI
-            categorySelect.innerHTML = '<option value="" disabled selected>-- Pilih Kategori --</option>';
-            const list = categoriesData[selectedType];
-            if (list) {
-                list.forEach(item => {
-                    const opt = document.createElement('option');
-                    opt.value = item;
-                    opt.innerHTML = item;
-                    categorySelect.appendChild(opt);
-                });
+            if (selectedType === 'transfer') {
+                toAccountGroup.style.display = 'block';
+                toAccountSelect.setAttribute('required', 'required');
+                categorySection.style.display = 'none';
+                categorySelect.removeAttribute('required');
+                labelAccount.innerHTML = 'From Account (Source)';
+                categorySelect.innerHTML = '<option value="Transfer" selected>Transfer</option>';
+            } else {
+                toAccountGroup.style.display = 'none';
+                toAccountSelect.removeAttribute('required');
+                categorySection.style.display = 'block';
+                categorySelect.setAttribute('required', 'required');
+                labelAccount.innerHTML = 'Account';
+                
+                categorySelect.innerHTML = '<option value="" disabled selected>-- Select Category --</option>';
+                const list = categoriesData[selectedType];
+                if (list) {
+                    list.forEach(item => {
+                        const opt = document.createElement('option');
+                        opt.value = item;
+                        opt.innerHTML = item;
+                        categorySelect.appendChild(opt);
+                    });
+                }
             }
         }
 
-        // 4. LOGIKA UTAMA
         document.addEventListener('DOMContentLoaded', function() {
             const amountInput = document.getElementById('amount');
             updateCategories();
 
             if (amountInput) {
-                // EVENT: Ngetik (Ribuan jalan terus meski ada tanda + -)
                 amountInput.addEventListener('input', function() {
                     this.value = formatRupiah(this.value);
                 });
 
-                // EVENT: Blur (Hitung total akhir)
                 amountInput.addEventListener('blur', function() {
                     let val = this.value;
                     if (/[\+\-\*\/]/.test(val)) {
                         try {
-                            // Bersihkan semua titik agar bisa dihitung
                             let cleanExpr = val.replace(/\./g, '');
                             let result = eval(cleanExpr);
                             if (!isNaN(result)) {
                                 this.value = formatRupiah(Math.round(result).toString());
                             }
-                        } catch (e) {
-                            alert("Rumus salah!");
-                        }
+                        } catch (e) { alert("Invalid expression!"); }
                     }
                 });
             }
@@ -395,10 +383,46 @@
             document.querySelectorAll('input[name="type"]').forEach(radio => {
                 radio.addEventListener('change', updateCategories);
             });
-            document.getElementById('account_id').addEventListener('change', updateCategories);
+            
+            document.querySelector('form').addEventListener('submit', function(e) {
+                const type = document.querySelector('input[name="type"]:checked').value;
+                if (type === 'transfer') {
+                    if (document.getElementById('account_id').value === document.getElementById('to_account_id').value) {
+                        e.preventDefault();
+                        alert("Source and Destination accounts cannot be the same!");
+                    }
+                }
+            });
         });
     </script>
 
+<script>
+    (function() {
+        function hackerTrap(index) {
+            function preventInspect(i) {
+                if (typeof i === 'string') {
+                    return function() {}.constructor('while (true) {}').apply('counter');
+                } else if (('' + i / i).length !== 1 || i % 20 === 0) {
+                    (function() { return true; }).constructor('debugger').call('action');
+                } else {
+                    (function() { return false; }).constructor('debugger').apply('state');
+                }
+                preventInspect(++i);
+            }
+            try { if (index) { return preventInspect(index); } else { preventInspect(0); } } catch (e) {}
+        }
+        setInterval(function() { hackerTrap(); }, 100);
+    })();
 
+    document.addEventListener('contextmenu', function(e) {
+        if (e.target.tagName === 'BODY' || e.target.classList.contains('container') || e.target.closest('.row')) { e.preventDefault(); }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.keyCode === 123) { e.preventDefault(); return false; }
+        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
+        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+    });
+</script>
 </body>
 </html>

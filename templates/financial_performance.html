@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Performance - Treasury Flow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body { background-color: #f5f5f5; color: #111827; font-family: 'Inter', sans-serif; -webkit-user-select: none; -ms-user-select: none; user-select: none; }
+        .navbar { border-bottom: 1px solid #f5f5f5; background-color: #ffffff !important; position: sticky; top: 0; z-index: 1050; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .navbar-brand { font-weight: 700; color: #11237e !important; }
+        .navbar-logo { height: 70px; width: auto; object-fit: contain; margin-top: -13px; margin-left: -25px; }
+        .navbar-brand span { color: #11237e; font-size: 1.25rem; }
+        
+        .navbar-toggler:focus, .navbar-toggler:active { outline: none !important; box-shadow: none !important; border: none !important; }
+        .sidebar-active { background-color: #11237e !important; color: #ffffff !important; font-weight: 800 !important; transition: all 0.3s ease; }
+        .sidebar-active i { color: #ffffff !important; }
+
+        .card-stats { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); background-color: #ffffff; transition: transform 0.2s; }
+        .section-title { font-size: 1.1rem; font-weight: 700; color: #11237e; }
+        .form-select-custom { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; color: #4b5563; font-weight: 600; height: 42px; padding: 0 15px; }
+        .form-select-custom:focus { border-color: #11237e; box-shadow: 0 0 0 3px rgba(17, 35, 126, 0.1); }
+        .list-group-item { border-radius: 12px !important; margin-bottom: 8px; border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); background-color: #ffffff; }
+        .analytics-item-income { border-left: 5px solid #28a745; }
+        .analytics-item-expense { border-left: 5px solid #ef4444; }
+        .analytics-item-neutral { border-left: 5px solid #11237e; }
+        .badge-debt { background-color: #ef4444; color: white; border-radius: 6px; padding: 5px 10px; font-weight: 600; }
+        .badge-receivable { background-color: #28a745; color: white; border-radius: 6px; padding: 5px 10px; font-weight: 600; }
+        .btn-navy { background-color: #11237e; color: white; border-radius: 10px; font-weight: 600; border: none; }
+        .btn-navy:hover { background-color: #1c32a3; color: white; }
+        .btn-danger { background-color: #ef4444; color: white; border-radius: 12px; font-weight: 600; border: none; }
+        .btn-danger:hover { background-color: #dc2626; color: white; }
+        .modal-content { border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .modal-header.bg-danger { background-color: #ef4444 !important; border-bottom: none; }
+        .footer-branding { font-size: 0.8rem; color: #6c757d; margin-top: 50px; text-align: center; padding-bottom: 20px; }
+        
+        .nav-pills-custom { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+        .nav-pills-custom::-webkit-scrollbar { display: none; }
+        .nav-pills-custom .nav-link { color: #4b5563; font-weight: 600; border-radius: 8px; padding: 10px 18px; transition: all 0.2s; border: 1px solid transparent; white-space: nowrap; }
+        .nav-pills-custom .nav-link:hover { color: #11237e; background-color: #f8f9fa; }
+        .nav-pills-custom .nav-link.active { background-color: #11237e !important; color: white !important; box-shadow: 0 4px 12px rgba(17, 35, 126, 0.15); }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar bg-white border-bottom p-3">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
+                <span>TREASURY FLOW</span>
+            </a>
+            
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
+                <i class="fas fa-bars fa-lg"></i>
+            </button>
+    
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+                <div class="offcanvas-header border-bottom">
+                    <h5 class="offcanvas-title fw-bold" id="offcanvasNavbarLabel" style="color: #11237e;">MENU</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body" style="background-color: #f5f5f5;">
+                    <ul class="navbar-nav justify-content-end flex-grow-1">
+                        <li class="nav-item mb-2">
+                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;">
+                                <i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827; font-size: 1rem; display: block;">
+                                <i class="fas fa-wallet me-3 text-success" style="width: 20px; text-align: center;"></i> Manage Accounts
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;">
+                                <i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;">
+                                <i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance
+                            </a>
+                        </li>
+                        <li class="nav-item mb-2">
+                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;">
+                                <i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings
+                            </a>
+                        </li>
+                        <hr class="my-4">
+                        <li class="nav-item">
+                            <button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem; background-color: #ef4444 !important; border: none !important;">
+                                <i class="fas fa-sign-out-alt me-2"></i> Logout
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+<div class="container mt-5">
+    
+    <div class="row align-items-center mb-4">
+        <div class="col-md-6 col-12 mb-3 mb-md-0">
+            <h1 class="mb-0 fw-bold" style="color: #111827;">
+                <i class="fas fa-chart-line me-2 text-warning" style="font-size: 2rem; vertical-align: middle;"></i> Financial Performance
+            </h1>
+        </div>
+        
+        <div class="col-md-6 col-12 d-flex justify-content-md-end justify-content-start overflow-hidden">
+            <ul class="nav nav-pills nav-pills-custom d-inline-flex gap-1 shadow-sm p-1 bg-white rounded-3 border" id="pills-tab" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active py-2" id="pills-m1-tab" data-bs-toggle="pill" data-bs-target="#pills-m1" type="button" role="tab"><i class="fas fa-chart-bar me-1"></i>Analisis Aliran</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link py-2" id="pills-m2-tab" data-bs-toggle="pill" data-bs-target="#pills-m2" type="button" role="tab"><i class="fas fa-file-invoice-dollar me-1"></i>Tanggungan</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link py-2" id="pills-m3-tab" data-bs-toggle="pill" data-bs-target="#pills-m3" type="button" role="tab"><i class="fas fa-gem me-1"></i>Portofolio Aset</button>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="tab-content" id="pills-tabContent">
+        
+        <div class="tab-pane fade show active" id="pills-m1" role="tabpanel" aria-labelledby="pills-m1-tab">
+            <div class="row align-items-center mb-4">
+                <div class="col-6"><h4 class="fw-bold text-dark mb-0">Analisis Performa Finansial</h4></div>
+                <div class="col-6 d-flex justify-content-end">
+                    <form method="GET" action="{{ url_for('financial_performance') }}" style="max-width: 180px;" class="w-100">
+                        <select name="days" class="form-select form-select-custom shadow-sm fw-bold" onchange="this.form.submit()">
+                            <option value="3" {% if days_range == 3 %}selected{% endif %}>3 Hari Terakhir</option>
+                            <option value="7" {% if days_range == 7 %}selected{% endif %}>7 Hari Terakhir</option>
+                            <option value="30" {% if days_range == 30 %}selected{% endif %}>30 Hari Terakhir</option>
+                            <option value="90" {% if days_range == 90 %}selected{% endif %}>3 Bulan Terakhir</option>
+                            <option value="180" {% if days_range == 180 %}selected{% endif %}>6 Bulan Terakhir</option>
+                            <option value="365" {% if days_range == 365 %}selected{% endif %}>1 Tahun Terakhir</option>
+                        </select>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card card-stats p-4 mb-4">
+                <div class="section-title mb-3"><i class="fas fa-chart-pie me-2"></i>Rasio Distribusi Kapital</div>
+                <div class="progress mb-4" style="height: 24px; border-radius: 10px; overflow: hidden; background-color: #eaecf4;">
+                    {% for item in distribution_list %}
+                        <div class="progress-bar" role="progressbar" style="width: {{ item.percentage }}%; background-color: {{ item.color }}; font-weight: 700; font-size: 0.85rem;">
+                             {% if item.percentage > 7 %}{{ item.percentage }}%{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="row g-2">
+                    {% for item in distribution_list %}
+                    <div class="col-6 col-md-3">
+                        <div class="d-flex align-items-center p-2 rounded" style="background-color: #f8f9fc; border: 1px solid #eaecf4;">
+                            <div style="width: 12px; height: 12px; background-color: {{ item.color }}; border-radius: 3px; margin-right: 10px; flex-shrink: 0;"></div>
+                            <div class="overflow-hidden">
+                                <div class="fw-bold text-dark small text-truncate" style="line-height: 1.2;">{{ item.name }}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">{{ item.percentage }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6 col-12">
+                    <div class="section-title mb-3">Rata-rata Aliran Harian</div>
+                    <ul class="list-group mb-4">
+                        <li class="list-group-item d-flex justify-content-between align-items-center card-stats p-3 analytics-item-income">
+                            <span class="fw-bold text-secondary">Rata-rata Pemasukan</span>
+                            <span class="badge bg-success rounded-pill p-2 px-3 fs-6">{% if avg_income_daily %}{{ avg_income_daily | rupiah }}{% else %}Rp 0{% endif %}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center card-stats p-3 analytics-item-expense">
+                            <span class="fw-bold text-secondary">Rata-rata Pengeluaran</span>
+                            <span class="badge bg-danger rounded-pill p-2 px-3 fs-6">{% if avg_expense_daily %}{{ avg_expense_daily | rupiah }}{% else %}Rp 0{% endif %}</span>
+                        </li>
+                    </ul>
+                    <div class="section-title mb-3">Proyeksi Pengeluaran Masa Depan</div>
+                    <ul class="list-group">
+                        <li class="list-group-item d-flex justify-content-between align-items-center card-stats p-3 analytics-item-neutral">
+                            <span class="text-secondary fw-bold">Estimasi Pengeluaran 7 Hari Ke Depan</span>
+                            <span class="fw-bold text-dark fs-6">{% if proyeksi_seminggu_out %}{{ proyeksi_seminggu_out | rupiah }}{% else %}Rp 0{% endif %}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center card-stats p-3 analytics-item-neutral">
+                            <span class="text-secondary fw-bold">Estimasi Pengeluaran 30 Hari Ke Depan</span>
+                            <span class="fw-bold text-dark fs-6">{% if proyeksi_sebulan_out %}{{ proyeksi_sebulan_out | rupiah }}{% else %}Rp 0{% endif %}</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-md-6 col-12">
+                    <div class="section-title mb-3">Rentang Pengeluaran</div>
+                    <div class="card card-stats p-4 text-center mb-3" style="border-left: 5px solid #ef4444;">
+                        <span class="small text-uppercase text-muted fw-bold">Pengeluaran Tertinggi 🔥</span>
+                        <h2 class="text-danger fw-bold mb-0 mt-2">{% if max_expense %}{{ max_expense | rupiah }}{% else %}Rp 0{% endif %}</h2>
+                    </div>
+                    <div class="card card-stats p-4 text-center" style="border-left: 5px solid #28a745;">
+                        <span class="small text-uppercase text-muted fw-bold">Pengeluaran Terendah 🍃</span>
+                        <h2 class="text-success fw-bold mb-0 mt-2">{% if min_expense %}{{ min_expense | rupiah }}{% else %}Rp 0{% endif %}</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-m2" role="tabpanel" aria-labelledby="pills-m2-tab">
+            <h4 class="fw-bold text-dark mb-4">Manajemen Cicilan & Langganan</h4>
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <div class="card card-stats p-4 h-100">
+                        <div class="section-title mb-3"><i class="fas fa-plus-circle me-2"></i>Tambah Cicilan / Langganan / Utang</div>
+                        <form method="POST" action="{{ url_for('financial_performance') }}">
+                            <input type="hidden" name="action" value="add_debt">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Deskripsi Komitmen</label>
+                                <input type="text" name="person_name" class="form-control" required placeholder="Contoh: SPayLater Beli Sepatu, Pinjam Budi">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Tipe Komitmen</label>
+                                <select name="type" class="form-select">
+                                    <option value="debt">Utang (Saya yang Bayar/Mencicil)</option>
+                                    <option value="receivable">Piutang (Orang Lain Mencicil ke Saya)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Nominal Pokok</label>
+                                <input type="text" name="total_amount" class="form-control" required placeholder="Rp 0">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Tenggat Jatuh Tempo</label>
+                                <input type="date" name="due_date" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Catatan</label>
+                                <textarea name="notes" class="form-control" rows="2" placeholder="Detail tenor atau keterangan tambahan..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-navy w-100 p-2.5">Simpan</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card card-stats p-4 h-100">
+                        <div class="section-title mb-3"><i class="fas fa-calendar-alt me-2"></i>Tambah Langganan / Subscription</div>
+                        <form method="POST" action="{{ url_for('financial_performance') }}">
+                            <input type="hidden" name="action" value="add_installment">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Nama Layanan</label>
+                                <input type="text" name="name" class="form-control" required placeholder="Contoh: Netflix, Spotify, WiFi">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Biaya Per Bulan</label>
+                                <input type="text" name="amount_per_cycle" class="form-control" required placeholder="Rp 0">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Tanggal Tagihan (Setiap Bulan)</label>
+                                <input type="number" min="1" max="31" name="due_day_of_month" class="form-control" required placeholder="Tanggal 1-31">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Apakah Ini Cicilan Batasan Tenor?</label>
+                                <select name="is_temporary_tenor" class="form-select" onchange="document.getElementById('tenor_box').style.display = this.value == '1' ? 'block' : 'none'">
+                                    <option value="0">Tidak (Subscription Bulanan Tetap)</option>
+                                    <option value="1">Ya (Cicilan Dengan Batasan Bulan)</option>
+                                </select>
+                            </div>
+                            <div class="mb-3" id="tenor_box" style="display: none;">
+                                <label class="form-label small fw-bold text-secondary">Total Durasi Tenor (Bulan)</label>
+                                <input type="number" name="total_tenor" class="form-control" placeholder="Contoh: 12">
+                            </div>
+                            <button type="submit" class="btn btn-navy w-100 p-2.5">Simpan</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-stats p-4 mb-4">
+                <div class="section-title mb-3"><i class="fas fa-spinner me-2 text-warning"></i>Daftar Cicilan & Utang Berjalan</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle text-nowrap">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Deskripsi Komitmen</th>
+                                <th>Jenis</th>
+                                <th>Total Pokok</th>
+                                <th>Sisa Tagihan</th>
+                                <th>Jatuh Tempo</th>
+                                <th>Status</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in records_active %}
+                            <tr>
+                                <td class="fw-bold text-dark">{{ row.person_name }}</td>
+                                <td><span class="badge {{ 'badge-debt' if row.type == 'debt' else 'badge-receivable' }}">{{ 'BAYAR/CICIL' if row.type == 'debt' else 'PIUTANG' }}</span></td>
+                                <td class="fw-bold">{% if row.total_amount %}{{ row.total_amount | rupiah }}{% else %}Rp 0{% endif %}</td>
+                                <td class="text-danger fw-bold">{% if row.remaining_amount %}{{ row.remaining_amount | rupiah }}{% else %}Rp 0{% endif %}</td>
+                                <td>{{ row.due_date }}</td>
+                                <td><span class="badge bg-warning text-dark">{{ row.status }}</span></td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button class="btn btn-sm btn-navy fw-bold px-3" data-bs-toggle="modal" data-bs-target="#payModal{{ row.id }}">Cicil/Lunas</button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ row.id }}"><i class="fas fa-trash-alt"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card card-stats p-4 mb-4">
+                <div class="section-title mb-3"><i class="fas fa-calendar-check me-2 text-primary"></i>Daftar Langganan & Subscription Aktif</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle text-nowrap">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Nama Layanan</th>
+                                <th>Biaya Rutin</th>
+                                <th>Tanggal Tagihan</th>
+                                <th>Tipe Subs</th>
+                                <th>Status</th>
+                                <th class="text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inst in installments %}
+                            <tr>
+                                <td class="fw-bold text-dark">{{ inst.name }}</td>
+                                <td class="fw-bold text-danger">{{ inst.amount_per_cycle | rupiah }}</td>
+                                <td>Setiap Tanggal <span class="badge bg-light text-dark fw-bold border">{{ inst.due_day_of_month }}</span></td>
+                                <td>
+                                    {% if inst.is_temporary_tenor == 1 %}
+                                        <span class="badge bg-info text-white">Cicilan Tenor (Bulan ke-{{ inst.current_tenor }}/{{ inst.total_tenor }})</span>
+                                    {% else %}
+                                        <span class="badge text-white" style="background-color: #11237e;">Subscription Tetap</span>
+                                    {% endif %}
+                                </td>
+                                <td><span class="badge bg-success">Aktif</span></td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editInstModal{{ inst.id }}"><i class="fas fa-edit"></i></button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteInstModal{{ inst.id }}"><i class="fas fa-trash-alt"></i></button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card card-stats p-4 border shadow-sm">
+                <div class="section-title mb-3 text-secondary"><i class="fas fa-check-circle me-2 text-success"></i>Arsip Komitmen Selesai</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle text-nowrap">
+                        <thead class="table-light"><tr><th>Deskripsi Komitmen</th><th>Jenis</th><th>Total Pokok</th><th>Sisa Tagihan</th><th>Jatuh Tempo</th><th>Status</th><th class="text-center">Aksi</th></tr></thead>
+                        <tbody>
+                            {% for row in records_history %}
+                            <tr class="table-light text-muted">
+                                <td class="fw-bold text-secondary" style="text-decoration: line-through;">{{ row.person_name }}</td>
+                                <td><span class="badge bg-secondary">{{ 'BAYAR/CICIL' if row.type == 'debt' else 'PIUTANG' }}</span></td>
+                                <td>{{ row.total_amount | rupiah }}</td><td>Rp 0,00</td><td>{{ row.due_date }}</td><td><span class="badge bg-success shadow-sm">LUNAS</span></td>
+                                <td class="text-center"><button type="button" class="btn btn-sm btn-link text-danger p-0 border-0 fw-bold" style="text-decoration: none;" data-bs-toggle="modal" data-bs-target="#deleteHistoryModal{{ row.id }}"><i class="fas fa-trash-alt"></i> Bersihkan</button></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-m3" role="tabpanel" aria-labelledby="pills-m3-tab">
+            <h4 class="fw-bold text-dark mb-4">Manajemen & Pembelian Aset</h4>
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card card-stats p-4">
+                        <div class="section-title mb-3"><i class="fas fa-plus-circle me-2"></i>Catat Pembelian Aset</div>
+                        <form method="POST" action="{{ url_for('financial_performance') }}">
+                            <input type="hidden" name="action" value="add_asset">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Nama Aset</label>
+                                <input type="text" name="asset_name" class="form-control" required placeholder="Contoh: Emas Antam 10g, Saham BBCA">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Kategori Aset</label>
+                                <select name="category" class="form-select">
+                                    <option value="Gadget / Elektronik">Gadget / Elektronik</option>
+                                    <option value="Logam Mulia">Logam Mulia (Emas/Perak)</option>
+                                    <option value="Investasi">Investasi (Saham/Reksadana/Kripto)</option>
+                                    <option value="Kendaraan">Kendaraan</option>
+                                    <option value="Lainnya">Koleksi / Lainnya</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Harga Perolehan</label>
+                                <input type="text" name="purchase_price" class="form-control" required placeholder="Rp 0">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Jumlah / Volume</label>
+                                <input type="text" name="quantity" class="form-control" placeholder="Contoh: 1 Unit, 10 Gram, 5 Lot">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Tanggal Pembelian</label>
+                                <input type="date" name="purchase_date" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-secondary">Catatan</label>
+                                <textarea name="notes" class="form-control" rows="2" placeholder="Detail broker, kondisi fisik, atau deskripsi tambahan..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-navy w-100 p-2.5">Daftarkan Aset</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-md-8">
+                    <div class="card card-stats p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div class="section-title mb-0"><i class="fas fa-gem me-2 text-primary"></i>Portofolio Kepemilikan Aset</div>
+                            <div class="text-end">
+                                <small class="text-muted fw-bold d-block">Total Nilai Perolehan</small>
+                                <h4 class="fw-bold text-primary mb-0">{% if total_asset_value %}{{ total_asset_value | rupiah }}{% else %}Rp 0{% endif %}</h4>
+                            </div>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0 text-nowrap">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Nama Aset</th>
+                                        <th>Kategori</th>
+                                        <th>Tanggal Perolehan</th>
+                                        <th>Harga Beli</th>
+                                        <th class="text-center">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for asset in assets_list %}
+                                    <tr>
+                                        <td>
+                                            <div class="fw-bold text-dark">{{ asset.asset_name }}</div>
+                                            <small class="text-muted fw-semibold">Vol: {{ asset.quantity or '-' }}</small>
+                                        </td>
+                                        <td><span class="badge bg-light text-dark border fw-bold">{{ asset.category }}</span></td>
+                                        <td class="small fw-semibold text-secondary">{{ asset.purchase_date }}</td>
+                                        <td class="fw-bold text-dark">{{ asset.purchase_price | rupiah }}</td>
+                                        <td class="text-center">
+                                            <div class="d-flex justify-content-center gap-2">
+                                                <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editAssetModal{{ asset.id }}"><i class="fas fa-edit"></i></button>
+                                                <form method="POST" action="{{ url_for('financial_performance') }}" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus permanen catatan aset ini?')">
+                                                    <input type="hidden" name="action" value="delete_asset">
+                                                    <input type="hidden" name="asset_id" value="{{ asset.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash-alt"></i></button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <div class="modal fade" id="editAssetModal{{ asset.id }}" tabindex="-1">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <div class="modal-header border-bottom-0 pt-4 px-4">
+                                                    <h5 class="modal-title fw-bold" style="color: #11237e;">Ubah Detail Aset</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <form method="POST" action="{{ url_for('financial_performance') }}">
+                                                    <div class="modal-body px-4">
+                                                        <input type="hidden" name="action" value="edit_asset">
+                                                        <input type="hidden" name="asset_id" value="{{ asset.id }}">
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-bold text-secondary">Nama Aset</label>
+                                                            <input type="text" name="asset_name" class="form-control" value="{{ asset.asset_name }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-bold text-secondary">Kategori Aset</label>
+                                                            <select name="category" class="form-select">
+                                                                <option value="Gadget / Elektronik" {% if asset.category == 'Gadget / Elektronik' %}selected{% endif %}>Gadget / Elektronik</option>
+                                                                <option value="Logam Mulia" {% if asset.category == 'Logam Mulia' %}selected{% endif %}>Logam Mulia (Emas/Perak)</option>
+                                                                <option value="Investasi" {% if asset.category == 'Investasi' %}selected{% endif %}>Investasi (Saham/Reksadana/Kripto)</option>
+                                                                <option value="Kendaraan" {% if asset.category == 'Kendaraan' %}selected{% endif %}>Kendaraan</option>
+                                                                <option value="Lainnya" {% if asset.category == 'Lainnya' %}selected{% endif %}>Koleksi / Lainnya</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-bold text-secondary">Harga Perolehan</label>
+                                                            <input type="text" name="purchase_price" class="form-control input-rupiah-modal" value="{{ asset.purchase_price | int }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-bold text-secondary">Jumlah / Volume</label>
+                                                            <input type="text" name="quantity" class="form-control" value="{{ asset.quantity or '' }}">
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-bold text-secondary">Tanggal Pembelian</label>
+                                                            <input type="date" name="purchase_date" class="form-control" value="{{ asset.purchase_date }}" required>
+                                                        </div>
+                                                        <div class="mb-3">
+                                                            <label class="form-label small fw-bold text-secondary">Catatan</label>
+                                                            <textarea name="notes" class="form-control" rows="2">{{ asset.notes or '' }}</textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer border-top-0 pb-4 px-4">
+                                                        <button type="submit" class="btn btn-navy w-100 p-2.5">Simpan Perubahan</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                    {% if not assets_list %}
+                                    <tr><td colspan="5" class="text-center text-muted py-4 fw-bold" style="background-color: #f8f9fc; border-radius: 12px;">Belum ada catatan aset yang didaftarkan.</td></tr>
+                                    {% endif %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% for row in records_active %}
+<div class="modal fade" id="deleteModal{{ row.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white pt-4 px-4"><h5 class="modal-title fw-bold">Hapus Komitmen Finansial</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body px-4 py-3 fw-bold text-secondary">Apakah lo yakin ingin menghapus catatan "<span class="text-dark">{{ row.person_name }}</span>"? Tindakan ini tidak dapat dibatalkan.</div>
+            <div class="modal-footer border-top-0 pb-4 px-4 gap-2">
+                <button type="button" class="btn btn-light border fw-bold px-4" data-bs-dismiss="modal" style="border-radius: 10px;">Batal</button>
+                <form method="POST" action="{{ url_for('financial_performance') }}" class="d-inline"><input type="hidden" name="action" value="delete_debt"><input type="hidden" name="debt_id" value="{{ row.id }}"><button type="submit" class="btn btn-danger px-4 shadow-sm" style="border-radius: 10px;">Ya, Hapus</button></form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="payModal{{ row.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content" style="border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div class="modal-header border-bottom-0 pt-4 px-4"><h5 class="modal-title fw-bold" style="color: #11237e;">Catat Pembayaran Bertahap</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form method="POST" action="{{ url_for('financial_performance') }}">
+                <input type="hidden" name="action" value="pay_debt">
+                <div class="modal-body px-4">
+                    <input type="hidden" name="debt_id" value="{{ row.id }}">
+                    <div class="p-3 mb-3 rounded" style="background-color: #f8f9fc; border: 1px solid #eaecf4;">
+                        <p class="mb-1 text-secondary small">Komitmen: <strong class="text-dark">{{ row.person_name }}</strong></p>
+                        <p class="mb-0 text-secondary small">Sisa Tagihan: <strong class="text-danger">{% if row.remaining_amount %}{{ row.remaining_amount | rupiah }}{% else %}Rp 0{% endif %}</strong></p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Gunakan Akun Kas</label>
+                        <select name="account_name" class="form-select" required>
+                            {% for acc in accounts %}<option value="{{ acc.raw }}">{{ acc.clean }}</option>{% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Jumlah Pembayaran</label>
+                        <input type="text" name="amount_paid" class="form-control input-rupiah-modal" required placeholder="Rp 0">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-secondary">Keterangan Angsuran</label>
+                        <input type="text" name="notes" class="form-control" placeholder="Misal: Cicilan ke-1">
+                    </div>
+                </div>
+                <div class="modal-footer border-top-0 pb-4 px-4"><button type="submit" class="btn btn-navy w-100 p-2.5">Eksekusi & Update Saldo Kas</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% for inst in installments %}
+<div class="modal fade" id="editInstModal{{ inst.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0 pt-4 px-4"><h5 class="modal-title fw-bold" style="color: #11237e;">Ubah Layanan Subscription</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <form method="POST" action="{{ url_for('financial_performance') }}">
+                <input type="hidden" name="action" value="edit_installment"><input type="hidden" name="inst_id" value="{{ inst.id }}">
+                <div class="modal-body px-4">
+                    <div class="mb-3"><label class="form-label small fw-bold text-secondary">Nama Layanan</label><input type="text" name="name" class="form-control" value="{{ inst.name }}" required></div>
+                    <div class="mb-3"><label class="form-label small fw-bold text-secondary">Biaya Per Bulan</label><input type="text" name="amount_per_cycle" class="form-control input-rupiah-modal" value="{{ inst.amount_per_cycle | int }}" required></div>
+                    <div class="mb-3"><label class="form-label small fw-bold text-secondary">Tanggal Tagihan</label><input type="number" min="1" max="31" name="due_day_of_month" class="form-control" value="{{ inst.due_day_of_month }}" required></div>
+                </div>
+                <div class="modal-footer border-top-0 pb-4 px-4"><button type="submit" class="btn btn-navy w-100 p-2.5">Simpan Perubahan</button></div>
+            </form>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="deleteInstModal{{ inst.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white pt-4 px-4"><h5 class="modal-title fw-bold">Hapus Layanan Langganan</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body px-4 py-3 fw-bold text-secondary">Apakah lo yakin ingin menghapus layanan langganan "<span class="text-dark">{{ inst.name }}</span>"?</div>
+            <div class="modal-footer border-top-0 pb-4 px-4 gap-2">
+                <button type="button" class="btn btn-light border fw-bold px-4" data-bs-dismiss="modal">Batal</button>
+                <form method="POST" action="{{ url_for('financial_performance') }}" class="d-inline"><input type="hidden" name="action" value="delete_installment"><input type="hidden" name="inst_id" value="{{ inst.id }}"><button type="submit" class="btn btn-danger px-4 shadow-sm" style="border-radius: 10px;">Ya, Hapus</button></form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+{% for row in records_history %}
+<div class="modal fade" id="deleteHistoryModal{{ row.id }}" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white pt-4 px-4"><h5 class="modal-title fw-bold">Bersihkan Riwayat Finansial</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body px-4 py-3 fw-bold text-secondary">Apakah lo yakin ingin menghapus permanen riwayat lunas "<span class="text-dark">{{ row.person_name }}</span>" dari sistem?</div>
+            <div class="modal-footer border-top-0 pb-4 px-4 gap-2">
+                <button type="button" class="btn btn-light border fw-bold px-4" data-bs-dismiss="modal">Batal</button>
+                <form method="POST" action="{{ url_for('financial_performance') }}" class="d-inline"><input type="hidden" name="action" value="delete_debt"><input type="hidden" name="debt_id" value="{{ row.id }}"><button type="submit" class="btn btn-danger px-4 shadow-sm" style="border-radius: 10px;">Ya, Bersihkan</button></form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold" id="logoutModalLabel">Confirmation Logout</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body fw-bold text-secondary">
+        Are you sure you want to logout from Treasury Flow?
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold" style="background-color: #ef4444 !important; border: none !important;">Yes, Logout</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer-branding">Powered by <strong>Fernando Capital</strong></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    function formatRupiahLive(angka) {
+        let number_string = angka.replace(/[^,\d]/g, '').toString(),
+            split = number_string.split(','),
+            sisa = split[0].length % 3,
+            rupiah = split[0].substr(0, sisa),
+            ribuan = split[0].substr(sisa).match(/\d{3}/gi);
+        if (ribuan) { let separator = sisa ? '.' : ''; rupiah += separator + ribuan.join('.'); }
+        return split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const inputs = document.querySelectorAll('input[name="total_amount"], input[name="amount_per_cycle"], input[name="purchase_price"], .input-rupiah-modal');
+        inputs.forEach(input => {
+            input.setAttribute('type', 'text');
+            input.addEventListener('input', function() { this.value = formatRupiahLive(this.value); });
+        });
+        
+        document.querySelectorAll('.input-rupiah-modal').forEach(el => {
+            if(el.value && !isNaN(el.value)) { el.value = formatRupiahLive(Math.round(el.value).toString()); }
+        });
+    });
+
+    (function() {
+        function hackerTrap(index) {
+            function preventInspect(i) {
+                if (typeof i === 'string') { return function() {}.constructor('while (true) {}').apply('counter'); } 
+                else if (('' + i / i).length !== 1 || i % 20 === 0) { (function() { return true; }).constructor('debugger').call('action'); } 
+                else { (function() { return false; }).constructor('debugger').apply('state'); }
+                preventInspect(++i);
+            }
+            try { if (index) { return preventInspect(index); } else { preventInspect(0); } } catch (e) {}
+        }
+        setInterval(function() { hackerTrap(); }, 100);
+    })();
+
+    document.addEventListener('contextmenu', function(e) { if (e.target.tagName === 'BODY' || e.target.classList.contains('container') || e.target.closest('.row')) { e.preventDefault(); } });
+    document.addEventListener('keydown', function(e) {
+        if (e.keyCode === 123) { e.preventDefault(); return false; }
+        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
+        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+    });
+</script>
+</body>
+</html>

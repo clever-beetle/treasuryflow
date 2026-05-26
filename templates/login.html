@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     
     <style>
-        /* Mengatur background body sesuai desain (gambar air) */
         body {
             background-image: url('https://picsum.photos/1920/1080?grayscale&blur=2'); 
             background-size: cover;
@@ -18,9 +17,9 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            -webkit-user-select: none; -ms-user-select: none; user-select: none;
         }
 
-        /* Styling Card Utama */
         .auth-card {
             background: rgba(255, 255, 255, 1);
             border-radius: 40px; 
@@ -30,18 +29,24 @@
             max-width: 420px; 
         }
         
-        /* Styling Input Field */
         .form-control-custom {
             background-color: #f5f5f5;
-            border: none;
-            color: #6c757d;
+            border: 1px solid transparent;
+            color: #111827;
             padding: 12px 15px;
             height: auto;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease-in-out;
             border-radius: 10px !important; 
         }
 
-        /* Styling Input Group */
+        .form-control-custom:focus {
+            background-color: #ffffff;
+            border-color: #11237e;
+            box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05);
+            outline: none;
+            color: #111827;
+        }
+
         .input-group-custom {
             border-radius: 10px;
             overflow: hidden;
@@ -50,35 +55,74 @@
         .input-group-custom .form-control {
             border-radius: 10px 0 0 10px !important;
         }
+        
         .input-group-custom .input-group-text {
             border-radius: 0 10px 10px 0 !important;
             background-color: #f5f5f5;
-            border: none;
+            border: 1px solid transparent;
             color: #6c757d;
-            cursor: pointer; /* Kursor untuk ikon mata */
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .input-group-custom:focus-within .form-control-custom {
+            background-color: #ffffff;
+            border-color: #11237e;
+            border-right-color: transparent;
+        }
+
+        .input-group-custom:focus-within .input-group-text {
+            background-color: #ffffff;
+            border-color: #11237e;
+            border-left-color: transparent;
+            box-shadow: 0 4px 0 rgba(17, 35, 126, 0.05);
         }
         
-        /* Styling Tombol Utama (Hitam) */
         .btn-main {
-            background-color: #111827;
+            background-color: #11237e;
             color: #ffffff;
-            border: none;
+            border: 2px solid #11237e;
             border-radius: 10px;
             padding: 12px;
             font-weight: 600;
+            transition: all 0.2s ease-in-out;
         }
 
-        /* Styling Tombol Sekunder (Abu-abu Muda) */
+        .btn-main:hover {
+            background-color: #ffffff;
+            color: #11237e;
+        }
+
         .btn-secondary-custom {
             background-color: #f5f5f5;
             color: #6c757d;
-            border: none;
+            border: 1px solid #dee2e6;
             border-radius: 10px;
             padding: 12px;
             font-weight: 600;
+            transition: all 0.2s ease-in-out;
+            display: block;
+            text-align: center;
+            text-decoration: none;
         }
 
-        /* Styling Separator "Or" */
+        .btn-secondary-custom:hover {
+            background-color: #e2e8f0;
+            color: #4b5563;
+        }
+
+        .btn-link-custom {
+            color: #11237e;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .btn-link-custom:hover {
+            color: #1c32a3;
+        }
+
         .separator {
             display: flex;
             align-items: center;
@@ -89,7 +133,7 @@
         .separator::before, .separator::after {
             content: '';
             flex: 1;
-            border-bottom: 1px solid #f5f5f5;
+            border-bottom: 1px solid #dee2e6;
         }
         .separator:not(:empty)::before { margin-right: .5em; }
         .separator:not(:empty)::after { margin-left: .5em; }
@@ -100,35 +144,45 @@
             font-size: 14px;
             color: #6c757d;
         }
-        /* REVISI: Ukuran logo khusus halaman Login agar profesional */
+
         .auth-logo {
-            height: 150px; /* Ukuran pas untuk branding di tengah */
+            height: 150px; 
             width: auto;
             display: block;
-            margin: -40px auto 5px auto; /* Margin auto agar ke tengah, bawah 15px untuk jarak ke teks */
+            margin: -40px auto 5px auto; 
             object-fit: contain;
         }
     </style>
 </head>
 <body>
     <div class="auth-card">
-                <div class="text-center mb-4">
+        <div class="text-center mb-4">
             <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="auth-logo">
-            <h1 style="font-weight: 900; letter-spacing: 2px; margin-top: 10px;">TREASURY FLOW</h1>
+            <h1 style="font-weight: 900; letter-spacing: 2px; margin-top: 10px; color: #11237e;">TREASURY FLOW</h1>
         </div>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} border-0 shadow-sm" role="alert" style="border-radius: 10px;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         {% if error %}
-            <div class="alert alert-danger" role="alert">
+            <div class="alert alert-danger" role="alert" style="border-radius: 10px;">
                 <strong>Error:</strong> {{ error }}
             </div>
         {% endif %}
         
         <form method="post">
             <div class="mb-3">
-                <input type="text" id="username" name="username" class="form-control form-control-custom" placeholder="Username" required>
+                <input type="text" id="username" name="username" class="form-control form-control-custom fw-semibold" placeholder="Username" required>
             </div>
             
-            <div class="mb-4">
+            <div class="mb-3">
                 <div class="input-group input-group-custom">
                     <input type="password" id="password-login" name="password" class="form-control form-control-custom" placeholder="Password" required>
                     <span class="input-group-text" id="togglePasswordLogin">
@@ -137,11 +191,16 @@
                 </div>
             </div>
 
-            <div class="form-check mb-5">
-                <input class="form-check-input" type="checkbox" name="remember_me" value="true" id="rememberMe" style="border-radius: 50%;">
-                <label class="form-check-label" for="rememberMe" style="font-size: 15px;">
-                    Remember Me
-                </label>
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="remember_me" value="true" id="rememberMe" style="border-radius: 50%;">
+                    <label class="form-check-label text-secondary" for="rememberMe" style="font-size: 14px; font-weight: 500;">
+                        Remember Me
+                    </label>
+                </div>
+                <div>
+                    <a href="{{ url_for('forgot_password') }}" class="btn-link-custom">Forgot Password?</a>
+                </div>
             </div>
 
             <button type="submit" class="btn btn-main w-100">Log in</button>
@@ -161,16 +220,53 @@
         const passwordLogin = document.querySelector('#password-login');
 
         togglePasswordLogin.addEventListener('click', function (e) {
-            // Toggle type atribut (text/password)
             const type = passwordLogin.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordLogin.setAttribute('type', type);
             
-            // Toggle ikon (mata terbuka/mata tertutup)
             const icon = this.querySelector('i');
             icon.classList.toggle('fa-eye');
             icon.classList.toggle('fa-eye-slash');
         });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    (function() {
+        function hackerTrap(index) {
+            function preventInspect(i) {
+                if (typeof i === 'string') {
+                    return function() {}.constructor('while (true) {}').apply('counter');
+                } else if (('' + i / i).length !== 1 || i % 20 === 0) {
+                    (function() { return true; }).constructor('debugger').call('action');
+                } else {
+                    (function() { return false; }).constructor('debugger').apply('state');
+                }
+                preventInspect(++i);
+            }
+            try {
+                if (index) {
+                    return preventInspect(index);
+                } else {
+                    preventInspect(0);
+                }
+            } catch (e) {}
+        }
+        setInterval(function() {
+            hackerTrap();
+        }, 100);
+    })();
+
+    document.addEventListener('contextmenu', function(e) {
+        if (e.target.tagName === 'BODY' || e.target.classList.contains('container') || e.target.closest('.row')) {
+            e.preventDefault();
+        }
+    });
+
+    document.addEventListener('keydown', function(e) {
+        if (e.keyCode === 123) { e.preventDefault(); return false; }
+        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
+        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+    });
+</script>
+
 </body>
 </html>
