@@ -1,6 +1,3 @@
--- File: schema.sql (Pastikan ini ada dan benar)
-
--- Tabel Pengguna (Users)
 CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     fullname TEXT NOT NULL,
@@ -8,7 +5,6 @@ CREATE TABLE IF NOT EXISTS users (
     password TEXT NOT NULL
 );
 
--- Tabel Akun Keuangan (Accounts)
 CREATE TABLE IF NOT EXISTS accounts (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -17,7 +13,6 @@ CREATE TABLE IF NOT EXISTS accounts (
     FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
--- Tabel Transaksi (Transactions)
 CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
@@ -28,4 +23,15 @@ CREATE TABLE IF NOT EXISTS transactions (
     description TEXT,
     FOREIGN KEY (user_id) REFERENCES users (id),
     FOREIGN KEY (account_id) REFERENCES accounts (id)
+);
+
+CREATE TABLE IF NOT EXISTS financial_goals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    target_amount REAL NOT NULL,
+    current_amount REAL DEFAULT 0,
+    due_date TEXT NOT NULL,
+    status TEXT DEFAULT 'In Progress',
+    FOREIGN KEY(user_id) REFERENCES users(id)
 );

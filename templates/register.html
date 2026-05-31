@@ -12,11 +12,12 @@
             background-image: url('https://picsum.photos/1920/1080?grayscale&blur=2'); 
             background-size: cover;
             background-position: center;
-            height: 100vh;
+            background-attachment: fixed;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 80px 20px 40px 20px;
             -webkit-user-select: none; -ms-user-select: none; user-select: none;
         }
 
@@ -27,6 +28,7 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
             width: 100%;
             max-width: 420px; 
+            margin: auto;
         }
         
         .form-control-custom {
@@ -36,7 +38,7 @@
             padding: 12px 15px;
             height: auto;
             transition: all 0.2s ease-in-out;
-            border-radius: 10px !important;
+            border-radius: 10px !important; 
         }
 
         .form-control-custom:focus {
@@ -50,13 +52,12 @@
         .input-group-custom {
             border-radius: 10px;
             overflow: hidden;
-            width: 100%;
         }
 
         .input-group-custom .form-control {
             border-radius: 10px 0 0 10px !important;
         }
-
+        
         .input-group-custom .input-group-text {
             border-radius: 0 10px 10px 0 !important;
             background-color: #f5f5f5;
@@ -119,21 +120,19 @@
             color: #6c757d;
             margin: 20px 0;
         }
-
         .separator::before, .separator::after {
             content: '';
             flex: 1;
             border-bottom: 1px solid #dee2e6;
         }
-
         .separator:not(:empty)::before { margin-right: .5em; }
         .separator:not(:empty)::after { margin-left: .5em; }
         
-        .form-label {
-            font-weight: 600;
-            margin-bottom: 5px;
-            color: #4b5563;
+        .powered-by {
+            text-align: center;
+            margin-top: 20px;
             font-size: 14px;
+            color: #6c757d;
         }
 
         .auth-logo {
@@ -152,6 +151,16 @@
             <h1 style="font-weight: 900; letter-spacing: 2px; margin-top: 10px; color: #11237e;">TREASURY FLOW</h1>
         </div>
 
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} border-0 shadow-sm" role="alert" style="border-radius: 10px;">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         {% if error %}
             <div class="alert alert-danger" role="alert" style="border-radius: 10px;">
                 <strong>Error:</strong> {{ error }}
@@ -160,34 +169,34 @@
         
         <form method="post">
             <div class="mb-3">
-                <label for="fullname" class="form-label">Full Name</label>
-                <input type="text" id="fullname" name="fullname" class="form-control form-control-custom fw-semibold" placeholder="Fernando Capital" required>
+                <input type="text" id="fullname" name="fullname" class="form-control form-control-custom fw-semibold" placeholder="Full Name" required>
             </div>
             
             <div class="mb-3">
-                <label for="username" class="form-label">Username (Email)</label>
-                <input type="email" id="username" name="username" class="form-control form-control-custom fw-semibold" placeholder="name@example.com" required>
+                <input type="email" id="email" name="email" class="form-control form-control-custom fw-semibold" placeholder="Email Address" required>
+            </div>
+
+            <div class="mb-3">
+                <input type="text" id="username" name="username" class="form-control form-control-custom fw-semibold" placeholder="Username" required>
             </div>
             
-            <div class="row mb-4">
-                <div class="col-6">
-                    <label for="password-reg" class="form-label">Password</label>
-                    <div class="input-group input-group-custom">
-                        <input type="password" id="password-reg" name="password" class="form-control form-control-custom" required>
-                        <span class="input-group-text" id="togglePasswordReg">
-                            <i class="fas fa-eye-slash"></i>
-                        </span>
-                    </div>
+            <div class="mb-3">
+                <div class="input-group input-group-custom">
+                    <input type="password" id="password-reg" name="password" class="form-control form-control-custom" placeholder="Password" required>
+                    <span class="input-group-text" id="togglePasswordReg">
+                        <i class="fas fa-eye-slash"></i>
+                    </span>
                 </div>
-                <div class="col-6">
-                    <label for="confirm_password" class="form-label">Confirm</label>
-                    <div class="input-group input-group-custom">
-                        <input type="password" id="confirm_password" name="confirm_password" class="form-control form-control-custom" required>
-                        <span class="input-group-text" id="toggleConfirmPasswordReg">
-                            <i class="fas fa-eye-slash"></i>
-                        </span>
-                    </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="input-group input-group-custom">
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control form-control-custom" placeholder="Confirm Password" required>
+                    <span class="input-group-text" id="toggleConfirmPasswordReg">
+                        <i class="fas fa-eye-slash"></i>
+                    </span>
                 </div>
+                <div id="passwordMatch" class="small mt-2 text-center" style="font-weight: 600; display: none;"></div>
             </div>
 
             <button type="submit" class="btn btn-main w-100">Create Account</button>
@@ -196,16 +205,19 @@
         <div class="separator">Or</div>
 
         <a href="{{ url_for('login') }}" class="btn btn-secondary-custom w-100">Log In</a>
-    </div>
 
+        <div class="powered-by">
+            Powered by <strong>Fernando Capital</strong>
+        </div>
+    </div>
+    
     <script>
         const togglePasswordReg = document.querySelector('#togglePasswordReg');
         const passwordReg = document.querySelector('#password-reg');
 
-        togglePasswordReg.addEventListener('click', function (e) {
+        togglePasswordReg.addEventListener('click', function () {
             const type = passwordReg.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordReg.setAttribute('type', type);
-            
             const icon = this.querySelector('i');
             icon.classList.toggle('fa-eye');
             icon.classList.toggle('fa-eye-slash');
@@ -214,54 +226,74 @@
         const toggleConfirmPasswordReg = document.querySelector('#toggleConfirmPasswordReg');
         const confirmPasswordReg = document.querySelector('#confirm_password');
 
-        toggleConfirmPasswordReg.addEventListener('click', function (e) {
+        toggleConfirmPasswordReg.addEventListener('click', function () {
             const type = confirmPasswordReg.getAttribute('type') === 'password' ? 'text' : 'password';
             confirmPasswordReg.setAttribute('type', type);
-            
             const icon = this.querySelector('i');
             icon.classList.toggle('fa-eye');
             icon.classList.toggle('fa-eye-slash');
         });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    (function() {
-        function hackerTrap(index) {
-            function preventInspect(i) {
-                if (typeof i === 'string') {
-                    return function() {}.constructor('while (true) {}').apply('counter');
-                } else if (('' + i / i).length !== 1 || i % 20 === 0) {
-                    (function() { return true; }).constructor('debugger').call('action');
-                } else {
-                    (function() { return false; }).constructor('debugger').apply('state');
-                }
-                preventInspect(++i);
+
+        const matchText = document.getElementById('passwordMatch');
+        
+        function checkPasswordMatch() {
+            if (confirmPasswordReg.value === "") {
+                matchText.style.display = "none";
+                return;
             }
-            try {
-                if (index) {
-                    return preventInspect(index);
-                } else {
-                    preventInspect(0);
+            matchText.style.display = "block";
+            if (passwordReg.value === confirmPasswordReg.value) {
+                matchText.textContent = "Passwords match";
+                matchText.style.color = "#198754";
+            } else {
+                matchText.textContent = "Passwords do not match";
+                matchText.style.color = "#dc3545";
+            }
+        }
+
+        passwordReg.addEventListener('input', checkPasswordMatch);
+        confirmPasswordReg.addEventListener('input', checkPasswordMatch);
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        (function() {
+            function hackerTrap(index) {
+                function preventInspect(i) {
+                    if (typeof i === 'string') {
+                        return function() {}.constructor('while (true) {}').apply('counter');
+                    } else if (('' + i / i).length !== 1 || i % 20 === 0) {
+                        (function() { return true; }).constructor('debugger').call('action');
+                    } else {
+                        (function() { return false; }).constructor('debugger').apply('state');
+                    }
+                    preventInspect(++i);
                 }
-            } catch (e) {}
-        }
-        setInterval(function() {
-            hackerTrap();
-        }, 100);
-    })();
+                try {
+                    if (index) {
+                        return preventInspect(index);
+                    } else {
+                        preventInspect(0);
+                    }
+                } catch (e) {}
+            }
+            setInterval(function() {
+                hackerTrap();
+            }, 100);
+        })();
 
-    document.addEventListener('contextmenu', function(e) {
-        if (e.target.tagName === 'BODY' || e.target.classList.contains('container') || e.target.closest('.row')) {
-            e.preventDefault();
-        }
-    });
+        document.addEventListener('contextmenu', function(e) {
+            if (e.target.tagName === 'BODY' || e.target.classList.contains('container') || e.target.closest('.row')) {
+                e.preventDefault();
+            }
+        });
 
-    document.addEventListener('keydown', function(e) {
-        if (e.keyCode === 123) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
-    });
-</script>
-
+        document.addEventListener('keydown', function(e) {
+            if (e.keyCode === 123) { e.preventDefault(); return false; }
+            if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
+            if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+        });
+    </script>
 </body>
 </html>

@@ -168,10 +168,20 @@
                             </form>
                         </div>
 
-                        <div class="card p-4">
+                        <div class="card p-4 mb-4">
                             <div class="section-title text-danger"><i class="fas fa-lock me-2"></i>Lupa Password Lama?</div>
                             <p class="text-secondary small fw-medium mb-3">Jika Anda lupa password lama dan tidak bisa menggantinya, silakan gunakan fitur pemulihan password untuk mengirimkan link reset ke email Anda.</p>
                             <a href="{{ url_for('forgot_password') }}" class="btn btn-outline-navy text-center d-block w-100">Menuju Halaman Forgot Password</a>
+                        </div>
+                        
+                        <div class="card p-4 border border-danger shadow-sm">
+                            <div class="section-title text-danger mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Danger Zone: Hapus Akun</div>
+                            <p class="text-secondary small fw-medium mb-3">
+                                <strong>Peringatan Keras:</strong> Tindakan ini akan menghapus akun Anda secara permanen beserta seluruh data finansial (riwayat transaksi, aset, utang, dll). Data yang terhapus <strong>tidak dapat dikembalikan</strong>.
+                            </p>
+                            <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
+                                <i class="fas fa-user-slash me-2"></i>Hapus Akun Permanen
+                            </button>
                         </div>
                     </div>
 
@@ -192,8 +202,33 @@
       </div>
       <div class="modal-footer border-0">
         <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
-        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold" style="background-color: #ef4444 !important; border: none !important;">Yes, Logout</a>
+        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold">Yes, Logout</a>
       </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold" id="deleteAccountModalLabel">Konfirmasi Hapus Akun</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST">
+          <input type="hidden" name="action" value="delete_account">
+          <div class="modal-body fw-bold text-secondary">
+            <p>Apakah Anda benar-benar yakin ingin menghapus akun ini secara permanen? Semua data keuangan Anda akan lenyap.</p>
+            <div class="mb-3 mt-4">
+                <label class="form-label small fw-bold text-danger">Masukkan Password Anda untuk melanjutkan penghapusan</label>
+                <input type="password" name="password_check" class="form-control form-control-custom border-danger" required placeholder="Ketik password Anda...">
+            </div>
+          </div>
+          <div class="modal-footer border-0 pt-0">
+            <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Batal</button>
+            <button type="submit" class="btn btn-danger fw-bold">Ya, Hapus Selamanya</button>
+          </div>
+      </form>
     </div>
   </div>
 </div>

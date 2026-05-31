@@ -5,248 +5,105 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>History - Treasury Flow</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet'>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
     <style>
-        body { 
-            background-color: #f5f5f5; 
-            color: #111827; 
-            font-size: 14px; 
-            -webkit-user-select: none; -ms-user-select: none; user-select: none;
-        }
-        .navbar { 
-            background-color: #ffffff !important; 
-            border-bottom: 1px solid #f5f5f5; 
-            position: sticky; 
-            top: 0; 
-            z-index: 1050; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        .navbar-brand {
-            font-weight: 700;
-            color: #11237e !important;
-        }
-        .navbar-logo {
-            height: 70px; 
-            width: auto; 
-            object-fit: contain;
-            margin-top: -13px; 
-            margin-left: -25px;
-            margin-right: 0px;
-        }
-        .navbar-brand span { 
-            color: #11237e; 
-            font-size: 1.25rem; 
-            line-height: 1; 
-        }
-        .container {
-            padding-left: 15px;
-            padding-right: 15px;
-        }
-        .page-header { 
-            background: #ffffff; 
-            padding: 20px 15px; 
-            border-bottom: 1px solid #f5f5f5; 
-            margin-bottom: 15px; 
-        }
-        #calendar { 
-            background: #ffffff; 
-            padding: 15px; 
-            border-radius: 12px; 
-            border: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            margin-bottom: 30px;
-            overflow: hidden; 
-        }
-        .fc-toolbar-title { 
-            font-size: 1.2rem !important; 
-            font-weight: 800 !important; 
-            color: #11237e !important;
-        }
-        .fc-col-header-cell-cushion {
-            color: #6b7280 !important;
-            font-size: 0.8rem;
-            font-weight: 800;
-            text-transform: uppercase;
-            text-decoration: none !important;
-        }
-        .fc-daygrid-day-number {
-            text-decoration: none !important;
-            color: #111827 !important;
-        }
-        .fc-event {
-            border: none !important;
-            border-radius: 6px !important;
-        }
-        .fc-button-primary, .fc-col-header-cell-cushion, .fc-toolbar-title {
-            text-transform: capitalize !important;
-        }
-        .fc-button-primary {
-            background-color: #11237e !important;
-            border-color: #11237e !important;
-        }
-        .fc-button-primary:hover {
-            background-color: #ffffff !important;
-            color: #11237e !important;
-            border-color: #11237e !important;
-        }
-        .btn-add-transaction {
-            background-color: #ef4444 !important;
-            color: #ffffff !important;
-            border: 2px solid #ef4444 !important;
-            border-radius: 10px;
-            padding: 12px;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.2s ease-in-out;
-        }
-        .btn-add-transaction:hover {
-            background-color: #ffffff !important;
-            color: #ef4444 !important;
-            transform: translateY(-1px);
-        }
-        .btn-pdf {
-            background-color: #11237e !important;
-            color: #ffffff !important;
-            border: 2px solid #11237e !important;
-            border-radius: 10px;
-            padding: 10px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.2s ease-in-out;
-        }
-        .btn-pdf:hover {
-            background-color: #ffffff !important;
-            color: #11237e !important;
-            border-color: #11237e !important;
-        }
-        .btn-csv {
-            background-color: #11237e !important;
-            color: #ffffff !important;
-            border: 2px solid #11237e !important;
-            border-radius: 10px;
-            padding: 10px;
-            font-weight: 600;
-            font-size: 13px;
-            transition: all 0.2s ease-in-out;
-        }
-        .btn-csv:hover {
-            background-color: #ffffff !important;
-            color: #11237e !important;
-            border-color: #11237e !important;
-        }
-        .form-control-sm {
-            border-radius: 8px;
-            border: 1px solid #e5e7eb;
-            background-color: #f9fafb;
-            padding: 8px 12px;
-        }
-        .form-control-sm:focus {
-            border-color: #11237e;
-            background-color: #ffffff;
-            box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05);
-            outline: none;
-        }
-        .card-transaction { 
-            border: none; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); 
-            margin-bottom: 10px; 
-            background-color: #ffffff;
-        }
-        .table-custom th { border: none; color: #6b7280; font-size: 12px; text-transform: uppercase; }
-        .table-custom td { vertical-align: middle; border-top: 1px solid #f3f4f6; padding: 12px 16px; }
-        .badge-cat { font-weight: 600; font-size: 11px; padding: 5px 10px; border-radius: 6px; }
-        .bg-success-subtle { background-color: #e6f4ea !important; }
-        .bg-danger-subtle { background-color: #fce8e6 !important; }
-        .btn-outline-danger {
-            border: 1px solid #fcdcdc !important;
-            border-radius: 6px;
-            color: #ef4444;
-            background-color: #ffffff;
-            transition: all 0.2s;
-        }
-        .btn-outline-danger:hover {
-            background-color: #ef4444;
-            color: #ffffff;
-            border-color: #ef4444 !important;
-        }
-        .btn-danger { 
-            background-color: #ef4444 !important; 
-            color: white !important; 
-            border-radius: 10px !important; 
-            font-weight: 600 !important; 
-            border: none !important;
-        }
-        .btn-light {
-            background-color: #f5f5f5 !important;
-            color: #6c757d !important;
-            border-radius: 10px !important;
-            font-weight: 600 !important;
-            border: 1px solid #dee2e6 !important;
-        }
+        body { background-color: #f5f5f5; color: #111827; font-family: 'Inter', sans-serif; -webkit-user-select: none; -ms-user-select: none; user-select: none; }
+        .navbar { border-bottom: 1px solid #f5f5f5; background-color: #ffffff !important; position: sticky; top: 0; z-index: 1050; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .navbar-toggler { border: none !important; }
+        .navbar-toggler:focus, .navbar-toggler:active { outline: none !important; box-shadow: none !important; }
+        .navbar-brand { font-weight: 700; color: #11237e !important; display: flex !important; align-items: center !important; }
+        .navbar-logo { height: 70px; width: auto; object-fit: contain; margin-top: -13px; margin-bottom: 0px; margin-left: -25px; margin-right: 0px; }
+        .navbar-brand span { color: #11237e; font-size: 1.25rem; line-height: 1; }
+        
+        .sidebar-active { background-color: #11237e !important; color: #ffffff !important; font-weight: 800 !important; transition: all 0.3s ease; }
+        .sidebar-active i { color: #ffffff !important; }
+
+        .modal-header.bg-danger { background-color: #ef4444 !important; border-bottom: none; }
         .modal-content { border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .footer-branding { font-size: 0.8rem; color: #6c757d; margin-top: 50px; text-align: center; padding-bottom: 20px; }
 
+        .btn-navy { background-color: #11237e !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #11237e !important; transition: all 0.2s ease-in-out; }
+        .btn-navy:hover { background-color: #ffffff !important; color: #11237e !important; transform: translateY(-1px); }
+        .btn-danger:not(.btn-sm) { background-color: #ef4444 !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #ef4444 !important; transition: all 0.2s ease-in-out; }
+        .btn-danger:not(.btn-sm):hover { background-color: #ffffff !important; color: #ef4444 !important; transform: translateY(-1px); }
+        
+        .page-header { background: #ffffff; padding: 20px 0; border-bottom: 1px solid #f3f4f6; margin-bottom: 20px; }
+        .card-custom { background: #ffffff; border-radius: 12px; border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); margin-bottom: 20px; }
+
+        .btn-action { border-radius: 10px; font-weight: 600; padding: 10px 15px; transition: all 0.2s ease-in-out; display: flex; align-items: center; justify-content: center; gap: 8px; border-width: 2px; border-style: solid; }
+        .btn-add { background-color: #ef4444 !important; color: white !important; border-color: #ef4444 !important; }
+        .btn-add:hover { background-color: #ffffff !important; color: #ef4444 !important; transform: translateY(-1px); }
+        .btn-export { background-color: #11237e !important; color: white !important; border-color: #11237e !important; }
+        .btn-export:hover { background-color: #ffffff !important; color: #11237e !important; transform: translateY(-1px); }
+
+        #calendar { padding: 15px; overflow: hidden; }
+        .fc-toolbar-title { font-size: 1.25rem !important; font-weight: 800 !important; color: #11237e !important; }
+        .fc-col-header-cell-cushion { color: #6b7280 !important; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; text-decoration: none !important; }
+        .fc-daygrid-day-number { text-decoration: none !important; color: #111827 !important; font-weight: 600; }
+        .fc-event { border: none !important; border-radius: 4px !important; font-size: 0.75rem !important; font-weight: 600; }
+        .fc-button-group > .fc-button { margin: 0 4px !important; border-radius: 8px !important; }
+        .fc-button-primary { background-color: #11237e !important; border-color: #11237e !important; text-transform: capitalize !important; font-weight: 600 !important; border-radius: 8px !important; margin-left: 4px !important; margin-right: 4px !important; }
+        .fc-button-primary:hover { background-color: #1c32a3 !important; }
+        .fc .fc-day-today { background-color: #11237e !important; }
+        .fc .fc-day-today .fc-daygrid-day-number { color: #ffffff !important; font-weight: bold !important; }
+        
+        .form-control-sm { border-radius: 8px; border: 1px solid #e5e7eb; background-color: #f9fafb; padding: 10px 12px; font-weight: 500; transition: all 0.2s; }
+        .form-control-sm:focus { border-color: #11237e; background-color: #ffffff; box-shadow: 0 0 0 3px rgba(17, 35, 126, 0.1); outline: none; }
+
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .table-custom { min-width: 450px; }
+        .nominal-angka { white-space: nowrap !important; display: inline-block; }
+        .table-custom th { border: none; color: #6b7280; font-size: 11px; text-transform: uppercase; font-weight: 700; background-color: #f9fafb; }
+        .table-custom td { vertical-align: middle; border-bottom: 1px solid #f3f4f6; padding: 15px 16px; }
+        .badge-cat { font-weight: 600; font-size: 11px; padding: 5px 10px; border-radius: 6px; }
+        .bg-success-subtle { background-color: #d1fae5 !important; color: #059669 !important; }
+        .bg-danger-subtle { background-color: #fee2e2 !important; color: #dc2626 !important; }
+        
+        .btn-outline-danger { border: 1px solid #fcdcdc !important; border-radius: 8px; color: #ef4444; background-color: #ffffff; font-size: 12px; font-weight: 600; padding: 6px 12px; transition: all 0.2s; }
+        .btn-outline-danger:hover { background-color: #ef4444; color: #ffffff; border-color: #ef4444 !important; }
+
         @media (max-width: 768px) {
+            .page-header { padding: 15px 0; }
+            .btn-action { width: 100%; margin-top: 10px; }
+            .export-group { flex-direction: column; gap: 8px; margin-top: 10px; }
+            .fc-header-toolbar { flex-direction: column; gap: 15px; align-items: center !important; }
+            .fc-toolbar-chunk { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+            .fc-toolbar-title { font-size: 1.15rem !important; text-align: center; }
             #calendar { padding: 10px; }
-            .fc-col-header-cell-cushion { font-size: 0.65rem !important; letter-spacing: 0; }
-            .fc-daygrid-day-number { padding: 5px !important; font-size: 0.8rem; }
-            .fc-event { font-size: 0.6rem !important; padding: 2px 4px !important; margin: 1px 0 !important; }
+            .table-custom td { padding: 12px 10px; }
+            .badge-cat { font-size: 10px; padding: 4px 8px; }
         }
     </style>
 </head>
 <body>
+    
     <nav class="navbar bg-white border-bottom p-3">
         <div class="container-fluid">
             <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
                 <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
                 <span>TREASURY FLOW</span>
             </a>
-    
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar">
                 <i class="fas fa-bars fa-lg"></i>
             </button>
-    
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
                 <div class="offcanvas-header border-bottom">
-                    <h5 class="offcanvas-title fw-bold" id="offcanvasNavbarLabel" style="color: #11237e;">MENU</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                    <h5 class="offcanvas-title fw-bold" style="color: #11237e;">MENU</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
                 </div>
                 <div class="offcanvas-body" style="background-color: #f5f5f5;">
                     <ul class="navbar-nav justify-content-end flex-grow-1">
-                        <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;">
-                                <i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827; font-size: 1rem; display: block;">
-                                <i class="fas fa-wallet me-3 text-success" style="width: 20px; text-align: center;"></i> Manage Accounts
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;">
-                                <i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;">
-                                <i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;">
-                                <i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings
-                            </a>
-                        </li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-wallet me-3 text-success" style="width: 20px; text-align: center;"></i> Manage Accounts</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings</a></li>
                         <hr class="my-4">
-                        <li class="nav-item">
-                            <button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem; background-color: #ef4444 !important; border: none !important;">
-                                <i class="fas fa-sign-out-alt me-2"></i> Logout
-                            </button>
-                        </li>
+                        
+                        <li class="nav-item"><button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem;"><i class="fas fa-sign-out-alt me-2"></i> Logout</button></li>
+                        
                     </ul>
                 </div>
             </div>
@@ -259,81 +116,86 @@
                 <div class="col-12 col-md-6 text-center text-md-start">
                     <h4 class="fw-bold mb-0" style="color: #111827;"><i class="fas fa-history text-primary me-2"></i>Transaction History</h4>
                 </div>
-                <div class="col-12 col-md-6">
-                    <a href="{{ url_for('add_transaction') }}" class="btn btn-add-transaction shadow-sm w-100 d-flex align-items-center justify-content-center">
-                        <i class="fas fa-plus-circle me-2"></i>ADD NEW TRANSACTION
+                <div class="col-12 col-md-6 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('add_transaction') }}" class="btn btn-action btn-add shadow-sm">
+                        <i class="fas fa-plus-circle"></i> ADD TRANSACTION
                     </a>
                 </div>
             </div>
 
-            <div class="card border-0">
-                <div class="card-body p-2">
-                    <form id="filterForm" class="row g-2 align-items-end">
-                        <div class="col-6 col-md-4">
-                            <label class="small fw-bold mb-1" style="color: #11237e;">From Date</label>
-                            <input type="date" id="start_date" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-6 col-md-4">
-                            <label class="small fw-bold mb-1" style="color: #11237e;">To Date</label>
-                            <input type="date" id="end_date" class="form-control form-control-sm">
-                        </div>
-                        <div class="col-12 col-md-4 d-flex gap-2 mt-2 mt-md-0">
-                            <button type="button" onclick="exportData('pdf')" class="btn btn-pdf shadow-sm w-100 d-flex align-items-center justify-content-center">
-                                <i class="fas fa-file-pdf me-2"></i>PDF
-                            </button>
-                            <button type="button" onclick="exportData('csv')" class="btn btn-csv shadow-sm w-100 d-flex align-items-center justify-content-center">
-                                <i class="fas fa-file-csv me-2"></i>CSV
-                            </button>
-                        </div>
-                    </form>
-                </div>
+            <div class="card card-custom mb-0 p-3">
+                <form id="filterForm" class="row g-2 align-items-end">
+                    <div class="col-6 col-md-3">
+                        <label class="small fw-bold mb-1 text-secondary" style="color: #11237e;">From Date</label>
+                        <input type="date" id="start_date" class="form-control form-control-sm w-100">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="small fw-bold mb-1 text-secondary" style="color: #11237e;">To Date</label>
+                        <input type="date" id="end_date" class="form-control form-control-sm w-100">
+                    </div>
+                    <div class="col-12 col-md-6 d-flex gap-2 export-group">
+                        <button type="button" onclick="exportData('pdf')" class="btn btn-action btn-export shadow-sm flex-grow-1">
+                            <i class="fas fa-file-pdf"></i> PDF
+                        </button>
+                        <button type="button" onclick="exportData('csv')" class="btn btn-action btn-export shadow-sm flex-grow-1">
+                            <i class="fas fa-file-csv"></i> CSV
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
     <div class="container">
-        <div id='calendar'></div>
+        <div class="card card-custom">
+            <div id='calendar'></div>
+        </div>
 
-        <div class="card card-transaction">
+        <div class="card card-custom mt-4">
             <div class="card-body p-0">
                 <div class="table-responsive">
                     <table class="table table-custom mb-0">
                         <thead>
                             <tr>
-                                <th class="ps-4">Detail</th>
-                                <th class="text-end pe-4">Amount</th>
+                                <th class="ps-3 ps-md-4 py-3">Detail</th>
+                                <th class="text-end pe-3 pe-md-4 py-3">Amount</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for t in transactions %}
                             <tr>
-                                <td class="ps-4">
-                                    <div class="fw-bold mb-1 text-dark" style="font-size: 15px;">{{ t.description or 'No Description' }}</div>
-                                    <div class="small text-muted mb-1.5">
+                                <td class="ps-3 ps-md-4">
+                                    <div class="fw-bold mb-1" style="font-size: 15px; color: #111827;">{{ t.description or 'No Description' }}</div>
+                                    <div class="small text-muted mb-2 fw-medium">
                                         <i class="far fa-calendar-alt me-1"></i>{{ t.date }}
                                     </div>
                                     <span class="badge badge-cat {{ 'bg-success-subtle text-success' if t.type == 'income' else 'bg-danger-subtle text-danger' }}">
                                         {{ t.category }}
                                     </span>
-                                    <div class="mt-1.5 fw-semibold" style="font-size: 11px; color: #11237e;">Via: {{ t.account_name.split('] ')[1] if '] ' in t.account_name else t.account_name }}</div>
+                                    <div class="mt-2 fw-semibold text-secondary" style="font-size: 11px;">
+                                        Via: {{ t.account_name.split('] ')[1] if '] ' in t.account_name else t.account_name }}
+                                    </div>
                                 </td>
-                                <td class="text-end pe-4 align-middle">
-                                    <div class="mb-2">
-                                        <span class="fw-bold fs-5 {{ 'text-success' if t.type == 'income' else 'text-danger' }}" style="display: block; letter-spacing: -0.5px;">
+                                <td class="text-end pe-3 pe-md-4 align-middle">
+                                    <div class="mb-3">
+                                        <span class="fw-bold fs-5 nominal-angka {{ 'text-success' if t.type == 'income' else 'text-danger' }}">
                                             {{ '+' if t.type == 'income' else '-' }} {{ t.amount | rupiah }}
                                         </span>
                                     </div>
 
                                     <form id="deleteForm-{{ t.id }}" action="{{ url_for('delete_transaction', transaction_id=t.id) }}" method="POST" style="display:none;"></form>
                                     
-                                    <button type="button" class="btn btn-sm btn-outline-danger py-1 px-2.5" style="font-size: 11px; font-weight: 600;" onclick="showDeleteModal('{{ t.id }}')"> 
+                                    <button type="button" class="btn btn-outline-danger" onclick="showDeleteModal('{{ t.id }}')"> 
                                         <i class="fas fa-trash-alt me-1"></i> Delete
                                     </button>
                                 </td>
                             </tr>
                             {% else %}
                             <tr>
-                                <td colspan="2" class="text-center py-5 text-muted fw-bold">No transaction records found.</td>
+                                <td colspan="2" class="text-center py-5">
+                                    <i class="fas fa-receipt fa-3x text-muted mb-3 opacity-50"></i>
+                                    <p class="text-muted fw-bold mb-0">No transaction records found.</p>
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -348,88 +210,101 @@
     <div class="modal-content">
       <div class="modal-header bg-danger text-white">
         <h5 class="modal-title fw-bold" id="logoutModalLabel">Confirmation Logout</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body fw-bold text-secondary">
         Are you sure you want to logout from Treasury Flow?
       </div>
       <div class="modal-footer border-0">
         <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
-        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold" style="background-color: #ef4444 !important; border: none !important;">Yes, Logout</a>
+        
+        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold">Yes, Logout</a>
+        
       </div>
     </div>
   </div>
 </div>
 
-<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
       <div class="modal-header border-0 pt-4 px-4">
         <h5 class="modal-title fw-bold">Confirm Deletion</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
-      <div class="modal-body px-4 fw-bold text-secondary">
+      <div class="modal-body px-4 fw-medium text-secondary">
         Are you sure you want to delete this transaction? <br>
-        <small class="text-danger d-block mt-1"><i class="fas fa-exclamation-triangle me-1"></i> This action will revert your account balance.</small>
+        <small class="text-danger d-block mt-2"><i class="fas fa-exclamation-triangle me-1"></i> This action will revert your account balance.</small>
       </div>
       <div class="modal-footer border-0 pb-4 px-4 gap-2">
-        <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" id="confirmDeleteBtn" class="btn btn-danger fw-bold" style="border-radius: 10px; padding: 10px 20px; background-color: #ef4444 !important;">Yes, Delete Permanently</button>
+        <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal" style="border-radius: 10px;">Cancel</button>
+        
+        <button type="button" id="confirmDeleteBtn" class="btn btn-danger fw-bold" style="border-radius: 10px;">Yes, Delete Permanently</button>
+        
       </div>
     </div>
   </div>
 </div>
 
-<div class="footer-branding">Powered by <strong>Fernando Capital</strong></div>
+<div class="footer-branding">
+    Powered by <strong>Fernando Capital</strong>
+</div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-<script>
-    function exportData(type) {
-        const start = document.getElementById('start_date').value;
-        const end = document.getElementById('end_date').value;
-        
-        let url = `/export_${type}`;
-        if (start || end) {
-            url += `?start_date=${start}&end_date=${end}`;
-        }
-        
-        window.location.href = url;
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        var calendarEl = document.getElementById('calendar');
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            locale: 'id',
-            buttonText: { today: 'Today' },
-            dayHeaderFormat: { weekday: 'long' }, 
-            aspectRatio: 0.8,
-            handleWindowResize: true,
-            headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
-            events: '/api/data-kalender',
-            eventDisplay: 'block',
-            height: 'auto',
-        });
-        calendar.render();
-
-        let currentDeleteId = null;
-
-        window.showDeleteModal = function(id) {
-            currentDeleteId = id;
-            const modalEl = document.getElementById('confirmDeleteModal');
-            const myModal = new bootstrap.Modal(modalEl);
-            myModal.show();
-        };
-
-        document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
-            if (currentDeleteId) {
-                const form = document.getElementById('deleteForm-' + currentDeleteId);
-                if (form) form.submit();
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function exportData(type) {
+            const start = document.getElementById('start_date').value;
+            const end = document.getElementById('end_date').value;
+            let url = `/export_${type}`;
+            if (start || end) {
+                url += `?start_date=${start}&end_date=${end}`;
             }
+            
+            if (type === 'pdf') {
+                window.open(url, '_blank'); 
+            } else {
+                window.location.href = url;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            var calendarEl = document.getElementById('calendar');
+            var calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                locale: 'id',
+                buttonText: { today: 'Today' },
+                dayHeaderFormat: { weekday: 'short' }, 
+                aspectRatio: window.innerWidth < 768 ? 0.7 : 0.8, 
+                handleWindowResize: true,
+                headerToolbar: { 
+                    left: 'prev,next today', 
+                    center: 'title', 
+                    right: '' 
+                },
+                events: '/api/data-kalender',
+                eventDisplay: 'block',
+                height: 'auto',
+            });
+            calendar.render();
+
+            let currentDeleteId = null;
+            window.showDeleteModal = function(id) {
+                currentDeleteId = id;
+                const myModal = new bootstrap.Modal(document.getElementById('confirmDeleteModal'));
+                myModal.show();
+            };
+
+            document.getElementById('confirmDeleteBtn').addEventListener('click', function() {
+                if (currentDeleteId) {
+                    const form = document.getElementById('deleteForm-' + currentDeleteId);
+                    if (form) form.submit();
+                }
+            });
         });
-    });
-</script>
+    </script>
+
 <script>
     (function() {
         function hackerTrap(index) {

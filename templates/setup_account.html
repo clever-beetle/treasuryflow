@@ -9,158 +9,60 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
     
     <style>
-        body { 
-            background-color: #f5f5f5; 
-            color: #111827; 
-            font-family: 'Inter', sans-serif; 
-            -webkit-user-select: none; -ms-user-select: none; user-select: none;
-        }
-        .navbar { 
-            background-color: #ffffff !important; 
-            border-bottom: 1px solid #f5f5f5; 
-            position: sticky; 
-            top: 0; 
-            z-index: 1050; 
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        }
-        .navbar-toggler:focus, .navbar-toggler:active {
-            outline: none !important;
-            box-shadow: none !important;
-            border: none !important;
-        }
-        .navbar-logo {
-            height: 70px; width: auto; object-fit: contain;
-            margin-top: -13px; margin-left: -25px;
-        }
-        .navbar-brand span { color: #11237e; font-weight: 700; font-size: 1.25rem; }
-        .setup-container h1 { font-size: 1.5rem; font-weight: 800; color: #11237e; margin-bottom: 25px; }
-        .setup-container h3 { font-size: 1.2rem; font-weight: 700; color: #11237e; margin-bottom: 20px; }
-        .setup-card { 
-            border: none !important; 
-            border-radius: 12px !important; 
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
-            background: #ffffff;
-            overflow: hidden;
-        }
-        .card-header-custom {
-            background-color: #11237e !important; 
-            color: white;
-            padding: 15px 20px;
-            border: none;
-        }
-        .card-header-custom h5 { font-size: 1rem; font-weight: 700; }
-        .form-control, .form-select { 
-            background-color: #f9fafb;
-            border-radius: 10px !important; 
-            border: 1px solid #e5e7eb !important; 
-            padding: 12px;
-            transition: all 0.2s ease-in-out;
-        }
-        .form-control:focus, .form-select:focus {
-            background-color: #ffffff;
-            border-color: #11237e !important;
-            box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05);
-            outline: none;
-        }
-        .select2-container--default .select2-selection--single {
-            border: 1px solid #e5e7eb !important;
-            border-radius: 10px !important;
-            height: 45px !important;
-            padding-top: 8px !important;
-            background-color: #f9fafb !important;
-            transition: all 0.2s ease-in-out;
-        }
-        .select2-container--default.select2-container--focus .select2-selection--single {
-            border-color: #11237e !important;
-            background-color: #ffffff !important;
-            box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05);
-        }
-        .list-group-item {
-            border: none !important;
-            margin-bottom: 10px !important;
-            padding: 15px 20px !important;
-            border-radius: 12px !important;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
-            background-color: #ffffff;
-            transition: transform 0.2s ease;
-        }
-        .list-group-item:hover { transform: scale(1.01); }
-        .logo-provider { height: 25px !important; width: auto; object-fit: contain; }
-        .btn-primary, .btn-success { 
-            background-color: #11237e !important; 
-            color: white !important; 
-            border-radius: 10px !important; 
-            padding: 12px 20px !important; 
-            font-weight: 600 !important; 
-            border: 2px solid #11237e !important;
-            transition: all 0.2s ease-in-out;
-        }
-        .btn-primary:hover, .btn-success:hover {
-            background-color: #ffffff !important;
-            color: #11237e !important;
-            transform: translateY(-1px);
-        }
-        .btn-danger { 
-            background-color: #ef4444 !important; 
-            color: white !important; 
-            border-radius: 10px !important; 
-            padding: 12px 20px !important; 
-            font-weight: 600 !important; 
-            border: 2px solid #ef4444 !important;
-            transition: all 0.2s ease-in-out;
-        }
-        .btn-danger:hover {
-            background-color: #ffffff !important;
-            color: #ef4444 !important;
-            transform: translateY(-1px);
-        }
-        .btn-secondary { 
-            background-color: #f5f5f5 !important; 
-            color: #6c757d !important; 
-            border-radius: 10px !important; 
-            padding: 12px 20px !important; 
-            font-weight: 600 !important;
-            border: 1px solid #dee2e6 !important;
-            transition: all 0.2s ease-in-out;
-        }
-        .btn-secondary:hover {
-            background-color: #e2e8f0 !important;
-        }
-        .btn-outline-secondary {
-            border: 1px solid #dee2e6 !important;
-            border-radius: 8px;
-            color: #6c757d;
-            transition: all 0.2s;
-        }
-        .btn-outline-secondary:hover {
-            background-color: #11237e;
-            color: white;
-            border-color: #11237e !important;
-        }
-        .btn-outline-danger {
-            border: 1px solid #fcdcdc !important;
-            border-radius: 8px;
-            color: #ef4444;
-            transition: all 0.2s;
-        }
-        .btn-outline-danger:hover {
-            background-color: #ef4444;
-            color: white;
-            border-color: #ef4444 !important;
-        }
-        .sidebar-active {
-            background-color: #11237e !important;
-            color: #ffffff !important;
-            font-weight: 800 !important;
-            transition: all 0.3s ease;
-        }
-        .sidebar-active i {
-            color: #ffffff !important;
-        }
-        .badge.bg-primary { background-color: #11237e !important; color: white !important; font-weight: 700; border-radius: 20px; padding: 8px 16px; }
-        .modal-header.bg-danger { background-color: #ef4444 !important; border: none; }
+        body { background-color: #f5f5f5; color: #111827; font-family: 'Inter', sans-serif; -webkit-user-select: none; -ms-user-select: none; user-select: none; }
+        
+        .navbar { border-bottom: 1px solid #f5f5f5; background-color: #ffffff !important; position: sticky; top: 0; z-index: 1050; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .navbar-toggler { border: none !important; }
+        .navbar-toggler:focus, .navbar-toggler:active { outline: none !important; box-shadow: none !important; }
+        .navbar-brand { font-weight: 700; color: #11237e !important; display: flex !important; align-items: center !important; }
+        .navbar-logo { height: 70px; width: auto; object-fit: contain; margin-top: -13px; margin-bottom: 0px; margin-left: -25px; margin-right: 0px; }
+        .navbar-brand span { color: #11237e; font-size: 1.25rem; line-height: 1; }
+        
+        .sidebar-active { background-color: #11237e !important; color: #ffffff !important; font-weight: 800 !important; transition: all 0.3s ease; }
+        .sidebar-active i { color: #ffffff !important; }
+        
+        .btn-navy, .btn-primary:not(.btn-sm), .btn-success:not(.btn-sm) { background-color: #11237e !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #11237e !important; transition: all 0.2s ease-in-out; }
+        .btn-navy:hover, .btn-primary:not(.btn-sm):hover, .btn-success:not(.btn-sm):hover { background-color: #ffffff !important; color: #11237e !important; transform: translateY(-1px); }
+        
+        .btn-danger:not(.btn-sm) { background-color: #ef4444 !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #ef4444 !important; transition: all 0.2s ease-in-out; }
+        .btn-danger:not(.btn-sm):hover { background-color: #ffffff !important; color: #ef4444 !important; transform: translateY(-1px); }
+        
+        .btn-outline-navy, .btn-outline-secondary:not(.btn-sm) { border: 2px solid #11237e !important; background-color: #ffffff !important; color: #11237e !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; transition: all 0.2s ease-in-out; }
+        .btn-outline-navy:hover, .btn-outline-secondary:not(.btn-sm):hover { background-color: #11237e !important; color: #ffffff !important; }
+
+        .btn-secondary:not(.btn-sm) { background-color: #f5f5f5 !important; color: #6c757d !important; border-radius: 10px !important; padding: 10px 24px !important; font-weight: 600 !important; border: 2px solid #dee2e6 !important; transition: all 0.2s ease-in-out; }
+        .btn-secondary:not(.btn-sm):hover { background-color: #e2e8f0 !important; transform: translateY(-1px); }
+
+        .btn-sm { transition: all 0.2s ease-in-out; }
+        .btn-sm:hover { transform: translateY(-1px); }
+        
+        .modal-header.bg-danger { background-color: #ef4444 !important; border-bottom: none; }
         .modal-content { border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .footer-branding { font-size: 0.8rem; color: #6c757d; margin-top: 50px; text-align: center; padding-bottom: 20px; }
+
+        .setup-container h1 { font-size: 1.5rem; font-weight: 800; color: #11237e; margin-bottom: 25px; }
+        .setup-container h3 { font-size: 1.2rem; font-weight: 700; color: #11237e; margin-bottom: 20px; }
+        .setup-card { border: none !important; border-radius: 12px !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important; background: #ffffff; overflow: hidden; }
+        .card-header-custom { background-color: #11237e !important; color: white; padding: 15px 20px; border: none; }
+        .card-header-custom h5 { font-size: 1rem; font-weight: 700; }
+        
+        .form-control, .form-select { background-color: #f9fafb; border-radius: 10px !important; border: 1px solid #e5e7eb !important; padding: 12px; transition: all 0.2s ease-in-out; }
+        .form-control:focus, .form-select:focus { background-color: #ffffff; border-color: #11237e !important; box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05); outline: none; }
+        
+        .select2-container--default .select2-selection--single { border: 1px solid #e5e7eb !important; border-radius: 10px !important; height: 45px !important; padding-top: 8px !important; background-color: #f9fafb !important; transition: all 0.2s ease-in-out; }
+        .select2-container--default.select2-container--focus .select2-selection--single { border-color: #11237e !important; background-color: #ffffff !important; box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05); }
+        
+        .list-group-item { border: none !important; margin-bottom: 10px !important; padding: 15px 20px !important; border-radius: 12px !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); background-color: #ffffff; transition: transform 0.2s ease; }
+        .list-group-item:hover { transform: scale(1.01); }
+        
+        .logo-provider { height: 25px !important; width: auto; object-fit: contain; }
+        .badge.bg-primary { background-color: #11237e !important; color: white !important; font-weight: 700; border-radius: 20px; padding: 8px 16px; }
+
+        .swipe-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
+        .swipe-content-account { min-width: 480px; }
+        .swipe-wrapper::-webkit-scrollbar { height: 4px; }
+        .swipe-wrapper::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+        .nominal-badge { white-space: nowrap !important; }
     </style>
 </head>
 <body>
@@ -213,51 +115,23 @@
                 <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
                 <span>TREASURY FLOW</span>
             </a>
-    
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar" aria-controls="offcanvasNavbar">
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar">
                 <i class="fas fa-bars fa-lg"></i>
             </button>
-    
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar" aria-labelledby="offcanvasNavbarLabel">
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
                 <div class="offcanvas-header border-bottom">
-                    <h5 class="offcanvas-title fw-bold" id="offcanvasNavbarLabel" style="color: #11237e;">MENU</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                    <h5 class="offcanvas-title fw-bold" style="color: #11237e;">MENU</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
                 </div>
                 <div class="offcanvas-body" style="background-color: #f5f5f5;">
                     <ul class="navbar-nav justify-content-end flex-grow-1">
-                        <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;">
-                                <i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'setup_account' }}" 
-                            href="{{ url_for('setup_account') }}" 
-                            style="color: #111827; font-size: 1rem; display: block;">
-                                <i class="fas fa-wallet me-3 text-success"></i> Manage Accounts
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;">
-                                <i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;">
-                                <i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance
-                            </a>
-                        </li>
-                        <li class="nav-item mb-2">
-                            <a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'active border-start border-primary border-4' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;">
-                                <i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings
-                            </a>
-                        </li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-wallet me-3 text-success" style="width: 20px; text-align: center;"></i> Manage Accounts</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings</a></li>
                         <hr class="my-4">
-                        <li class="nav-item">
-                            <button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem; background-color: #ef4444 !important; border: none !important;">
-                                <i class="fas fa-sign-out-alt me-2"></i> Logout
-                            </button>
-                        </li>
+                        <li class="nav-item"><button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem;"><i class="fas fa-sign-out-alt me-2"></i> Logout</button></li>
                     </ul>
                 </div>
             </div>
@@ -349,32 +223,36 @@
 
             <div class="col-md-7">
                 <h3 class="fw-bold"><i class="fas fa-list-ul text-secondary me-2"></i>Accounts List</h3>
-                <div class="list-group">
-                {% if accounts %}
-                    {% for acc in accounts %}
-                        <div class="list-group-item d-flex justify-content-between align-items-center bg-white">
-                            <div class="d-flex align-items-center">
-                                {{ get_account_icon(acc.name) }}
-                            </div>
+                
+                <div class="swipe-wrapper">
+                    <div class="list-group swipe-content-account">
+                    {% if accounts %}
+                        {% for acc in accounts %}
+                            <div class="list-group-item d-flex justify-content-between align-items-center bg-white">
+                                <div class="d-flex align-items-center" style="min-width: 120px;">
+                                    {{ get_account_icon(acc.name) }}
+                                </div>
 
-                            <div class="d-flex align-items-center">
-                                <span class="badge bg-primary text-white me-3 p-2 px-3 fw-bold">{{ acc.current_balance | rupiah }}</span>
-                                
-                                <a href="{{ url_for('setup_account', edit_id=acc.id) }}" class="btn btn-sm btn-outline-secondary me-2" title="Edit Balance">
-                                    <i class="fas fa-pen"></i>
-                                </a>
-                                
-                                <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-account-id="{{ acc.id }}" data-account-name="{{ acc.name }}" title="Delete Account">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-primary text-white p-2 px-3 fw-bold nominal-badge">{{ acc.current_balance | rupiah }}</span>
+                                    
+                                    <div class="d-flex gap-1 ms-2">
+                                        <a href="{{ url_for('setup_account', edit_id=acc.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit Balance">
+                                            <i class="fas fa-pen"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-account-id="{{ acc.id }}" data-account-name="{{ acc.name }}" title="Delete Account">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="list-group-item text-muted text-center py-4 fw-semibold">No accounts registered yet. Please create one.</div>
-                {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="list-group-item text-muted text-center py-4 fw-semibold">No accounts registered yet. Please create one.</div>
+                    {% endif %}
+                    </div>
                 </div>
-            </div>
+                </div>
         </div>
     </div>
 
@@ -409,7 +287,9 @@
       </div>
       <div class="modal-footer border-0">
         <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
-        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold" style="background-color: #ef4444 !important; border: none !important;">Yes, Logout</a>
+        
+        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold">Yes, Logout</a>
+        
       </div>
     </div>
   </div>
