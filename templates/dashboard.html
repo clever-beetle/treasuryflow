@@ -83,21 +83,26 @@
         {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="logo-provider">
         {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="logo-provider">
         {% elif 'JAGO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Logo-jago.svg" class="logo-provider">
-        {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia_2021.svg" class="logo-provider">
-        {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/0/0e/CIMB_Niaga_logo.svg" class="logo-provider">
+        {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia.svg" class="logo-provider">
+        {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/38/CIMB_Niaga_logo.svg" class="logo-provider">
         {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="logo-provider">
-        {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f3/Logo_Jenius.png" class="logo-provider">
-        {% elif 'NEO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Bank_Neo_Commerce_logo.svg" class="logo-provider">
-        {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a6/Permata_Bank_logo.svg" class="logo-provider">
+        {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/8/89/Jenius-logo.png" class="logo-provider">
+        {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg" class="logo-provider">
+        {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="logo-provider">
+        {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/48/PermataBank_logo.svg" class="logo-provider">
+        {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/BTN_2024.svg" class="logo-provider">
+        {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="logo-provider">
         {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="logo-provider">
+        {% elif 'DKI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Bank_DKI.svg" class="logo-provider">
+        {% elif 'BJB' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/41/Bank_BJB_logo.svg" class="logo-provider">
         {% else %}<span class="fw-bold text-dark" style="font-size:0.9rem;">{{ detail_name }}</span>
         {% endif %}
     {% elif category == 'E-WALLET' %}
         {% if 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="logo-provider">
-        {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_danain.png" class="logo-provider">
+        {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="logo-provider">
         {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="logo-provider">
-        {% elif 'SHOPEE' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/ShopeePay_logo.svg" class="logo-provider">
-        {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/83/LinkAja.svg" class="logo-provider">
+        {% elif 'SHOPEEPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="logo-provider">
+        {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg" class="logo-provider">
         {% else %}<span class="fw-bold text-dark" style="font-size:0.9rem;">{{ detail_name }}</span>
         {% endif %}
     {% else %}
@@ -261,17 +266,38 @@
             </div>
             {% for g in goals %}
             <div class="col-md-6 col-12">
-                <div class="card p-4 shadow-sm h-100" style="border-left: 5px solid #11237e;">
+                <div class="card p-4 shadow-sm h-100 d-flex flex-column" style="border-left: 5px solid #11237e;">
                     <div class="d-flex justify-content-between align-items-start mb-3 gap-2">
                         <span class="fw-bold text-dark fs-5 text-truncate" style="max-width: 70%;" title="{{ g.name }}">{{ g.name }}</span>
                         <span class="badge bg-info text-white px-3 py-1" style="border-radius: 6px; font-size: 0.75rem; flex-shrink: 0;">BERJALAN</span>
                     </div>
+                    
+                    <div class="d-flex justify-content-between align-items-end mb-1">
+                        <span class="small fw-bold text-secondary">Progress</span>
+                        <span class="small fw-bold text-primary">{{ g.percentage }}%</span>
+                    </div>
+                    
                     <div class="progress mb-3" style="height: 12px; border-radius: 6px; background-color: #eaecf4;">
                         <div class="progress-bar bg-primary" role="progressbar" style="width: {{ g.percentage if g.percentage <= 100 else 100 }}%;"></div>
                     </div>
-                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center small gap-2">
+                    
+                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center small gap-2 mb-3">
                         <span class="text-secondary fw-bold">Terkumpul: <span class="text-success fs-6">{{ g.current_amount | rupiah }}</span></span>
                         <span class="text-muted fw-bold">Target: {{ g.target_amount | rupiah }}</span>
+                    </div>
+
+                    <div class="p-2 rounded mt-auto" style="background-color: #fef2f2; border: 1px dashed #fca5a5;">
+                        <div class="d-flex justify-content-between align-items-center small">
+                            <span class="text-danger fw-bold">Kekurangan:</span>
+                            <strong class="text-danger">
+                                {% set sisa = g.target_amount - g.current_amount %}
+                                {% if sisa > 0 %}
+                                    {{ sisa | rupiah }}
+                                {% else %}
+                                    Rp 0
+                                {% endif %}
+                            </strong>
+                        </div>
                     </div>
                 </div>
             </div>

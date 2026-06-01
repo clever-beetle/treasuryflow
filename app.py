@@ -491,9 +491,9 @@ def setup_account():
 
     ACCOUNT_TYPES = {
         'CASH': ['Cash'],
-        'E-WALLET': ['DANA', 'GoPay', 'LinkAja', 'OVO', 'ShopeePay', 'I-Saku', 'Astrapay', 'QRIS Merchant', 'Sakuku', 'BluePay'],
-        'BANK': ['BCA', 'BNI', 'BRI', 'BSI', 'CIMB Niaga', 'Mandiri', 'Bank Jago', 'Maybank', 'Permata Bank', 'SeaBank', 
-                'Superbank', 'Bank DKI', 'Bank Mega', 'BJB', 'Jenius', 'OCBC NISP', 'Panin Bank', 'Bank Neo Commerce', 'BTN', 'HSBC']
+        'E-WALLET': ['DANA', 'GoPay', 'LinkAja', 'OVO', 'ShopeePay'],
+        'BANK': ['BCA', 'BNI', 'BRI', 'BSI', 'CIMB Niaga', 'Mandiri', 'Bank Jago', 'Permata Bank', 'SeaBank', 
+                'Superbank', 'Bank DKI', 'Bank Mega', 'BJB', 'Jenius', 'OCBC NISP', 'BTN', 'HSBC']
     }
     
     ACCOUNT_TYPES['E-WALLET'].sort()
