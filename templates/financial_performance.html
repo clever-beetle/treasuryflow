@@ -386,9 +386,7 @@
                     <div class="card p-4 h-100 shadow-sm" style="border-top: 5px solid {% if g.status == 'Achieved' %}#28a745{% else %}#11237e{% endif %};">
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <span class="badge {% if g.status == 'Achieved' %}bg-success{% else %}bg-info{% endif %} px-3 py-2">{{ 'TARGET TERCAPAI 🎉' if g.status == 'Achieved' else 'DALAM PROSES' }}</span>
-                            {% if g.status != 'Achieved' %}
                             <button class="btn btn-sm btn-outline-danger border-0" data-bs-toggle="modal" data-bs-target="#deleteGoalModal{{ g.id }}"><i class="fas fa-trash-alt"></i></button>
-                            {% endif %}
                         </div>
                         <h5 class="fw-bold text-dark mb-1">{{ g.name }}</h5>
                         <p class="small text-muted mb-4"><i class="far fa-calendar-alt me-1"></i> Tenggat Pemenuhan: {{ g.due_date }}</p>
@@ -403,7 +401,7 @@
                         <div class="progress mb-3" style="height: 12px; border-radius: 6px;">
                             <div class="progress-bar {% if g.status == 'Achieved' %}bg-success{% else %}bg-primary{% endif %}" role="progressbar" style="width: {{ g.percentage if g.percentage <= 100 else 100 }}%;"></div>
                         </div>
-                                                
+                                                                        
                         <div class="d-flex justify-content-between align-items-center small mb-3">
                             <div>
                                 <span class="d-block text-secondary">Dana Teralokasi</span>
@@ -436,6 +434,41 @@
                         {% endif %}
                     </div>
                 </div>
+
+                {% if g.status != 'Achieved' %}
+                <div class="modal fade" id="savingModal{{ g.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header border-bottom-0 pt-4 px-4"><h5 class="modal-title fw-bold" style="color: #11237e;">Penambahan Alokasi Dana</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                            <form method="POST">
+                                <input type="hidden" name="action" value="saving_goal">
+                                <input type="hidden" name="goal_id" value="{{ g.id }}">
+                                <div class="modal-body px-4">
+                                    <p class="small text-muted mb-4">Masukkan nominal penempatan dana untuk menunjang pencapaian target rencana "<strong class="text-dark">{{ g.name }}</strong>".</p>
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-bold text-secondary">Nominal Dana Tambahan</label>
+                                        <input type="text" name="saving_amount" class="form-control form-control-custom input-rupiah-modal" required placeholder="Rp 0">
+                                    </div>
+                                </div>
+                                <div class="modal-footer border-top-0 pb-4 px-4"><button type="submit" class="btn btn-navy w-100 p-2.5">Proses Transaksi</button></div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="modal fade" id="deleteGoalModal{{ g.id }}" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header bg-danger text-white pt-4 px-4"><h5 class="modal-title fw-bold">Konfirmasi Penghapusan Target</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                            <div class="modal-body px-4 py-3 fw-bold text-secondary">Apakah Anda yakin ingin menghapus data target "<span class="text-dark">{{ g.name }}</span>"? Sistem akan menghapus seluruh data perencanaan terkait.</div>
+                            <div class="modal-footer border-top-0 pb-4 px-4 gap-2">
+                                <button type="button" class="btn btn-light border fw-bold px-4" data-bs-dismiss="modal" style="border-radius: 10px;">Batal</button>
+                                <form method="POST" class="d-inline"><input type="hidden" name="action" value="delete_goal"><input type="hidden" name="goal_id" value="{{ g.id }}"><button type="submit" class="btn btn-danger px-4 shadow-sm" style="border-radius: 10px;">Konfirmasi Hapus</button></form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 {% else %}
                 <div class="col-12">
                     <div class="text-center text-muted py-5 fw-bold border rounded bg-white w-100">Belum ada perencanaan target finansial yang terdaftar. Silakan buat proyeksi target untuk memulai perencanaan keuangan Anda.</div>
@@ -443,9 +476,6 @@
                 {% endfor %}
             </div>
         </div>
-
-    </div>
-</div>
 
 <div class="modal fade" id="formAddDebtModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
