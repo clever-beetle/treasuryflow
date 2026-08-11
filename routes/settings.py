@@ -162,6 +162,8 @@ def setup_account():
         else:
             db.execute('DELETE FROM accounts WHERE id = ? AND user_id = ?', (delete_id, user_id))
             db.commit()
+            from routes.dashboard import recalculate_account_balances
+            recalculate_account_balances(db, user_id)
             message = f"{account_name} has been successfully deleted."
         return redirect(url_for('settings.setup_account', message=message, error=error))
 
@@ -179,6 +181,8 @@ def setup_account():
                 edit_account_id = request.form['edit_account_id']
                 db.execute('UPDATE accounts SET initial_balance = ? WHERE id = ? AND user_id = ?', (balance, edit_account_id, user_id))
                 db.commit()
+                from routes.dashboard import recalculate_account_balances
+                recalculate_account_balances(db, user_id)
                 message = "Initial account balance has been successfully updated."
                 return redirect(url_for('settings.setup_account', message=message))
 
@@ -199,8 +203,10 @@ def setup_account():
                      error = f"Account '{final_name}' is already registered."
                 else:
                     db.execute('INSERT INTO accounts (user_id, name, initial_balance, current_balance) VALUES (?, ?, ?, ?)', (user_id, final_name, balance, balance))
-                    message = f"Account '{final_name}' has been successfully added."
                     db.commit()
+                    from routes.dashboard import recalculate_account_balances
+                    recalculate_account_balances(db, user_id)
+                    message = f"{final_name} account successfully registered."
         
         except ValueError as e:
             error = str(e) or "Balance input must be a valid number."
