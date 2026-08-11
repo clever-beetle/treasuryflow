@@ -1,412 +1,177 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Accounts - Treasury Flow</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
-    
-    <style>
-        body { background-color: #f5f5f5; color: #111827; font-family: 'Inter', sans-serif; -webkit-user-select: none; -ms-user-select: none; user-select: none; }
-        
-        .navbar { border-bottom: 1px solid #f5f5f5; background-color: #ffffff !important; position: sticky; top: 0; z-index: 1050; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .navbar-toggler { border: none !important; }
-        .navbar-toggler:focus, .navbar-toggler:active { outline: none !important; box-shadow: none !important; }
-        .navbar-brand { font-weight: 700; color: #11237e !important; display: flex !important; align-items: center !important; }
-        .navbar-logo { height: 70px; width: auto; object-fit: contain; margin-top: -13px; margin-bottom: 0px; margin-left: -25px; margin-right: 0px; }
-        .navbar-brand span { color: #11237e; font-size: 1.25rem; line-height: 1; }
-        
-        .sidebar-active { background-color: #11237e !important; color: #ffffff !important; font-weight: 800 !important; transition: all 0.3s ease; }
-        .sidebar-active i { color: #ffffff !important; }
-        
-        .btn-navy, .btn-primary:not(.btn-sm), .btn-success:not(.btn-sm) { background-color: #11237e !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #11237e !important; transition: all 0.2s ease-in-out; }
-        .btn-navy:hover, .btn-primary:not(.btn-sm):hover, .btn-success:not(.btn-sm):hover { background-color: #ffffff !important; color: #11237e !important; transform: translateY(-1px); }
-        
-        .btn-danger:not(.btn-sm) { background-color: #ef4444 !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #ef4444 !important; transition: all 0.2s ease-in-out; }
-        .btn-danger:not(.btn-sm):hover { background-color: #ffffff !important; color: #ef4444 !important; transform: translateY(-1px); }
-        
-        .btn-outline-navy, .btn-outline-secondary:not(.btn-sm) { border: 2px solid #11237e !important; background-color: #ffffff !important; color: #11237e !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; transition: all 0.2s ease-in-out; }
-        .btn-outline-navy:hover, .btn-outline-secondary:not(.btn-sm):hover { background-color: #11237e !important; color: #ffffff !important; }
+{% extends 'base_shadcn.html' %}
+{% block page_title %}Setup Accounts{% endblock %}
+{% block content %}
+<div class="max-w-3xl mx-auto space-y-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h2 class="text-2xl font-bold tracking-tight">Manage Accounts</h2>
+            <p class="text-muted-foreground">Add and manage your cash, bank, and e-wallet accounts.</p>
+        </div>
+        <button @click="$dispatch('open-modal', 'addAccountModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shadow-sm">
+            <i data-lucide="plus" class="mr-2 h-4 w-4"></i> Add Account
+        </button>
+    </div>
 
-        .btn-secondary:not(.btn-sm) { background-color: #f5f5f5 !important; color: #6c757d !important; border-radius: 10px !important; padding: 10px 24px !important; font-weight: 600 !important; border: 2px solid #dee2e6 !important; transition: all 0.2s ease-in-out; }
-        .btn-secondary:not(.btn-sm):hover { background-color: #e2e8f0 !important; transform: translateY(-1px); }
+    <div class="grid gap-6 md:grid-cols-2">
+        {% for account in accounts %}
+        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md group">
+            <div class="p-6 pb-4 border-b border-border/50">
+                <div class="flex justify-between items-start">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-10 flex items-center justify-center">
+                            {% set raw_d = account.name.upper() %}
+                            {% set d = raw_d.replace(' ', '') %}
+                            {% if 'CASH' in d %}<i data-lucide="banknote" class="w-8 h-8 text-emerald-500"></i>
+                            {% elif 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BCA" title="BCA">
+                            {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BNI" title="BNI">
+                            {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="w-full h-full object-contain drop-shadow-sm" alt="BRI" title="BRI">
+                            {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mandiri" title="Mandiri">
+                            {% elif 'JAGO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Logo-jago.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Jago" title="Jago">
+                            {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BSI" title="BSI">
+                            {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/38/CIMB_Niaga_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="CIMB" title="CIMB">
+                            {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="SeaBank" title="SeaBank">
+                            {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/8/89/Jenius-logo.png" class="w-full h-full object-contain drop-shadow-sm" alt="Jenius" title="Jenius">
+                            {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OCBC" title="OCBC">
+                            {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mega" title="Mega">
+                            {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/48/PermataBank_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Permata" title="Permata">
+                            {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/BTN_2024.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BTN" title="BTN">
+                            {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="HSBC" title="HSBC">
+                            {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Superbank" title="Superbank">
+                            {% elif 'DKI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Bank_DKI.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DKI" title="DKI">
+                            {% elif 'BJB' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/41/Bank_BJB_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BJB" title="BJB">
+                            {% elif 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="GoPay" title="GoPay">
+                            {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DANA" title="DANA">
+                            {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OVO" title="OVO">
+                            {% elif 'SHOPEEPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="w-full h-full object-contain drop-shadow-sm" alt="ShopeePay" title="ShopeePay">
+                            {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg" class="w-full h-full object-contain drop-shadow-sm" alt="LinkAja" title="LinkAja">
+                            {% else %}<i data-lucide="wallet" class="w-8 h-8 text-primary"></i>{% endif %}
+                        </div>
+                        {% set name_parts = account.name.split('] ') %}
+                        {% set category = account.name.split(']')[0].replace('[', '') if '[' in account.name else 'Custom' %}
+                        {% set detail_name = name_parts[1] if name_parts|length > 1 else account.name %}
+                        
+                        {% set has_logo = ('CASH' in d or 'BCA' in d or 'BNI' in d or 'BRI' in d or 'MANDIRI' in d or 'JAGO' in d or 'BSI' in d or 'CIMB' in d or 'SEABANK' in d or 'JENIUS' in d or 'BTPN' in d or 'OCBC' in d or 'MEGA' in d or 'PERMATA' in d or 'BTN' in d or 'HSBC' in d or 'SUPERBANK' in d or 'DKI' in d or 'BJB' in d or 'GOPAY' in d or 'DANA' in d or 'OVO' in d or 'SHOPEEPAY' in d or 'LINKAJA' in d) %}
+                        {% if not has_logo %}
+                        <div>
+                            <h3 class="font-semibold text-base">{{ detail_name }}</h3>
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{{ category }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <form action="{{ url_for('settings.setup_account', delete_id=account.id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this account? All associated transactions will be deleted.');">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="text-muted-foreground hover:text-destructive p-1.5 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="p-6 pt-4 bg-muted/20">
+                <p class="text-sm text-muted-foreground mb-1">Current Balance</p>
+                <p class="text-2xl font-bold tracking-tight">Rp {{ "{:,.0f}".format(account.current_balance).replace(',', '.') }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 
-        .btn-sm { transition: all 0.2s ease-in-out; }
-        .btn-sm:hover { transform: translateY(-1px); }
-        
-        .modal-header.bg-danger { background-color: #ef4444 !important; border-bottom: none; }
-        .modal-content { border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .footer-branding { font-size: 0.8rem; color: #6c757d; margin-top: 50px; text-align: center; padding-bottom: 20px; }
-
-        .setup-container h1 { font-size: 1.5rem; font-weight: 800; color: #11237e; margin-bottom: 25px; }
-        .setup-container h3 { font-size: 1.2rem; font-weight: 700; color: #11237e; margin-bottom: 20px; }
-        .setup-card { border: none !important; border-radius: 12px !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important; background: #ffffff; overflow: hidden; }
-        .card-header-custom { background-color: #11237e !important; color: white; padding: 15px 20px; border: none; }
-        .card-header-custom h5 { font-size: 1rem; font-weight: 700; }
-        
-        .form-control, .form-select { background-color: #f9fafb; border-radius: 10px !important; border: 1px solid #e5e7eb !important; padding: 12px; transition: all 0.2s ease-in-out; }
-        .form-control:focus, .form-select:focus { background-color: #ffffff; border-color: #11237e !important; box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05); outline: none; }
-        
-        .select2-container--default .select2-selection--single { border: 1px solid #e5e7eb !important; border-radius: 10px !important; height: 45px !important; padding-top: 8px !important; background-color: #f9fafb !important; transition: all 0.2s ease-in-out; }
-        .select2-container--default.select2-container--focus .select2-selection--single { border-color: #11237e !important; background-color: #ffffff !important; box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05); }
-        
-        .list-group-item { border: none !important; margin-bottom: 10px !important; padding: 15px 20px !important; border-radius: 12px !important; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); background-color: #ffffff; transition: transform 0.2s ease; }
-        .list-group-item:hover { transform: scale(1.01); }
-        
-        .logo-provider { height: 25px !important; width: auto; object-fit: contain; }
-        .badge.bg-primary { background-color: #11237e !important; color: white !important; font-weight: 700; border-radius: 20px; padding: 8px 16px; }
-
-        .swipe-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
-        .swipe-content-account { min-width: 480px; }
-        .swipe-wrapper::-webkit-scrollbar { height: 4px; }
-        .swipe-wrapper::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-        .nominal-badge { white-space: nowrap !important; }
-    </style>
-</head>
-<body>
-    
-{% macro get_account_icon(account_name) %}
-    {% set name_parts = account_name.split('] ') %}
-    {% set detail_name = name_parts[1] if name_parts|length > 1 else account_name %}
-    {% set category = account_name.split(']')[0].replace('[', '') if '[' in account_name else 'CASH' %}
-    {% set d = detail_name | upper %}
-
-    {% if category == 'CASH' %}
-        <img src="{{ url_for('static', filename='img/rupiah.jpg') }}" class="logo-provider">
-    {% elif category == 'BANK' %}
-        {% if 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="logo-provider">
-        {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="logo-provider">
-        {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="logo-provider">
-        {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="logo-provider">
-        {% elif 'JAGO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Logo-jago.svg" class="logo-provider">
-        {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia.svg" class="logo-provider">
-        {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/38/CIMB_Niaga_logo.svg" class="logo-provider">
-        {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="logo-provider">
-        {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/8/89/Jenius-logo.png" class="logo-provider">
-        {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg" class="logo-provider">
-        {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="logo-provider">
-        {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/48/PermataBank_logo.svg" class="logo-provider">
-        {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/BTN_2024.svg" class="logo-provider">
-        {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="logo-provider">
-        {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="logo-provider">
-        {% elif 'DKI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Bank_DKI.svg" class="logo-provider">
-        {% elif 'BJB' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/41/Bank_BJB_logo.svg" class="logo-provider">
-        {% else %}<span class="fw-bold text-dark" style="font-size:0.9rem;">{{ detail_name }}</span>
-        {% endif %}
-    {% elif category == 'E-WALLET' %}
-        {% if 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="logo-provider">
-        {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="logo-provider">
-        {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="logo-provider">
-        {% elif 'SHOPEEPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="logo-provider">
-        {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg" class="logo-provider">
-        {% else %}<span class="fw-bold text-dark" style="font-size:0.9rem;">{{ detail_name }}</span>
-        {% endif %}
-    {% else %}
-        <span class="fw-bold text-dark" style="font-size:0.9rem;">{{ detail_name }}</span>
+    <!-- Empty State -->
+    {% if not accounts %}
+    <div class="rounded-xl border border-dashed border-border bg-card p-12 flex flex-col items-center justify-center text-center">
+        <div class="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+            <i data-lucide="wallet" class="w-8 h-8 text-muted-foreground"></i>
+        </div>
+        <h3 class="text-lg font-semibold tracking-tight">No accounts yet</h3>
+        <p class="text-sm text-muted-foreground mt-1 mb-6 max-w-sm">You haven't set up any accounts yet. Create your first account to start tracking your finances.</p>
+        <button @click="$dispatch('open-modal', 'addAccountModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6">
+            Create First Account
+        </button>
+    </div>
     {% endif %}
-{% endmacro %}
+</div>
 
-    <nav class="navbar bg-white border-bottom p-3">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
-                <span>TREASURY FLOW</span>
-            </a>
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar">
-                <i class="fas fa-bars fa-lg"></i>
-            </button>
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
-                <div class="offcanvas-header border-bottom">
-                    <h5 class="offcanvas-title fw-bold" style="color: #11237e;">MENU</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-                </div>
-                <div class="offcanvas-body" style="background-color: #f5f5f5;">
-                    <ul class="navbar-nav justify-content-end flex-grow-1">
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-wallet me-3 text-success" style="width: 20px; text-align: center;"></i> Manage Accounts</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings</a></li>
-                        <hr class="my-4">
-                        <li class="nav-item"><button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem;"><i class="fas fa-sign-out-alt me-2"></i> Logout</button></li>
-                    </ul>
-                </div>
+<!-- Add Account Modal -->
+<template x-teleport="body">
+    <div x-show="modalOpen && modalId === 'addAccountModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-0">
+        <div class="fixed inset-0 bg-background/80 backdrop-blur-md transition-opacity" @click="$dispatch('close-modal')"></div>
+        <div class="bg-card text-card-foreground rounded-2xl shadow-2xl shadow-primary/10 border border-border w-full max-w-lg overflow-hidden relative z-10 sm:max-w-[425px]" @click.stop>
+            <div class="flex flex-col space-y-2 p-6 pb-4 relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50"></div>
+                <h3 class="font-bold text-xl tracking-tight relative z-10">Add New Account</h3>
+                <p class="text-sm text-muted-foreground relative z-10">Select an account category and enter the starting balance.</p>
+                <button @click="$dispatch('close-modal')" class="absolute right-4 top-4 rounded-full p-2 bg-background/50 backdrop-blur hover:bg-muted text-muted-foreground hover:text-foreground transition-colors z-20">
+                    <i data-lucide="x" class="h-4 w-4"></i>
+                    <span class="sr-only">Close</span>
+                </button>
             </div>
-        </div>
-    </nav>
-
-    <div class="container mt-5 setup-container">
-        <h1 class="fw-bold"><i class="fas fa-university text-primary me-2"></i>Manage Accounts</h1>
-        
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} border-0 shadow-sm mb-4" style="border-radius: 10px;">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <div class="row g-4">
-            <div class="col-md-5 mb-4">
-                <div class="card setup-card">
-                    <div class="card-header card-header-custom">
-                        <h5 class="my-1">
-                            {% if account_to_edit %}
-                                <i class="fas fa-edit me-1"></i> Edit Balance
-                            {% else %}
-                                <i class="fas fa-plus me-1"></i> Add New Account
-                            {% endif %}
-                        </h5>
-                    </div>
-                    <div class="card-body p-4">
-                        <form method="post">
-                            {% if account_to_edit %}
-                                <input type="hidden" name="action" value="edit">
-                                <input type="hidden" name="edit_account_id" value="{{ account_to_edit.id }}">
-                                
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold text-secondary">Account Name</label>
-                                    <input type="text" class="form-control fw-semibold text-muted" value="{{ account_to_edit.name.split('] ')[1] if '] ' in account_to_edit.name else account_to_edit.name }}" disabled>
-                                    <small class="text-muted">Account name cannot be changed.</small>
-                                </div>
-
-                                <div class="mb-4">
-                                    <label for="initial_balance" class="form-label small fw-bold text-secondary">New Balance (IDR)</label>
-                                    <input type="text" id="initial_balance" name="initial_balance" class="form-control fw-bold text-dark" 
-                                           placeholder="Cth: 1.250.000" required 
-                                           value="{{ account_to_edit.initial_balance | format_rupiah_input }}">
-                                </div>
-                                
-                                <button type="submit" class="btn btn-primary w-100 mb-2"><i class="fas fa-save me-1"></i> Update Balance</button>
-                                <a href="{{ url_for('setup_account') }}" class="btn btn-secondary w-100">Cancel Edit</a>
-
-                            {% else %}
-                                <input type="hidden" name="action" value="add">
-
-                                <div class="mb-3">
-                                    <label for="category_key" class="form-label small fw-bold text-secondary">Category</label>
-                                    <select id="category_key" name="category_key" class="form-select fw-semibold text-dark" required>
-                                        <option value="" disabled selected>Select Category</option>
-                                        {% for key in categories.keys() %}
-                                        <option value="{{ key }}">{{ key }}</option>
-                                        {% endfor %}
-                                    </select>
-                                </div>
-
-                                <div class="mb-3" id="name_detail_group" style="display:none;">
-                                    <label for="name_detail" class="form-label small fw-bold text-secondary">Bank / E-Wallet Name</label>
-                                    <select id="name_detail" name="name_detail" class="form-select searchable-select" required disabled>
-                                    </select>
-                                </div>
-                                
-                                <div class="mb-4">
-                                    <label for="initial_balance" class="form-label small fw-bold text-secondary">Initial Balance (IDR)</label>
-                                    <input type="text" id="initial_balance" name="initial_balance" class="form-control fw-bold text-dark" placeholder="Cth: 1.250.000" required>
-                                </div>
-                                
-                                <div class="row g-2">
-                                    <div class="col-8">
-                                        <button type="submit" class="btn btn-success w-100"><i class="fas fa-check me-1"></i> Finish Input</button>
-                                    </div>
-                                    <div class="col-4">
-                                        <a href="{{ url_for('dashboard') }}" class="btn btn-secondary w-100"><i class="fas fa-home"></i></a>
-                                    </div>
-                                </div>
-                            {% endif %}
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-7">
-                <h3 class="fw-bold"><i class="fas fa-list-ul text-secondary me-2"></i>Accounts List</h3>
-                
-                <div class="swipe-wrapper">
-                    <div class="list-group swipe-content-account">
-                    {% if accounts %}
-                        {% for acc in accounts %}
-                            <div class="list-group-item d-flex justify-content-between align-items-center bg-white">
-                                <div class="d-flex align-items-center" style="min-width: 120px;">
-                                    {{ get_account_icon(acc.name) }}
-                                </div>
-
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-primary text-white p-2 px-3 fw-bold nominal-badge">{{ acc.current_balance | rupiah }}</span>
-                                    
-                                    <div class="d-flex gap-1 ms-2">
-                                        <a href="{{ url_for('setup_account', edit_id=acc.id) }}" class="btn btn-sm btn-outline-secondary" title="Edit Balance">
-                                            <i class="fas fa-pen"></i>
-                                        </a>
-                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-account-id="{{ acc.id }}" data-account-name="{{ acc.name }}" title="Delete Account">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="list-group-item text-muted text-center py-4 fw-semibold">No accounts registered yet. Please create one.</div>
-                    {% endif %}
-                    </div>
-                </div>
-                </div>
-        </div>
-    </div>
-
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title fw-bold" id="deleteModalLabel">Delete Account Confirmation</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body fw-medium text-secondary">
-        Are you sure you want to delete <span id="accountNameToDelete" style="color: #ef4444 !important;" class="fw-bold"></span> account?<br>
-        <small class="text-danger fw-bold d-block mt-2"><i class="fas fa-exclamation-triangle me-1"></i> Deletion will only succeed if the account has no associated transactions.</small>
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
-        <a id="deleteAccountLink" href="#" class="btn btn-danger fw-bold" style="background-color: #ef4444 !important; border: none !important;">Yes, Delete</a>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title fw-bold" id="logoutModalLabel">Confirmation Logout</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body fw-bold text-secondary">
-        Are you sure you want to logout from Treasury Flow?
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
-        
-        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold">Yes, Logout</a>
-        
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="footer-branding">
-    Powered by <strong>Fernando Capital</strong>
-</div>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-
-    <script>
-        const balanceInput = document.getElementById('initial_balance');
-        if (balanceInput) {
-            balanceInput.addEventListener('keyup', function() {
-                this.value = formatRupiah(this.value);
-            });
-        }
-
-        const categoriesData = {{ categories | tojson }}; 
-        const categorySelect = $('#category_key');
-        const nameDetailSelect = $('#name_detail');
-        const nameDetailGroup = $('#name_detail_group');
-
-        function formatRupiah(angka) {
-            var number_string = angka.replace(/[^,\d]/g, '').toString(),
-                split = number_string.split(','),
-                sisa = split[0].length % 3,
-                rupiah = split[0].substr(0, sisa),
-                ribuan = split[0].substr(sisa).match(/\d{3}/gi);
-
-            if (ribuan) {
-                let separator = sisa ? '.' : '';
-                rupiah += separator + ribuan.join('.');
-            }
-            return split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
-        }
-
-        $(document).ready(function() {
-             nameDetailSelect.select2({
-                 placeholder: "Search or Select Bank/E-Wallet Name",
-                 allowClear: true,
-                 width: '100%'
-             });
-
-            categorySelect.on('change', function() {
-                const selectedKey = $(this).val();
-                const names = categoriesData[selectedKey];
-                
-                nameDetailSelect.empty().val(null).trigger('change').prop('disabled', true);
-                nameDetailGroup.hide();
-
-                if (selectedKey === 'CASH') {
-                    nameDetailSelect.empty().append(new Option("Cash", "Cash", true, true)).trigger('change');
-                    nameDetailSelect.prop('disabled', true);
-                    nameDetailGroup.show(); 
-                } else if (names && names.length > 0) {
-                    nameDetailSelect.append(new Option("Search or Select Bank/E-Wallet Name", "", true, true)).trigger('change');
-                    
-                    names.forEach(name => {
-                        const newOption = new Option(name, name, false, false);
-                        nameDetailSelect.append(newOption);
-                    });
-
-                    nameDetailSelect.prop('disabled', false).trigger('change');
-                    nameDetailGroup.show();
-                }
-            });
             
-            const initialCategory = categorySelect.val();
-            if (initialCategory) {
-                 categorySelect.trigger('change');
-            }
-
-            const deleteModal = document.getElementById('deleteModal');
-            deleteModal.addEventListener('show.bs.modal', event => {
-                const button = event.relatedTarget;
-                const accountId = button.getAttribute('data-account-id');
-                const accountName = button.getAttribute('data-account-name');
+            <form method="POST" action="{{ url_for('settings.setup_account') }}" class="p-6 pt-2 space-y-5" x-data="{ selectedCategory: 'BANK' }">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="action" value="add"/>
                 
-                const modalBodyName = deleteModal.querySelector('#accountNameToDelete');
-                const modalFooterLink = deleteModal.querySelector('#deleteAccountLink');
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none">Category</label>
+                    <div class="relative">
+                        <select name="category_key" id="accountCategory" x-model="selectedCategory" class="flex h-11 w-full items-center justify-between rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                            <option value="BANK">Bank Account</option>
+                            <option value="E-WALLET">E-Wallet</option>
+                            <option value="CASH">Cash</option>
+                        </select>
+                    </div>
+                </div>
 
-                const cleanName = accountName.includes('] ') ? accountName.split('] ')[1] : accountName;
-                modalBodyName.textContent = cleanName;
-                modalFooterLink.href = "{{ url_for('setup_account') }}?delete_id=" + accountId;
-            });
-        });
-    </script>
+                <div class="space-y-2" x-show="selectedCategory !== 'CASH'" x-transition>
+                    <label class="text-sm font-medium leading-none">Institution Name</label>
+                    <div class="relative">
+                        <select name="name_detail" class="flex h-11 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                            <template x-if="selectedCategory === 'BANK'">
+                                <optgroup label="Banks">
+                                    {% for bank in categories['BANK'] %}
+                                    <option value="{{ bank }}">{{ bank }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </template>
+                            <template x-if="selectedCategory === 'E-WALLET'">
+                                <optgroup label="E-Wallets">
+                                    {% for ewallet in categories['E-WALLET'] %}
+                                    <option value="{{ ewallet }}">{{ ewallet }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </template>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none">Initial Balance</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
+                        <input type="text" name="initial_balance" id="balanceInput" required class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0">
+                    </div>
+                </div>
+
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 pt-4">
+                    <button type="button" @click="$dispatch('close-modal')" class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-5">Cancel</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-md shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11 px-5">Save Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</template>
+
 <script>
-    (function() {
-        function hackerTrap(index) {
-            function preventInspect(i) {
-                if (typeof i === 'string') {
-                    return function() {}.constructor('while (true) {}').apply('counter');
-                } else if (('' + i / i).length !== 1 || i % 20 === 0) {
-                    (function() { return true; }).constructor('debugger').call('action');
-                } else {
-                    (function() { return false; }).constructor('debugger').apply('state');
-                }
-                preventInspect(++i);
-            }
-            try { if (index) { return preventInspect(index); } else { preventInspect(0); } } catch (e) {}
+    // Format Rupiah for Modal
+    const balanceInput = document.getElementById('balanceInput');
+    balanceInput.addEventListener('input', function(e) {
+        let value = this.value.replace(/[^,\d]/g, '');
+        let parts = value.split(',');
+        let sisa = parts[0].length % 3;
+        let rupiah = parts[0].substr(0, sisa);
+        let ribuan = parts[0].substr(sisa).match(/\d{3}/gi);
+        if (ribuan) {
+            let separator = sisa ? '.' : '';
+            rupiah += separator + ribuan.join('.');
         }
-        setInterval(function() { hackerTrap(); }, 100);
-    })();
-
-    document.addEventListener('contextmenu', function(e) {
-        if (e.target.tagName === 'BODY' || e.target.classList.contains('container') || e.target.closest('.row')) { e.preventDefault(); }
-    });
-
-    document.addEventListener('keydown', function(e) {
-        if (e.keyCode === 123) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+        this.value = parts[1] !== undefined ? rupiah + ',' + parts[1] : rupiah;
     });
 </script>
-</body>
-</html>
+{% endblock %}

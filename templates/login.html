@@ -1,272 +1,206 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Treasury Flow</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    
+    <title>Welcome Back - Treasury Flow</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#11237e">
+    <link rel="apple-touch-icon" href="/static/img/logo.png">
+
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo.png') }}">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(var(--border))", input: "hsl(var(--input))", ring: "hsl(var(--ring))",
+                        background: "hsl(var(--background))", foreground: "hsl(var(--foreground))",
+                        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+                        secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
+                        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
+                        muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+                        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+                        card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+                    },
+                    borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" },
+                    fontFamily: { sans: ['Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
     <style>
-        body {
-            background-image: url('https://picsum.photos/1920/1080?grayscale&blur=2'); 
-            background-size: cover;
-            background-position: center;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-            -webkit-user-select: none; -ms-user-select: none; user-select: none;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        :root {
+            --background: 210 40% 98%; --foreground: 222.2 84% 4.9%;
+            --card: 0 0% 100%; --card-foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%; --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%; --secondary-foreground: 222.2 47.4% 11.2%;
+            --muted: 210 40% 96.1%; --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%; --accent-foreground: 222.2 47.4% 11.2%;
+            --destructive: 0 84.2% 60.2%; --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%; --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%; --radius: 0.75rem;
         }
-
-        .auth-card {
-            background: rgba(255, 255, 255, 1);
-            border-radius: 40px; 
-            padding: 40px 35px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 420px; 
+        .dark {
+            --background: 222.2 84% 4.9%; --foreground: 210 40% 98%;
+            --card: 222.2 84% 4.9%; --card-foreground: 210 40% 98%;
+            --primary: 210 40% 98%; --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%; --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%; --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%; --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%; --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%; --input: 217.2 32.6% 17.5%; --ring: 212.7 26.8% 83.9%;
         }
-        
-        .form-control-custom {
-            background-color: #f5f5f5;
-            border: 1px solid transparent;
-            color: #111827;
-            padding: 12px 15px;
-            height: auto;
-            transition: all 0.2s ease-in-out;
-            border-radius: 10px !important; 
-        }
-
-        .form-control-custom:focus {
-            background-color: #ffffff;
-            border-color: #11237e;
-            box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05);
-            outline: none;
-            color: #111827;
-        }
-
-        .input-group-custom {
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .input-group-custom .form-control {
-            border-radius: 10px 0 0 10px !important;
-        }
-        
-        .input-group-custom .input-group-text {
-            border-radius: 0 10px 10px 0 !important;
-            background-color: #f5f5f5;
-            border: 1px solid transparent;
-            color: #6c757d;
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-        }
-
-        .input-group-custom:focus-within .form-control-custom {
-            background-color: #ffffff;
-            border-color: #11237e;
-            border-right-color: transparent;
-        }
-
-        .input-group-custom:focus-within .input-group-text {
-            background-color: #ffffff;
-            border-color: #11237e;
-            border-left-color: transparent;
-            box-shadow: 0 4px 0 rgba(17, 35, 126, 0.05);
-        }
-        
-        .btn-main {
-            background-color: #11237e;
-            color: #ffffff;
-            border: 2px solid #11237e;
-            border-radius: 10px;
-            padding: 12px;
-            font-weight: 600;
-            transition: all 0.2s ease-in-out;
-        }
-
-        .btn-main:hover {
-            background-color: #ffffff;
-            color: #11237e;
-        }
-
-        .btn-secondary-custom {
-            background-color: #f5f5f5;
-            color: #6c757d;
-            border: 1px solid #dee2e6;
-            border-radius: 10px;
-            padding: 12px;
-            font-weight: 600;
-            transition: all 0.2s ease-in-out;
-            display: block;
-            text-align: center;
-            text-decoration: none;
-        }
-
-        .btn-secondary-custom:hover {
-            background-color: #e2e8f0;
-            color: #4b5563;
-        }
-
-        .btn-link-custom {
-            color: #11237e;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: color 0.2s;
-        }
-
-        .btn-link-custom:hover {
-            color: #1c32a3;
-        }
-
-        .separator {
-            display: flex;
-            align-items: center;
-            text-align: center;
-            color: #6c757d;
-            margin: 20px 0;
-        }
-        .separator::before, .separator::after {
-            content: '';
-            flex: 1;
-            border-bottom: 1px solid #dee2e6;
-        }
-        .separator:not(:empty)::before { margin-right: .5em; }
-        .separator:not(:empty)::after { margin-left: .5em; }
-        
-        .powered-by {
-            text-align: center;
-            margin-top: 20px;
-            font-size: 14px;
-            color: #6c757d;
-        }
-
-        .auth-logo {
-            height: 150px; 
-            width: auto;
-            display: block;
-            margin: -40px auto 5px auto; 
-            object-fit: contain;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
     </style>
+    <script>
+        (function(){
+            var s = localStorage.getItem('theme') || 'light';
+            if (s === 'dark') document.documentElement.classList.add('dark');
+        })();
+    </script>
 </head>
-<body>
-    <div class="auth-card">
-        <div class="text-center mb-4">
-            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="auth-logo">
-            <h1 style="font-weight: 900; letter-spacing: 2px; margin-top: 10px; color: #11237e;">TREASURY FLOW</h1>
+<body class="bg-muted flex items-center justify-center min-h-screen p-4 sm:p-8 relative" x-data="{ darkMode: localStorage.getItem('theme') === 'dark', showPass: false }" x-init="$watch('darkMode', val => { localStorage.setItem('theme', val ? 'dark' : 'light'); if(val) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); })">
+    
+    <button @click="darkMode = !darkMode" class="absolute top-4 right-4 p-2 rounded-full bg-card border border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-transform hover:scale-110 active:scale-90 z-50">
+        <i data-lucide="moon" x-show="!darkMode" class="h-5 w-5"></i>
+        <i data-lucide="sun" x-show="darkMode" class="h-5 w-5"></i>
+    </button>
+
+    <div class="w-full max-w-md bg-card text-card-foreground rounded-2xl border border-border shadow-xl p-8 animate-in fade-in zoom-in duration-300">
+        <div class="flex justify-center mb-6">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="h-16 w-auto object-contain">
         </div>
+        <h1 class="text-2xl font-bold text-center mb-2">Welcome Back</h1>
+        <p class="text-muted-foreground text-center text-sm mb-6">Sign in to your Treasury Flow account</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} border-0 shadow-sm" role="alert" style="border-radius: 10px;">
-                        {{ message }}
+                    <div class="mb-4 p-4 rounded-lg flex items-center gap-3 border {% if category == 'success' %}bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800{% else %}bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800{% endif %}">
+                        <i data-lucide="{% if category == 'success' %}check-circle{% else %}alert-circle{% endif %}" class="h-5 w-5"></i>
+                        <span class="text-sm font-medium">{{ message }}</span>
                     </div>
                 {% endfor %}
             {% endif %}
         {% endwith %}
-
+        
         {% if error %}
-            <div class="alert alert-danger" role="alert" style="border-radius: 10px;">
-                <strong>Error:</strong> {{ error }}
+            <div class="mb-4 p-4 rounded-lg flex items-center gap-3 border bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800">
+                <i data-lucide="alert-circle" class="h-5 w-5"></i>
+                <span class="text-sm font-medium">{{ error }}</span>
             </div>
         {% endif %}
-        
-        <form method="post">
-            <div class="mb-3">
-                <input type="text" id="username" name="username" class="form-control form-control-custom fw-semibold" placeholder="Username" required>
-            </div>
-            
-            <div class="mb-3">
-                <div class="input-group input-group-custom">
-                    <input type="password" id="password-login" name="password" class="form-control form-control-custom" placeholder="Password" required>
-                    <span class="input-group-text" id="togglePasswordLogin">
-                        <i class="fas fa-eye-slash"></i>
-                    </span>
-                </div>
-            </div>
 
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="remember_me" value="true" id="rememberMe" style="border-radius: 50%;">
-                    <label class="form-check-label text-secondary" for="rememberMe" style="font-size: 14px; font-weight: 500;">
-                        Remember Me
-                    </label>
+        <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="space-y-2">
+                <label for="username" class="text-sm font-medium leading-none">Username or Email</label>
+                <input type="text" id="username" name="username" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Enter username or email" required>
+            </div>
+            <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                    <label for="password" class="text-sm font-medium leading-none">Password</label>
+                    <a href="{{ url_for('auth.forgot_password') }}" class="text-sm text-primary hover:underline">Forgot password?</a>
                 </div>
-                <div>
-                    <a href="{{ url_for('forgot_password') }}" class="btn-link-custom">Forgot Password?</a>
+                <div class="relative">
+                    <input :type="showPass ? 'text' : 'password'" id="password" name="password" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Enter password" required>
+                    <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        <i data-lucide="eye" x-show="!showPass" class="h-4 w-4"></i>
+                        <i data-lucide="eye-off" x-show="showPass" class="h-4 w-4"></i>
+                    </button>
                 </div>
             </div>
-
-            <button type="submit" class="btn btn-main w-100">Log in</button>
+            <button type="submit" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full mt-2">
+                Sign In
+            </button>
         </form>
-        
-        <div class="separator">Or</div>
 
-        <a href="{{ url_for('register') }}" class="btn btn-secondary-custom w-100">Sign up</a>
-
-        <div class="powered-by">
-            Powered by <strong>Fernando Capital</strong>
+        <div id="biometricLoginContainer" class="hidden mt-4">
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-border"></span></div>
+                <div class="relative flex justify-center text-xs uppercase"><span class="bg-card px-2 text-muted-foreground">Atau masuk dengan</span></div>
+            </div>
+            <button id="btnBiometricLogin" type="button" class="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors">
+                <i data-lucide="fingerprint" class="h-5 w-5 text-[#11237e]"></i>
+                Gunakan Sidik Jari / FaceID
+            </button>
+            <p id="bioError" class="text-red-500 text-xs text-center mt-2 hidden"></p>
         </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                const bioEnabled = localStorage.getItem('biometricsEnabled');
+                const bioUsername = localStorage.getItem('biometricsUsername');
+                
+                if (bioEnabled === 'true' && bioUsername) {
+                    document.getElementById('biometricLoginContainer').classList.remove('hidden');
+                    
+                    document.getElementById('btnBiometricLogin').addEventListener('click', async () => {
+                        try {
+                            const challenge = new Uint8Array(32);
+                            window.crypto.getRandomValues(challenge);
+                            
+                            const credential = await navigator.credentials.get({
+                                publicKey: {
+                                    challenge: challenge,
+                                    timeout: 60000,
+                                    userVerification: "required"
+                                }
+                            });
+                            
+                            if (credential) {
+                                // Success! Send to backend
+                                const response = await fetch('/api/biometric_login', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ username: bioUsername })
+                                });
+                                
+                                const result = await response.json();
+                                if (result.success) {
+                                    window.location.href = '/dashboard';
+                                } else {
+                                    document.getElementById('bioError').innerText = 'Server menolak kredensial.';
+                                    document.getElementById('bioError').classList.remove('hidden');
+                                }
+                            }
+                        } catch (error) {
+                            document.getElementById('bioError').innerText = 'Otentikasi dibatalkan atau gagal.';
+                            document.getElementById('bioError').classList.remove('hidden');
+                        }
+                    });
+                }
+            });
+        </script>
+
+        <div class="mt-6 text-center text-sm">
+            <span class="text-muted-foreground">Don't have an account? </span>
+            <a href="{{ url_for('auth.register') }}" class="font-medium text-primary hover:underline">Sign up</a>
+        </div>
+
     </div>
-    
     <script>
-        const togglePasswordLogin = document.querySelector('#togglePasswordLogin');
-        const passwordLogin = document.querySelector('#password-login');
-
-        togglePasswordLogin.addEventListener('click', function (e) {
-            const type = passwordLogin.getAttribute('type') === 'password' ? 'text' : 'password';
-            passwordLogin.setAttribute('type', type);
-            
-            const icon = this.querySelector('i');
-            icon.classList.toggle('fa-eye');
-            icon.classList.toggle('fa-eye-slash');
-        });
+        lucide.createIcons();
     </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    (function() {
-        function hackerTrap(index) {
-            function preventInspect(i) {
-                if (typeof i === 'string') {
-                    return function() {}.constructor('while (true) {}').apply('counter');
-                } else if (('' + i / i).length !== 1 || i % 20 === 0) {
-                    (function() { return true; }).constructor('debugger').call('action');
-                } else {
-                    (function() { return false; }).constructor('debugger').apply('state');
-                }
-                preventInspect(++i);
-            }
-            try {
-                if (index) {
-                    return preventInspect(index);
-                } else {
-                    preventInspect(0);
-                }
-            } catch (e) {}
-        }
-        setInterval(function() {
-            hackerTrap();
-        }, 100);
-    })();
 
-    document.addEventListener('contextmenu', function(e) {
-        if (e.target.tagName === 'BODY' || e.target.classList.contains('container') || e.target.closest('.row')) {
-            e.preventDefault();
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then((reg) => {
+                    console.log('ServiceWorker registration successful with scope: ', reg.scope);
+                }).catch((err) => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
         }
-    });
-
-    document.addEventListener('keydown', function(e) {
-        if (e.keyCode === 123) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
-    });
-</script>
+    </script>
 
 </body>
 </html>

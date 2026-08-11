@@ -1,270 +1,333 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Settings - Treasury Flow</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-        body { background-color: #f5f5f5; color: #111827; font-family: 'Inter', sans-serif; -webkit-user-select: none; -ms-user-select: none; user-select: none; }
-        .navbar { border-bottom: 1px solid #f5f5f5; background-color: #ffffff !important; position: sticky; top: 0; z-index: 1050; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .navbar-toggler { border: none !important; }
-        .navbar-toggler:focus, .navbar-toggler:active { outline: none !important; box-shadow: none !important; }
-        .navbar-brand { font-weight: 700; color: #11237e !important; display: flex !important; align-items: center !important; }
-        .navbar-logo { height: 70px; width: auto; object-fit: contain; margin-top: -13px; margin-bottom: 0px; margin-left: -25px; margin-right: 0px; }
-        .navbar-brand span { color: #11237e; font-size: 1.25rem; line-height: 1; }
-        
-        .sidebar-active { background-color: #11237e !important; color: #ffffff !important; font-weight: 800 !important; transition: all 0.3s ease; }
-        .sidebar-active i { color: #ffffff !important; }
-
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); background-color: #ffffff; }
-        .form-control-custom { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; transition: all 0.2s ease-in-out; }
-        .form-control-custom:focus { border-color: #11237e; background-color: #ffffff; box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05); outline: none; }
-        
-        .nav-pills .nav-link { color: #4b5563; border-radius: 8px; margin-bottom: 5px; font-weight: 600; padding: 10px 18px; transition: all 0.2s; border: 1px solid transparent; }
-        .nav-pills .nav-link:hover { color: #11237e; background-color: #f8f9fa; }
-        .nav-pills .nav-link.active { background-color: #11237e !important; color: white !important; box-shadow: 0 4px 12px rgba(17, 35, 126, 0.15); }
-        
-        .btn-navy { background-color: #11237e !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #11237e !important; transition: all 0.2s ease-in-out; }
-        .btn-navy:hover { background-color: #ffffff !important; color: #11237e !important; transform: translateY(-1px); }
-        .btn-danger { background-color: #ef4444 !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #ef4444 !important; transition: all 0.2s ease-in-out; }
-        .btn-danger:hover { background-color: #ffffff !important; color: #ef4444 !important; transform: translateY(-1px); }
-        .btn-outline-navy { border: 2px solid #11237e !important; background-color: #ffffff !important; color: #11237e !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; transition: all 0.2s ease-in-out; }
-        .btn-outline-navy:hover { background-color: #11237e !important; color: #ffffff !important; }
-        
-        .modal-header.bg-danger { background-color: #ef4444 !important; border-bottom: none; }
-        .modal-content { border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        
-        .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: #11237e; }
-        .footer-branding { font-size: 0.8rem; color: #6c757d; margin-top: 50px; text-align: center; padding-bottom: 20px; }
-        .info-box { background-color: #f8f9fc; border: 1px solid #eaecf4; border-radius: 12px; padding: 20px; margin-bottom: 25px; }
-    </style>
-</head>
-<body>
-
-    <nav class="navbar bg-white border-bottom p-3">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
-                <span>TREASURY FLOW</span>
-            </a>
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar">
-                <i class="fas fa-bars fa-lg"></i>
-            </button>
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
-                <div class="offcanvas-header border-bottom">
-                    <h5 class="offcanvas-title fw-bold" style="color: #11237e;">MENU</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-                </div>
-                <div class="offcanvas-body" style="background-color: #f5f5f5;">
-                    <ul class="navbar-nav justify-content-end flex-grow-1">
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-wallet me-3 text-success" style="width: 20px; text-align: center;"></i> Manage Accounts</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings</a></li>
-                        <hr class="my-4">
-                        <li class="nav-item"><button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem;"><i class="fas fa-sign-out-alt me-2"></i> Logout</button></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container mt-5">
-        <h1 class="fw-bold mb-4" style="color: #11237e;"><i class="fas fa-user-cog me-2" style="color: #11237e;"></i>Settings</h1>
-        
-        {% if message %}
-            <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-radius: 10px;">
-                <i class="fas fa-check-circle me-2"></i> {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endif %}
-        {% if error %}
-            <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert" style="border-radius: 10px;">
-                <i class="fas fa-exclamation-circle me-2"></i> {{ error }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        {% endif %}
-
-        <div class="row g-4">
-            <div class="col-md-4">
-                <div class="card p-3">
-                    <div class="nav flex-column nav-pills" id="v-pills-tab" role="tablist" aria-orientation="vertical">
-                        <button class="nav-link active text-start py-2.5" id="profile-tab" data-bs-toggle="pill" data-bs-target="#profile" type="button" role="tab"><i class="fas fa-user me-2"></i>Profile</button>
-                        <button class="nav-link text-start py-2.5" id="security-tab" data-bs-toggle="pill" data-bs-target="#security" type="button" role="tab"><i class="fas fa-shield-alt me-2"></i>Security</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-8">
-                <div class="tab-content" id="v-pills-tabContent">
-                    
-                    <div class="tab-pane fade show active" id="profile" role="tabpanel">
-                        <div class="card p-4">
-                            <div class="section-title">Informasi Akun Saat Ini</div>
-                            
-                            <div class="info-box">
-                                <div class="row">
-                                    <div class="col-sm-12 mb-3">
-                                        <small class="text-muted d-block fw-bold mb-1"><i class="fas fa-envelope me-1"></i> Registered Account (Email)</small>
-                                        <span class="text-dark fw-bold fs-6">{{ user.email }}</span>
-                                    </div>
-                                    <hr style="border-color: #e2e8f0; margin: 10px 0 15px 0;">
-                                    <div class="col-sm-6 mb-3 mb-sm-0">
-                                        <small class="text-muted d-block fw-bold mb-1"><i class="fas fa-id-card me-1"></i> Full Name</small>
-                                        <span class="text-dark fw-bold fs-6">{{ user.fullname }}</span>
-                                    </div>
-                                    <div class="col-sm-6 mb-0">
-                                        <small class="text-muted d-block fw-bold mb-1"><i class="fas fa-at me-1"></i> Username</small>
-                                        <span class="text-dark fw-bold fs-6">{{ user.username }}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="section-title mt-4">Update Profile</div>
-                            
-                            <form method="POST" class="mb-4">
-                                <input type="hidden" name="action" value="update_fullname">
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold text-secondary">Full Name</label>
-                                    <input type="text" name="fullname" class="form-control form-control-custom fw-semibold text-dark" value="{{ user.fullname }}" required>
-                                </div>
-                                <button type="submit" class="btn btn-navy">Save Changes</button>
-                            </form>
-
-                            <hr style="border-color: #e5e7eb;">
-
-                            <form method="POST">
-                                <input type="hidden" name="action" value="update_username">
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold text-secondary">Username</label>
-                                    <input type="text" name="username" class="form-control form-control-custom fw-semibold text-dark" value="{{ user.username }}" required>
-                                </div>
-                                <button type="submit" class="btn btn-navy">Change Username</button>
-                            </form>
-                        </div>
-                    </div>
-
-                    <div class="tab-pane fade" id="security" role="tabpanel">
-                        <div class="card p-4 mb-4">
-                            <div class="section-title">Change Password</div>
-                            <form method="POST">
-                                <input type="hidden" name="action" value="update_password">
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold text-secondary">Old Password</label>
-                                    <input type="password" name="old_password" class="form-control form-control-custom" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold text-secondary">New Password</label>
-                                    <input type="password" name="new_password" class="form-control form-control-custom" required>
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold text-secondary">Confirm New Password</label>
-                                    <input type="password" name="confirm_password" class="form-control form-control-custom" required>
-                                </div>
-                                <button type="submit" class="btn btn-danger">Update Password</button>
-                            </form>
-                        </div>
-
-                        <div class="card p-4 mb-4">
-                            <div class="section-title text-danger"><i class="fas fa-lock me-2"></i>Lupa Password Lama?</div>
-                            <p class="text-secondary small fw-medium mb-3">Jika Anda lupa password lama dan tidak bisa menggantinya, silakan gunakan fitur pemulihan password untuk mengirimkan link reset ke email Anda.</p>
-                            <a href="{{ url_for('forgot_password') }}" class="btn btn-outline-navy text-center d-block w-100">Menuju Halaman Forgot Password</a>
-                        </div>
-                        
-                        <div class="card p-4 border border-danger shadow-sm">
-                            <div class="section-title text-danger mb-2"><i class="fas fa-exclamation-triangle me-2"></i>Danger Zone: Hapus Akun</div>
-                            <p class="text-secondary small fw-medium mb-3">
-                                <strong>Peringatan Keras:</strong> Tindakan ini akan menghapus akun Anda secara permanen beserta seluruh data finansial (riwayat transaksi, aset, utang, dll). Data yang terhapus <strong>tidak dapat dikembalikan</strong>.
-                            </p>
-                            <button type="button" class="btn btn-danger w-100" data-bs-toggle="modal" data-bs-target="#deleteAccountModal">
-                                <i class="fas fa-user-slash me-2"></i>Hapus Akun Permanen
-                            </button>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
-        </div>
+{% extends 'base_shadcn.html' %}
+{% block page_title %}Settings{% endblock %}
+{% block content %}
+<div class="space-y-6 pb-16" x-data="{ activeTab: 'profile' }">
+    <div class="space-y-0.5">
+        <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
+        <p class="text-muted-foreground">Manage your account settings, categories, and preferences.</p>
     </div>
+    <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full my-6"></div>
     
-<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title fw-bold" id="logoutModalLabel">Confirmation Logout</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <div class="modal-body fw-bold text-secondary">
-        Are you sure you want to logout from Treasury Flow?
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
-        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold">Yes, Logout</a>
-      </div>
+    {% if message %}
+    <div class="rounded-md border border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-900 p-4 mb-6 relative">
+        <div class="flex items-center">
+            <i data-lucide="check-circle" class="h-4 w-4 text-emerald-600 dark:text-emerald-400 mr-2"></i>
+            <p class="text-sm font-medium text-emerald-800 dark:text-emerald-300">{{ message }}</p>
+        </div>
+        <button class="absolute top-4 right-4 text-emerald-600 hover:text-emerald-800" onclick="this.parentElement.style.display='none'">
+            <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
     </div>
-  </div>
-</div>
+    {% endif %}
+    
+    {% if error %}
+    <div class="rounded-md border border-destructive/20 bg-destructive/10 p-4 mb-6 relative">
+        <div class="flex items-center">
+            <i data-lucide="alert-circle" class="h-4 w-4 text-destructive mr-2"></i>
+            <p class="text-sm font-medium text-destructive">{{ error }}</p>
+        </div>
+        <button class="absolute top-4 right-4 text-destructive hover:text-destructive/80" onclick="this.parentElement.style.display='none'">
+            <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
+    </div>
+    {% endif %}
 
-<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title fw-bold" id="deleteAccountModalLabel">Konfirmasi Hapus Akun</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-      </div>
-      <form method="POST">
-          <input type="hidden" name="action" value="delete_account">
-          <div class="modal-body fw-bold text-secondary">
-            <p>Apakah Anda benar-benar yakin ingin menghapus akun ini secara permanen? Semua data keuangan Anda akan lenyap.</p>
-            <div class="mb-3 mt-4">
-                <label class="form-label small fw-bold text-danger">Masukkan Password Anda untuk melanjutkan penghapusan</label>
-                <input type="password" name="password_check" class="form-control form-control-custom border-danger" required placeholder="Ketik password Anda...">
+    <div class="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
+        <!-- Sidebar Navigation -->
+        <aside class="-mx-4 lg:w-1/5">
+            <nav class="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1">
+                <button @click="activeTab = 'profile'" :class="activeTab === 'profile' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-full text-left">
+                    <i data-lucide="user" class="w-4 h-4 mr-2"></i> Profile
+                </button>
+                <button @click="activeTab = 'security'" :class="activeTab === 'security' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-full text-left">
+                    <i data-lucide="shield" class="w-4 h-4 mr-2"></i> Security
+                </button>
+                <button @click="activeTab = 'categories'" :class="activeTab === 'categories' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-full text-left">
+                    <i data-lucide="tags" class="w-4 h-4 mr-2"></i> Categories
+                </button>
+                <button @click="activeTab = 'appearance'" :class="activeTab === 'appearance' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-full text-left">
+                    <i data-lucide="palette" class="w-4 h-4 mr-2"></i> Appearance
+                </button>
+                <button @click="activeTab = 'danger'" :class="activeTab === 'danger' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-full text-left">
+                    <i data-lucide="alert-triangle" class="w-4 h-4 mr-2 text-destructive"></i> Danger Zone
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Main Content Area -->
+        <div class="flex-1 lg:max-w-2xl">
+            
+            <!-- Profile Tab -->
+            <div x-show="activeTab === 'profile'" x-cloak class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-medium">Profile</h3>
+                    <p class="text-sm text-muted-foreground">This is how others will see you on the site.</p>
+                </div>
+                <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
+                
+                <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                    <div class="p-6 pt-0 space-y-4 mt-6">
+                        <div class="grid gap-2">
+                            <label class="text-sm font-medium leading-none">Registered Email</label>
+                            <p class="text-sm text-muted-foreground">{{ user.email }}</p>
+                        </div>
+                        <form method="POST" class="space-y-4 pt-4 border-t border-border">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <input type="hidden" name="action" value="update_fullname">
+                            <div class="grid gap-2">
+                                <label class="text-sm font-medium leading-none">Full Name</label>
+                                <input type="text" name="fullname" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value="{{ user.fullname }}" required>
+                            </div>
+                            <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+                                Update Name
+                            </button>
+                        </form>
+
+                        <form method="POST" class="space-y-4 pt-4 border-t border-border">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <input type="hidden" name="action" value="update_username">
+                            <div class="grid gap-2">
+                                <label class="text-sm font-medium leading-none">Username</label>
+                                <input type="text" name="username" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value="{{ user.username }}" required>
+                            </div>
+                            <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                                Change Username
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="modal-footer border-0 pt-0">
-            <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Batal</button>
-            <button type="submit" class="btn btn-danger fw-bold">Ya, Hapus Selamanya</button>
-          </div>
-      </form>
+
+            <!-- Security Tab -->
+            <div x-show="activeTab === 'security'" x-cloak class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-medium">Security</h3>
+                    <p class="text-sm text-muted-foreground">Manage your password and security settings.</p>
+                </div>
+                <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
+                
+                <form method="POST" class="space-y-4">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="action" value="update_password">
+                    
+                    <div class="grid gap-2">
+                        <label class="text-sm font-medium leading-none">Current Password</label>
+                        <input type="password" name="old_password" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
+                    </div>
+                    
+                    <div class="grid gap-2">
+                        <label class="text-sm font-medium leading-none">New Password</label>
+                        <input type="password" name="new_password" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
+                    </div>
+                    
+                    <div class="grid gap-2">
+                        <label class="text-sm font-medium leading-none">Confirm New Password</label>
+                        <input type="password" name="confirm_password" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
+                    </div>
+                    
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
+                        Update Password
+                    </button>
+                </form>
+
+                <div class="mt-8 rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <h4 class="text-sm font-semibold flex items-center mb-2"><i data-lucide="help-circle" class="w-4 h-4 mr-2"></i> Forgot your password?</h4>
+                    <p class="text-sm text-muted-foreground mb-4">If you forgot your old password and cannot change it here, you can request a password reset link to your email.</p>
+                    <a href="{{ url_for('auth.forgot_password') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
+                        Reset via Email
+                    </a>
+                </div>
+            </div>
+
+            <!-- Categories Tab -->
+            <div x-show="activeTab === 'categories'" x-cloak class="space-y-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-medium">Custom Categories</h3>
+                        <p class="text-sm text-muted-foreground">Manage your custom income and expense categories.</p>
+                    </div>
+                    <button @click="$dispatch('open-modal', 'addCategoryModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 shadow-sm">
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add Category
+                    </button>
+                </div>
+                <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
+                
+                <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
+                    <table class="w-full caption-bottom text-sm">
+                        <thead class="[&_tr]:border-b">
+                            <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Category Name</th>
+                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Type</th>
+                                <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="[&_tr:last-child]:border-0">
+                            {% if user_categories %}
+                                {% for cat in user_categories %}
+                                <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                                    <td class="p-4 align-middle font-medium">{{ cat.name }}</td>
+                                    <td class="p-4 align-middle">
+                                        {% if cat.type == 'income' %}
+                                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">Income</span>
+                                        {% else %}
+                                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive/10 text-destructive">Expense</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="p-4 align-middle text-right">
+                                        <form method="POST" class="inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                            <input type="hidden" name="action" value="delete_category">
+                                            <input type="hidden" name="category_id" value="{{ cat.id }}">
+                                            <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-9 w-9 text-muted-foreground" title="Delete">
+                                                <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <tr>
+                                    <td colspan="3" class="p-8 text-center text-muted-foreground">You haven't created any custom categories yet.</td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Appearance Tab -->
+            <div x-show="activeTab === 'appearance'" x-cloak class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-medium">Appearance</h3>
+                    <p class="text-sm text-muted-foreground">Customize how Treasury Flow looks on your device.</p>
+                </div>
+                <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
+                
+                <div class="flex items-center justify-between rounded-xl border border-border bg-card p-6 shadow-sm">
+                    <div class="space-y-0.5">
+                        <label class="text-base font-medium">Dark Mode</label>
+                        <p class="text-sm text-muted-foreground">Switch between light and dark themes.</p>
+                    </div>
+                    <button @click="darkMode = !darkMode" :class="darkMode ? 'bg-primary' : 'bg-input'" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                        <span :class="darkMode ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"></span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Danger Zone Tab -->
+            <div x-show="activeTab === 'danger'" x-cloak class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-medium text-destructive">Danger Zone</h3>
+                    <p class="text-sm text-muted-foreground">Irreversible and destructive actions.</p>
+                </div>
+                <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
+                
+                <div class="rounded-xl border border-destructive bg-destructive/5 p-6 shadow-sm space-y-6">
+                    <div>
+                        <h4 class="text-base font-semibold">Reset Financial Data</h4>
+                        <p class="text-sm text-muted-foreground mt-1 mb-4">This will permanently delete all your transactions, accounts, budgets, and goals, but your user account and profile will remain intact. This cannot be undone.</p>
+                        <button @click="$dispatch('open-modal', 'resetDataModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
+                            Reset All Data
+                        </button>
+                    </div>
+                    
+                    <div data-orientation="horizontal" role="none" class="shrink-0 bg-destructive/20 h-[1px] w-full"></div>
+                    
+                    <div>
+                        <h4 class="text-base font-semibold text-destructive">Delete Account</h4>
+                        <p class="text-sm text-muted-foreground mt-1 mb-4">This will permanently delete your entire account and all associated data. This cannot be undone.</p>
+                        <button @click="$dispatch('open-modal', 'deleteAccountModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+        </div>
     </div>
-  </div>
 </div>
 
-<div class="footer-branding">
-    Powered by <strong>Fernando Capital</strong>
+<!-- Modals -->
+
+<!-- Add Category Modal -->
+<div x-data="{ open: false }" @open-modal.window="if ($event.detail === 'addCategoryModal') open = true" @keydown.escape.window="open = false" x-show="open" class="relative z-50" x-cloak>
+    <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl">
+            <div class="flex flex-col space-y-1.5 text-center sm:text-left">
+                <h2 class="text-lg font-semibold leading-none tracking-tight">Add Custom Category</h2>
+                <p class="text-sm text-muted-foreground">Create a new category for your transactions.</p>
+            </div>
+            <form method="POST" class="space-y-4 pt-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="action" value="add_category">
+                <div class="grid gap-2">
+                    <label class="text-sm font-medium leading-none">Type</label>
+                    <select name="type" class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
+                        <option value="expense">Expense</option>
+                        <option value="income">Income</option>
+                    </select>
+                </div>
+                <div class="grid gap-2">
+                    <label class="text-sm font-medium leading-none">Category Name</label>
+                    <input type="text" name="name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="e.g. Groceries, Allowance" required>
+                </div>
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
+                    <button type="button" @click="open = false" class="mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 sm:mt-0">Cancel</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">Add Category</button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    (function() {
-        function hackerTrap(index) {
-            function preventInspect(i) {
-                if (typeof i === 'string') {
-                    return function() {}.constructor('while (true) {}').apply('counter');
-                } else if (('' + i / i).length !== 1 || i % 20 === 0) {
-                    (function() { return true; }).constructor('debugger').call('action');
-                } else {
-                    (function() { return false; }).constructor('debugger').apply('state');
-                }
-                preventInspect(++i);
-            }
-            try { if (index) { return preventInspect(index); } else { preventInspect(0); } } catch (e) {}
-        }
-        setInterval(function() { hackerTrap(); }, 100);
-    })();
+<!-- Reset Data Modal -->
+<div x-data="{ open: false }" @open-modal.window="if ($event.detail === 'resetDataModal') open = true" @keydown.escape.window="open = false" x-show="open" class="relative z-50" x-cloak>
+    <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl">
+            <div class="flex flex-col space-y-1.5 text-center sm:text-left">
+                <h2 class="text-lg font-semibold leading-none tracking-tight text-destructive">Reset Financial Data</h2>
+                <p class="text-sm text-muted-foreground">Are you absolutely sure? This will wipe all transactions and accounts.</p>
+            </div>
+            <form method="POST" class="space-y-4 pt-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="action" value="reset_data">
+                <div class="grid gap-2">
+                    <label class="text-sm font-medium leading-none text-destructive">Enter your password to confirm</label>
+                    <input type="password" name="password_check" class="flex h-10 w-full rounded-md border border-destructive focus-visible:ring-destructive bg-background px-3 py-2 text-sm ring-offset-background" placeholder="Password" required>
+                </div>
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
+                    <button type="button" @click="open = false" class="mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 sm:mt-0">Cancel</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">Reset Data</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-    document.addEventListener('contextmenu', function(e) {
-        if (e.target.tagName === 'BODY' || e.target.classList.contains('container') || e.target.closest('.row')) { e.preventDefault(); }
-    });
-
-    document.addEventListener('keydown', function(e) {
-        if (e.keyCode === 123) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
-    });
-</script>
-</body>
-</html>
+<!-- Delete Account Modal -->
+<div x-data="{ open: false }" @open-modal.window="if ($event.detail === 'deleteAccountModal') open = true" @keydown.escape.window="open = false" x-show="open" class="relative z-50" x-cloak>
+    <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl">
+            <div class="flex flex-col space-y-1.5 text-center sm:text-left">
+                <h2 class="text-lg font-semibold leading-none tracking-tight text-destructive">Permanently Delete Account</h2>
+                <p class="text-sm text-muted-foreground">This action is irreversible and will delete your entire account.</p>
+            </div>
+            <form method="POST" class="space-y-4 pt-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="action" value="delete_account">
+                <div class="grid gap-2">
+                    <label class="text-sm font-medium leading-none text-destructive">Enter your password to confirm</label>
+                    <input type="password" name="password_check" class="flex h-10 w-full rounded-md border border-destructive focus-visible:ring-destructive bg-background px-3 py-2 text-sm ring-offset-background" placeholder="Password" required>
+                </div>
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
+                    <button type="button" @click="open = false" class="mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 sm:mt-0">Cancel</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">Permanently Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

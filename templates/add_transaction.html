@@ -1,378 +1,258 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Add Transaction - Treasury Flow</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    
-    <style>
-        body { background-color: #f5f5f5; color: #111827; font-family: 'Inter', sans-serif; -webkit-user-select: none; -ms-user-select: none; user-select: none; }
-        .navbar { border-bottom: 1px solid #f5f5f5; background-color: #ffffff !important; position: sticky; top: 0; z-index: 1050; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .navbar-toggler { border: none !important; }
-        .navbar-toggler:focus, .navbar-toggler:active { outline: none !important; box-shadow: none !important; }
-        .navbar-brand { font-weight: 700; color: #11237e !important; display: flex !important; align-items: center !important; }
-        .navbar-logo { height: 70px; width: auto; object-fit: contain; margin-top: -13px; margin-bottom: 0px; margin-left: -25px; margin-right: 0px; }
-        .navbar-brand span { color: #11237e; font-size: 1.25rem; line-height: 1; }
-        
-        .sidebar-active { background-color: #11237e !important; color: #ffffff !important; font-weight: 800 !important; transition: all 0.3s ease; }
-        .sidebar-active i { color: #ffffff !important; }
-
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); background-color: #ffffff; }
-        .form-control-custom { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; transition: all 0.2s ease-in-out; }
-        .form-control-custom:focus { border-color: #11237e; background-color: #ffffff; box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05); outline: none; }
-        
-        .nav-pills .nav-link { color: #4b5563; border-radius: 8px; margin-bottom: 5px; font-weight: 600; padding: 10px 18px; transition: all 0.2s; border: 1px solid transparent; }
-        .nav-pills .nav-link:hover { color: #11237e; background-color: #f8f9fa; }
-        .nav-pills .nav-link.active { background-color: #11237e !important; color: white !important; box-shadow: 0 4px 12px rgba(17, 35, 126, 0.15); }
-        
-        .btn-navy { background-color: #11237e !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #11237e !important; transition: all 0.2s ease-in-out; }
-        .btn-navy:hover { background-color: #ffffff !important; color: #11237e !important; transform: translateY(-1px); }
-        .btn-danger { background-color: #ef4444 !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #ef4444 !important; transition: all 0.2s ease-in-out; }
-        .btn-danger:hover { background-color: #ffffff !important; color: #ef4444 !important; transform: translateY(-1px); }
-        .btn-outline-navy { border: 2px solid #11237e !important; background-color: #ffffff !important; color: #11237e !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; transition: all 0.2s ease-in-out; }
-        .btn-outline-navy:hover { background-color: #11237e !important; color: #ffffff !important; }
-        
-        .modal-header.bg-danger { background-color: #ef4444 !important; border-bottom: none; }
-        .modal-content { border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        
-        .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: #11237e; }
-        .footer-branding { font-size: 0.8rem; color: #6c757d; margin-top: 50px; text-align: center; padding-bottom: 20px; }
-        .info-box { background-color: #f8f9fc; border: 1px solid #eaecf4; border-radius: 12px; padding: 20px; margin-bottom: 25px; }
-
-        .page-header { background: #ffffff; padding: 20px 0; border-bottom: 1px solid #f3f4f6; margin-bottom: 30px; }
-        .card-custom { border: none; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05); background-color: #ffffff; padding: 20px; }
-
-        .btn-check:checked + .btn-outline-success { background-color: #28a745 !important; color: white !important; border-color: #28a745 !important; box-shadow: 0 4px 10px rgba(40, 167, 69, 0.25); }
-        .btn-check:checked + .btn-outline-danger { background-color: #ef4444 !important; color: white !important; border-color: #ef4444 !important; box-shadow: 0 4px 10px rgba(239, 68, 68, 0.25); }
-        .btn-check:checked + .btn-outline-primary { background-color: #11237e !important; color: white !important; border-color: #11237e !important; box-shadow: 0 4px 10px rgba(17, 35, 126, 0.25); }
-        .btn-outline-primary { color: #11237e; border-color: #11237e; }
-        .btn-outline-primary:hover { background-color: #11237e; color: white; }
-
-        .btn-main {
-            color: #ffffff;
-            border-radius: 10px;
-            padding: 10px 24px;
-            font-weight: 600;
-            transition: all 0.2s ease-in-out;
-            border: 2px solid transparent;
-        }
-        .btn-main:hover {
-            transform: translateY(-1px);
-        }
-
-        .form-select.form-control-custom { cursor: pointer; }
-        
-        @media (max-width: 768px) {
-            .navbar-logo { height: 60px; margin-left: -15px; }
-            .card-custom { padding: 10px; }
-        }
-    </style>
-</head>
-<body>
-    
-    <nav class="navbar bg-white border-bottom p-3">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
-                <span>TREASURY FLOW</span>
-            </a>
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar">
-                <i class="fas fa-bars fa-lg"></i>
-            </button>
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
-                <div class="offcanvas-header border-bottom">
-                    <h5 class="offcanvas-title fw-bold" style="color: #11237e;">MENU</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-                </div>
-                <div class="offcanvas-body" style="background-color: #f5f5f5;">
-                    <ul class="navbar-nav justify-content-end flex-grow-1">
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-wallet me-3 text-success" style="width: 20px; text-align: center;"></i> Manage Accounts</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings</a></li>
-                        <hr class="my-4">
-                        <li class="nav-item"><button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem;"><i class="fas fa-sign-out-alt me-2"></i> Logout</button></li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="page-header shadow-sm">
-        <div class="container">
-            <h4 class="fw-bold mb-0 text-center text-md-start" style="color: #111827;">
-                <i class="fas fa-plus-circle text-primary me-2"></i>New Transaction
-            </h4>
-        </div>
+{% extends 'base_shadcn.html' %}
+{% block page_title %}Add Transaction{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="space-y-2">
+        <h2 class="text-2xl font-bold tracking-tight">New Transaction</h2>
+        <p class="text-muted-foreground">Record your latest income or expense</p>
     </div>
 
-    <div class="container mt-2">
-        <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-7">
-                
-                {% if error %}
-                    <div class="alert alert-danger border-0 shadow-sm" style="border-radius: 10px;">{{ error }}</div>
-                {% endif %}
+    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
+        <form method="POST" action="{{ url_for('transactions.add_transaction') }}" class="p-6 space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            
+            <!-- Transaction Type Toggle (Shadcn Tabs style) -->
+            <div class="flex justify-center mb-2">
+                <div class="inline-flex h-11 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+                    <label class="cursor-pointer">
+                        <input type="radio" name="type" value="income" class="peer sr-only" required>
+                        <div class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-6 py-1.5 text-sm font-medium ring-offset-background transition-all peer-checked:bg-background peer-checked:text-emerald-600 peer-checked:shadow-sm">
+                            <i data-lucide="arrow-down-circle" class="w-4 h-4 mr-2"></i> Income
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="type" value="expense" class="peer sr-only" required checked>
+                        <div class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-6 py-1.5 text-sm font-medium ring-offset-background transition-all peer-checked:bg-background peer-checked:text-destructive peer-checked:shadow-sm">
+                            <i data-lucide="arrow-up-circle" class="w-4 h-4 mr-2"></i> Expense
+                        </div>
+                    </label>
+                    <label class="cursor-pointer">
+                        <input type="radio" name="type" value="transfer" class="peer sr-only" required>
+                        <div class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-6 py-1.5 text-sm font-medium ring-offset-background transition-all peer-checked:bg-background peer-checked:text-blue-600 peer-checked:shadow-sm">
+                            <i data-lucide="arrow-right-left" class="w-4 h-4 mr-2"></i> Transfer
+                        </div>
+                    </label>
+                </div>
+            </div>
 
-                <div class="card card-custom">
-                    <div class="card-body p-4">
-                        <form method="post">
-                            
-                            <div class="mb-4">
-                                <label class="form-label small fw-bold text-secondary">Transaction Type</label>
-                                <div class="btn-group w-100 border-0" style="overflow: hidden; border-radius: 10px;">
-                                    <input type="radio" class="btn-check" name="type" id="income" value="income" checked required>
-                                    <label class="btn btn-outline-success border-2 py-2 fw-bold" style="border-radius: 10px 0 0 10px;" for="income">
-                                        <i class="fas fa-plus-circle me-1 d-none d-sm-inline"></i> Income
-                                    </label>
+            <div class="space-y-4">
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none">Date</label>
+                    <input type="date" name="date" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                </div>
 
-                                    <input type="radio" class="btn-check" name="type" id="expense" value="expense" required>
-                                    <label class="btn btn-outline-danger border-2 py-2 fw-bold" style="border-radius: 0;" for="expense">
-                                        <i class="fas fa-minus-circle me-1 d-none d-sm-inline"></i> Expense
-                                    </label>
-
-                                    <input type="radio" class="btn-check" name="type" id="transfer" value="transfer" required>
-                                    <label class="btn btn-outline-primary border-2 py-2 fw-bold" style="border-radius: 0 10px 10px 0;" for="transfer">
-                                        <i class="fas fa-exchange-alt me-1 d-none d-sm-inline"></i> Transfer
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label id="label_account" class="form-label small fw-bold text-secondary">Account</label>
-                                <select id="account_id" name="account_id" class="form-select form-control-custom fw-semibold" required>
-                                    <option value="" disabled selected>-- Select Account --</option>
-                                    {% for acc in accounts %}
-                                    <option value="{{ acc.id }}">{{ acc.name.split('] ')[1] if '] ' in acc.name else acc.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="mb-3" id="to_account_group" style="display: none;">
-                                <label class="form-label small fw-bold text-primary">To Account (Destination)</label>
-                                <select id="to_account_id" name="to_account_id" class="form-select form-control-custom fw-semibold">
-                                    <option value="" disabled selected>-- Select Destination --</option>
-                                    {% for acc in accounts %}
-                                    <option value="{{ acc.id }}">{{ acc.name.split('] ')[1] if '] ' in acc.name else acc.name }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-
-                            <div class="mb-3" id="category_section">
-                                <label class="form-label small fw-bold text-secondary">Category</label>
-                                <select id="category" name="category" class="form-select form-control-custom fw-semibold"></select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label small fw-bold text-secondary">Amount (IDR)</label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light border-end-0 fw-bold text-secondary" style="border-radius: 10px 0 0 10px; border: 1px solid #e5e7eb;">Rp</span>
-                                    <input type="text" id="amount" name="amount" class="form-control form-control-custom fw-bold text-dark fs-5 border-start-0" placeholder="0" required style="border-radius: 0 10px 10px 0;">
-                                </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-8 mb-4">
-                                    <label for="description" class="form-label small fw-bold text-secondary">Notes (Optional)</label>
-                                    <input type="text" id="description" name="description" class="form-control form-control-custom" placeholder="e.g., Salary this month, Buy coffee">
-                                </div>
-                                <div class="col-md-4 mb-4">
-                                    <label for="date" class="form-label small fw-bold text-secondary">Date</label>
-                                    <input type="date" id="date" name="date" class="form-control form-control-custom fw-semibold" value="{{ today }}" required>
-                                </div>
-                            </div>
-
-                            <button type="submit" class="btn btn-main w-100 py-3 shadow-sm"><i class="fas fa-save me-2"></i> Save Transaction</button>
-                        </form>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none">Amount (Rp)</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">Rp</span>
+                        <input type="text" name="amount" id="amountInput" required class="flex h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="0">
                     </div>
                 </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none">Category</label>
+                    <select name="category" id="categorySelect" required class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        <option value="">Select a category</option>
+                        <optgroup label="Income" id="incomeOptgroup">
+                            {% for c in categories['income'] %}
+                            <option value="{{ c }}">{{ c }}</option>
+                            {% endfor %}
+                        
+                    <!-- Custom Income Categories -->
+                    {% if custom_categories and custom_categories['income'] %}
+                        {% for cat in custom_categories['income'] %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    {% endif %}
+    </optgroup>
+                        <optgroup label="Expense" id="expenseOptgroup">
+                            {% for c in categories['expense'] %}
+                            <option value="{{ c }}">{{ c }}</option>
+                            {% endfor %}
+                        
+                    <!-- Custom Expense Categories -->
+                    {% if custom_categories and custom_categories['expense'] %}
+                        {% for cat in custom_categories['expense'] %}
+                            <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    {% endif %}
+    </optgroup>
+                    </select>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none">Account</label>
+                    <select name="account_id" required class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        <option value="">Select an account</option>
+                        {% for account in accounts %}
+                            <option value="{{ account.id }}">{{ account.name.split('] ')[-1] if '] ' in account.name else account.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="space-y-2" id="toAccountContainer" style="display: none;">
+                    <label class="text-sm font-medium leading-none">Destination Account</label>
+                    <select name="to_account_id" id="toAccountSelect" class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                        <option value="">Select destination account</option>
+                        {% for account in accounts %}
+                            <option value="{{ account.id }}">{{ account.name.split('] ')[-1] if '] ' in account.name else account.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+
+
+                <!-- Split Bill Checkbox & Inputs -->
+                <div class="space-y-3" id="splitBillSection" style="display: none;">
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="is_split" name="is_split" value="true" class="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary">
+                        <label for="is_split" class="text-sm font-medium leading-none cursor-pointer">Bagi tagihan (Split Bill) dengan seseorang?</label>
+                    </div>
+                    
+                    <div id="splitInputs" class="grid grid-cols-2 gap-4 pl-6 border-l-2 border-border hidden">
+                        <div class="space-y-2">
+                            <label class="text-xs font-medium text-muted-foreground">Nama Teman</label>
+                            <input type="text" name="split_person" id="split_person" class="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="Misal: Budi">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-xs font-medium text-muted-foreground">Nominal Ditanggung Teman</label>
+                            <div class="relative">
+                                <span class="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground text-xs font-medium">Rp</span>
+                                <input type="text" name="split_amount" id="split_amount" class="input-rupiah-modal flex h-9 w-full rounded-md border border-input bg-background pl-7 pr-3 py-1 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none">Description (Optional)</label>
+                    <textarea name="description" rows="3" class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Notes about this transaction..."></textarea>
+                </div>
             </div>
-        </div>
+
+            <div class="pt-4 flex gap-3">
+                <a href="{{ url_for('dashboard.dashboard') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-1/3">
+                    Cancel
+                </a>
+                <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-2/3">
+                    <i data-lucide="save" class="w-4 h-4 mr-2"></i> Save Transaction
+                </button>
+            </div>
+        </form>
     </div>
-    
-<div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title fw-bold" id="logoutModalLabel">Confirmation Logout</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body fw-bold text-secondary">
-        Are you sure you want to logout from Treasury Flow?
-      </div>
-      <div class="modal-footer border-0">
-        <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
-        
-        <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold">Yes, Logout</a>
-        
-      </div>
-    </div>
-  </div>
 </div>
-
-<div class="footer-branding">
-    Powered by <strong>Fernando Capital</strong>
-</div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-    <script>
-        function formatRupiah(input) {
-            if (!input) return "";
-            let parts = input.split(/([\+\-\*\/])/); 
-            let formattedParts = parts.map(part => {
-                if (/[\+\-\*\/]/.test(part)) return part;
-                let angka = part.replace(/[^0-9]/g, '');
-                if (!angka) return "";
-                let number_string = angka.toString(),
-                    sisa = number_string.length % 3,
-                    rupiah = number_string.substr(0, sisa),
-                    ribuan = number_string.substr(sisa).match(/\d{3}/gi);
-                if (ribuan) {
-                    let separator = sisa ? '.' : '';
-                     rupiah += separator + ribuan.join('.');
-                }
-                return rupiah;
-            });
-            return formattedParts.join('');
-        }
-
-        const categoriesData = {{ categories | tojson | safe }};
-
-        function updateCategories() {
-            const typeElement = document.querySelector('input[name="type"]:checked');
-            const categorySelect = document.getElementById('category');
-            const saveBtn = document.querySelector('.btn-main');
-            const toAccountGroup = document.getElementById('to_account_group');
-            const toAccountSelect = document.getElementById('to_account_id');
-            const labelAccount = document.getElementById('label_account');
-            const categorySection = document.getElementById('category_section');
-
-            if (!typeElement || !categorySelect) return;
-            const selectedType = typeElement.value;
-
-            if (selectedType === 'income') {
-                saveBtn.style.backgroundColor = '#28a745'; 
-                saveBtn.style.borderColor = '#28a745';
-                saveBtn.style.color = '#ffffff';
-                saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> Save Income';
-                
-                saveBtn.onmouseover = function() { this.style.backgroundColor = '#ffffff'; this.style.color = '#28a745'; };
-                saveBtn.onmouseout = function() { this.style.backgroundColor = '#28a745'; this.style.color = '#ffffff'; };
-            } else if (selectedType === 'expense') {
-                saveBtn.style.backgroundColor = '#ef4444';
-                saveBtn.style.borderColor = '#ef4444';
-                saveBtn.style.color = '#ffffff';
-                saveBtn.innerHTML = '<i class="fas fa-save me-2"></i> Save Expense';
-                
-                saveBtn.onmouseover = function() { this.style.backgroundColor = '#ffffff'; this.style.color = '#ef4444'; };
-                saveBtn.onmouseout = function() { this.style.backgroundColor = '#ef4444'; this.style.color = '#ffffff'; };
-            } else {
-                saveBtn.style.backgroundColor = '#11237e';
-                saveBtn.style.borderColor = '#11237e';
-                saveBtn.style.color = '#ffffff';
-                saveBtn.innerHTML = '<i class="fas fa-exchange-alt me-2"></i> Process Transfer';
-                
-                saveBtn.onmouseover = function() { this.style.backgroundColor = '#ffffff'; this.style.color = '#11237e'; };
-                saveBtn.onmouseout = function() { this.style.backgroundColor = '#11237e'; this.style.color = '#ffffff'; };
-            }
-
-            if (selectedType === 'transfer') {
-                toAccountGroup.style.display = 'block';
-                toAccountSelect.setAttribute('required', 'required');
-                categorySection.style.display = 'none';
-                categorySelect.removeAttribute('required');
-                labelAccount.innerHTML = 'From Account (Source)';
-                categorySelect.innerHTML = '<option value="Transfer" selected>Transfer</option>';
-            } else {
-                toAccountGroup.style.display = 'none';
-                toAccountSelect.removeAttribute('required');
-                categorySection.style.display = 'block';
-                categorySelect.setAttribute('required', 'required');
-                labelAccount.innerHTML = 'Account';
-                
-                categorySelect.innerHTML = '<option value="" disabled selected>-- Select Category --</option>';
-                const list = categoriesData[selectedType];
-                if (list) {
-                    list.forEach(item => {
-                        const opt = document.createElement('option');
-                        opt.value = item;
-                        opt.innerHTML = item;
-                        categorySelect.appendChild(opt);
-                    });
-                }
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const amountInput = document.getElementById('amount');
-            updateCategories();
-
-            if (amountInput) {
-                amountInput.addEventListener('input', function() {
-                    this.value = formatRupiah(this.value);
-                });
-
-                amountInput.addEventListener('blur', function() {
-                    let val = this.value;
-                    if (/[\+\-\*\/]/.test(val)) {
-                        try {
-                            let cleanExpr = val.replace(/\./g, '');
-                            let result = eval(cleanExpr);
-                            if (!isNaN(result)) {
-                                this.value = formatRupiah(Math.round(result).toString());
-                            }
-                        } catch (e) { alert("Invalid expression!"); }
-                    }
-                });
-            }
-
-            document.querySelectorAll('input[name="type"]').forEach(radio => {
-                radio.addEventListener('change', updateCategories);
-            });
-            
-            document.querySelector('form').addEventListener('submit', function(e) {
-                const type = document.querySelector('input[name="type"]:checked').value;
-                if (type === 'transfer') {
-                    if (document.getElementById('account_id').value === document.getElementById('to_account_id').value) {
-                        e.preventDefault();
-                        alert("Source and Destination accounts cannot be the same!");
-                    }
-                }
-            });
-        });
-    </script>
 
 <script>
-    (function() {
-        function hackerTrap(index) {
-            function preventInspect(i) {
-                if (typeof i === 'string') {
-                    return function() {}.constructor('while (true) {}').apply('counter');
-                } else if (('' + i / i).length !== 1 || i % 20 === 0) {
-                    (function() { return true; }).constructor('debugger').call('action');
-                } else {
-                    (function() { return false; }).constructor('debugger').apply('state');
-                }
-                preventInspect(++i);
-            }
-            try { if (index) { return preventInspect(index); } else { preventInspect(0); } } catch (e) {}
+    // Format Rupiah
+    const amountInput = document.getElementById('amountInput');
+    amountInput.addEventListener('input', function(e) {
+        let value = this.value.replace(/[^,\d]/g, '');
+        let parts = value.split(',');
+        let sisa = parts[0].length % 3;
+        let rupiah = parts[0].substr(0, sisa);
+        let ribuan = parts[0].substr(sisa).match(/\d{3}/gi);
+        if (ribuan) {
+            let separator = sisa ? '.' : '';
+            rupiah += separator + ribuan.join('.');
         }
-        setInterval(function() { hackerTrap(); }, 100);
-    })();
-
-    document.addEventListener('contextmenu', function(e) {
-        if (e.target.tagName === 'BODY' || e.target.classList.contains('container') || e.target.closest('.row')) { e.preventDefault(); }
+        this.value = parts[1] !== undefined ? rupiah + ',' + parts[1] : rupiah;
     });
 
-    document.addEventListener('keydown', function(e) {
-        if (e.keyCode === 123) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
-    });
+    
+    const splitAmountInput = document.getElementById('split_amount');
+    if (splitAmountInput) {
+        splitAmountInput.addEventListener('input', function(e) {
+            let value = this.value.replace(/[^,\d]/g, '');
+            let parts = value.split(',');
+            let sisa = parts[0].length % 3;
+            let rupiah = parts[0].substr(0, sisa);
+            let ribuan = parts[0].substr(sisa).match(/\d{3}/gi);
+            if (ribuan) {
+                let separator = sisa ? '.' : '';
+                rupiah += separator + ribuan.join('.');
+            }
+            this.value = parts[1] !== undefined ? rupiah + ',' + parts[1] : rupiah;
+        });
+    }
+
+    // Set today as default date
+    const dateInput = document.querySelector('input[type="date"]');
+    if (!dateInput.value) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+    }
+    
+    // Auto filter category based on type
+    const typeRadios = document.querySelectorAll('input[name="type"]');
+    const incomeOptgroup = document.getElementById('incomeOptgroup');
+    const expenseOptgroup = document.getElementById('expenseOptgroup');
+    const categorySelect = document.getElementById('categorySelect');
+
+    
+    
+    // Split Bill Logic
+    const isSplitCheckbox = document.getElementById('is_split');
+    const splitInputs = document.getElementById('splitInputs');
+    const splitPerson = document.getElementById('split_person');
+    const splitAmount = document.getElementById('split_amount');
+    
+    if (isSplitCheckbox) {
+        isSplitCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                splitInputs.classList.remove('hidden');
+                splitPerson.setAttribute('required', 'required');
+                splitAmount.setAttribute('required', 'required');
+            } else {
+                splitInputs.classList.add('hidden');
+                splitPerson.removeAttribute('required');
+                splitAmount.removeAttribute('required');
+            }
+        });
+    }
+
+    function updateCategories() {
+        const selectedType = document.querySelector('input[name="type"]:checked').value;
+        const categoryContainer = document.getElementById('categorySelect').parentElement;
+        const toAccountContainer = document.getElementById('toAccountContainer');
+        const toAccountSelect = document.getElementById('toAccountSelect');
+        const categorySelect = document.getElementById('categorySelect');
+        const splitSection = document.getElementById('splitBillSection');
+
+        if (selectedType === 'income') {
+            if (splitSection) splitSection.style.display = 'none';
+            categoryContainer.style.display = '';
+            toAccountContainer.style.display = 'none';
+            toAccountSelect.removeAttribute('required');
+            categorySelect.setAttribute('required', 'required');
+            
+            incomeOptgroup.style.display = '';
+            expenseOptgroup.style.display = 'none';
+            if (categorySelect.value && Array.from(expenseOptgroup.options).some(o => o.value === categorySelect.value)) {
+                categorySelect.value = '';
+            }
+        } else if (selectedType === 'expense') {
+            if (splitSection) splitSection.style.display = 'block';
+            categoryContainer.style.display = '';
+            toAccountContainer.style.display = 'none';
+            toAccountSelect.removeAttribute('required');
+            categorySelect.setAttribute('required', 'required');
+            
+            incomeOptgroup.style.display = 'none';
+            expenseOptgroup.style.display = '';
+            if (categorySelect.value && Array.from(incomeOptgroup.options).some(o => o.value === categorySelect.value)) {
+                categorySelect.value = '';
+            }
+        } else if (selectedType === 'transfer') {
+            if (splitSection) splitSection.style.display = 'none';
+            categoryContainer.style.display = 'none';
+            toAccountContainer.style.display = '';
+            toAccountSelect.setAttribute('required', 'required');
+            categorySelect.removeAttribute('required');
+            categorySelect.value = ''; // Clear category
+        }
+    }
+
+    typeRadios.forEach(radio => radio.addEventListener('change', updateCategories));
+    
+    // Initial call
+    document.addEventListener('DOMContentLoaded', updateCategories);
 </script>
-</body>
-</html>
+{% endblock %}

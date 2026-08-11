@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="id" class="light" x-data="{ mobileMenuOpen: false, darkMode: localStorage.getItem('theme') === 'dark' }" x-init="$watch('darkMode', val => localStorage.setItem('theme', val ? 'dark' : 'light'))" :class="{ 'dark': darkMode }">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treasury Flow</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#11237e">
+    <link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}" type="image/png">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo.png') }}">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 47.4% 11.2%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --popover: 0 0% 100%;
+            --popover-foreground: 222.2 47.4% 11.2%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 47.4% 11.2%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 47.4% 11.2%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 47.4% 11.2%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --popover: 222.2 84% 4.9%;
+            --popover-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --card: 222.2 84% 4.9%;
+            --card-foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(var(--border))",
+                        input: "hsl(var(--input))",
+                        ring: "hsl(var(--ring))",
+                        background: "hsl(var(--background))",
+                        foreground: "hsl(var(--foreground))",
+                        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+                        secondary: { DEFAULT: "hsl(var(--secondary))", foreground: "hsl(var(--secondary-foreground))" },
+                        destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
+                        muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+                        accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
+                        popover: { DEFAULT: "hsl(var(--popover))", foreground: "hsl(var(--popover-foreground))" },
+                        card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+                    },
+                    borderRadius: {
+                        lg: "var(--radius)",
+                        md: "calc(var(--radius) - 2px)",
+                        sm: "calc(var(--radius) - 4px)",
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- PWA -->
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <meta name="theme-color" content="#11237e">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-512x512.png') }}">
+    
+    <!-- Driver.js for Onboarding Tour -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
+
+</head>
+<body class="bg-background text-foreground antialiased min-h-screen flex flex flex-col min-h-screen" x-data="{ mobileMenuOpen: false, modalOpen: false, modalId: null }" @open-modal.window="modalOpen = true; modalId = $event.detail" @close-modal.window="modalOpen = false; modalId = null">
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div x-show="sidebarOpen" class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden" x-transition.opacity @click="sidebarOpen = false"></div>
+
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="{{ url_for('dashboard.dashboard') }}" class="flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="h-10 w-auto drop-shadow-md dark:brightness-110 dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
+                <span class="font-bold text-lg tracking-tight text-primary dark:text-foreground">TREASURY FLOW</span>
+            </a>
+            <div class="flex items-center gap-3">
+                <!-- Tutorial button -->
+                <button onclick="if(window.startTour) window.startTour()" class="relative inline-flex items-center justify-center rounded-lg w-10 h-10 text-sm font-medium transition-all duration-200 hover:bg-indigo-200 dark:hover:bg-indigo-800/50 hover:scale-110 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800 shadow-sm" title="Putar Ulang Tutorial">
+                    <i data-lucide="info" class="h-5 w-5"></i>
+                </button>
+
+                <!-- Dark mode toggle with hover/click effects -->
+                <button @click="darkMode = !darkMode" class="inline-flex items-center justify-center rounded-lg w-10 h-10 text-sm font-medium transition-all duration-200 hover:bg-accent hover:text-accent-foreground hover:scale-110 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring bg-secondary/20" title="Toggle Theme">
+                    <i data-lucide="sun" class="h-5 w-5 hidden dark:block text-amber-400"></i>
+                    <i data-lucide="moon" class="h-5 w-5 block dark:hidden text-slate-600"></i>
+                </button>
+                
+                <!-- Mobile menu button (Hamburger / Garis Tiga) with effects -->
+                <button @click="mobileMenuOpen = true" class="inline-flex items-center justify-center rounded-lg w-10 h-10 text-sm font-medium transition-all duration-200 hover:bg-primary hover:text-primary-foreground hover:scale-110 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring bg-secondary/50 text-foreground">
+                    <i data-lucide="menu" class="h-6 w-6"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Mobile Offcanvas Menu -->
+    <div x-show="mobileMenuOpen" class="relative z-50" aria-labelledby="slide-over-title" role="dialog" aria-modal="true" x-cloak>
+        <div x-show="mobileMenuOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"></div>
+        <div class="fixed inset-0 overflow-hidden">
+            <div class="absolute inset-0 overflow-hidden">
+                <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10" x-show="mobileMenuOpen" x-transition:enter="transform transition ease-in-out duration-300" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-300" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full">
+                    <div class="pointer-events-auto w-screen max-w-xs">
+                        <div class="flex h-full flex-col overflow-y-scroll bg-background border-l border-border shadow-2xl">
+                            <div class="flex items-center justify-between px-4 py-5 border-b border-border">
+                                <h2 class="text-lg font-bold text-[#11237e] dark:text-foreground tracking-widest" id="slide-over-title">MENU</h2>
+                                <button @click="mobileMenuOpen = false" type="button" class="relative -m-2 p-2 text-muted-foreground hover:text-destructive hover:rotate-90 transition-all duration-300 focus:outline-none rounded-full hover:bg-destructive/10">
+                                    <span class="sr-only">Close panel</span>
+                                    <i data-lucide="x" class="h-6 w-6"></i>
+                                </button>
+                            </div>
+                            <div class="relative flex-1 px-4 py-6 sm:px-6">
+                                <ul class="space-y-3">
+                                    <li>
+                                        <a href="{{ url_for('dashboard.dashboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'dashboard' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="layout-dashboard" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'dashboard' else 'text-primary' }}"></i> Dashboard
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('settings.setup_account') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'setup_account' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="wallet" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'setup_account' else 'text-green-500' }}"></i> Manage Accounts
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('transactions.transactions_list') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'transactions_list' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="list-ordered" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'transactions_list' else 'text-indigo-500' }}"></i> Transaction History
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('transactions.add_transaction') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'add_transaction' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="plus-circle" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'add_transaction' else 'text-blue-500' }}"></i> Add Transaction
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('performance.financial_performance') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'financial_performance' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="pie-chart" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'financial_performance' else 'text-amber-500' }}"></i> Financial Performance
+                                        </a>
+                                    </li>
+                                </ul>
+                                <div class="mt-8 pt-6 border-t border-border">
+                                    <a href="{{ url_for('settings.settings') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'settings' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }} mb-4">
+                                        <i data-lucide="settings" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'settings' else 'text-slate-500' }}"></i> Settings
+                                    </a>
+                                    <button @click="$dispatch('open-modal', 'logoutModal'); mobileMenuOpen = false" class="flex w-full items-center justify-center rounded-md bg-destructive px-3 py-3 text-sm font-semibold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all duration-200 hover:scale-[1.02] active:scale-95">
+                                        <i data-lucide="log-out" class="h-4 w-4 mr-2"></i> Sign Out
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+{% block content %}{% endblock %}
+        </main>
+
+    <!-- Global Modals -->
+    <template x-teleport="body">
+        <div x-show="modalOpen && modalId === 'logoutModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-background/80 backdrop-blur-sm" @click="$dispatch('close-modal')"></div>
+            <div class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-sm overflow-hidden relative z-10">
+                <div class="p-6 text-center space-y-4">
+
+                    <h3 class="font-semibold text-lg tracking-tight">Sign Out</h3>
+                    <p class="text-sm text-muted-foreground">Are you sure you want to sign out from Treasury Flow?</p>
+                    <div class="flex gap-3 w-full pt-2">
+                        <button @click="$dispatch('close-modal')" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">Cancel</button>
+                        <a href="{{ url_for('auth.logout') }}" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">Sign Out</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        lucide.createIcons();
+    </script>
+
+    <!-- PWA Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then((reg) => {
+                    console.log('ServiceWorker registration successful with scope: ', reg.scope);
+                }).catch((err) => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+
+
+    <!-- Floating AI Chat Assistant -->
+    <div x-data="aiChat()" class="fixed bottom-6 right-6 z-50">
+        <!-- Chat Toggle Button -->
+        <button @click="toggleChat" class="flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#11237e] shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 relative group overflow-hidden border-2 border-[#11237e]">
+            <img src="{{ url_for('static', filename='img/logo.png') }}" class="h-10 w-10 object-contain" alt="AI">
+            <span class="absolute -top-2 -right-2 flex h-4 w-4">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#11237e]"></span>
+            </span>
+            <div class="absolute right-16 top-2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none">
+                Tanya AI Assistant!
+            </div>
+        </button>
+
+        <!-- Chat Window -->
+        <div x-show="isOpen" x-transition.origin.bottom.right x-cloak 
+             class="absolute bottom-16 right-0 mb-4 w-80 sm:w-96 rounded-2xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col h-[450px]">
+            <!-- Header -->
+            <div class="flex items-center justify-between bg-gradient-to-r from-[#11237e] to-indigo-600 p-4 text-white rounded-t-2xl">
+                <div class="flex items-center gap-3">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" class="h-8 w-8 object-contain drop-shadow-md" alt="AI">
+                    <div>
+                        <h3 class="font-bold text-sm">Treasury Flow AI</h3>
+                        <p class="text-[10px] text-emerald-300 flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> Online</p>
+                    </div>
+                </div>
+                <button @click="isOpen = false" class="rounded hover:bg-white/20 p-1 transition-colors"><i data-lucide="x" class="h-5 w-5"></i></button>
+            </div>
+            
+            <!-- Messages Area -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-muted/30">
+                <template x-for="(msg, index) in messages" :key="index">
+                    <div class="flex flex-col" :class="msg.role === 'user' ? 'items-end' : 'items-start'">
+                        <div class="max-w-[85%] rounded-2xl px-4 py-2 text-sm shadow-sm"
+                             :class="msg.role === 'user' ? 'bg-[#11237e] text-white rounded-br-none' : 'bg-background border border-border text-foreground rounded-bl-none'">
+                            <span x-html="msg.text"></span>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="isLoading" class="flex items-start">
+                    <div class="bg-background border border-border text-foreground rounded-2xl rounded-bl-none px-4 py-2 shadow-sm flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce"></span>
+                        <span class="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style="animation-delay: 0.2s"></span>
+                        <span class="w-1.5 h-1.5 bg-muted-foreground rounded-full animate-bounce" style="animation-delay: 0.4s"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="border-t border-border bg-background p-3">
+                <form @submit.prevent="sendMessage" class="flex gap-2">
+                    <input type="text" x-model="inputText" placeholder="Tanya saldo, pengeluaran, dll..." 
+                           class="flex h-10 w-full rounded-full border border-input bg-transparent px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#11237e] focus:border-transparent" :disabled="isLoading">
+                    <button type="submit" class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#11237e] text-white hover:bg-opacity-90 transition-colors" :disabled="!inputText.trim() || isLoading">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="h-4 w-4 ml-0.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('alpine:init', () => {
+            Alpine.data('aiChat', () => ({
+                isOpen: false,
+                isLoading: false,
+                inputText: '',
+                messages: [
+                    { role: 'assistant', text: 'Halo! Saya asisten AI keuangan Anda. Ada yang bisa saya bantu analisa hari ini? Coba tanya "Apakah saya boros bulan ini?" atau "Berapa utang saya?"' }
+                ],
+                
+                toggleChat() {
+                    this.isOpen = !this.isOpen;
+                    if (this.isOpen) {
+                        setTimeout(() => this.scrollToBottom(), 100);
+                    }
+                },
+                
+                scrollToBottom() {
+                    const container = document.getElementById('chatMessages');
+                    if (container) container.scrollTop = container.scrollHeight;
+                },
+                
+                async sendMessage() {
+                    if (!this.inputText.trim()) return;
+                    
+                    const userMsg = this.inputText.trim();
+                    this.messages.push({ role: 'user', text: userMsg });
+                    this.inputText = '';
+                    this.isLoading = true;
+                    this.scrollToBottom();
+                    
+                    try {
+                        const response = await fetch('/api/chat', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ message: userMsg })
+                        });
+                        
+                        const data = await response.json();
+                        
+                        // Format response text bolding
+                        let formattedText = data.reply.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        
+                        this.messages.push({ role: 'assistant', text: formattedText });
+                    } catch (error) {
+                        this.messages.push({ role: 'assistant', text: 'Maaf, sistem AI sedang offline.' });
+                    } finally {
+                        this.isLoading = false;
+                        setTimeout(() => this.scrollToBottom(), 100);
+                    }
+                }
+            }));
+        });
+    </script>
+
+
+    <!-- Driver.js -->
+    <script src="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.js.iife.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. PWA Service Worker Registration
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('/static/service-worker.js')
+                        .then(registration => {
+                            console.log('SW registered:', registration);
+                        })
+                        .catch(error => {
+                            console.log('SW registration failed:', error);
+                        });
+                });
+            }
+
+            // 2. HTML5 Notification API
+            function showNotification(title, body) {
+                if (Notification.permission === 'granted') {
+                    new Notification(title, {
+                        body: body,
+                        icon: '/static/icon-512x512.png'
+                    });
+                }
+            }
+
+            if ('Notification' in window) {
+                if (Notification.permission !== 'granted' && Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            showNotification('Selamat Datang!', 'Fitur notifikasi latar belakang telah aktif.');
+                        }
+                    });
+                } else if (Notification.permission === 'granted') {
+                    // Check if they need a notification (random simulation for demonstration)
+                    if (window.location.pathname.includes('dashboard')) {
+                        // In a real app, we'd fetch actual alerts from backend
+                        setTimeout(() => {
+                            const lastAlert = localStorage.getItem('lastNotificationAlert');
+                            const now = new Date().getTime();
+                            if (!lastAlert || (now - lastAlert > 86400000)) { // once a day
+                                showNotification('FinanceTracker', 'Jangan lupa catat pengeluaran Anda hari ini!');
+                                localStorage.setItem('lastNotificationAlert', now);
+                            }
+                        }, 5000);
+                    }
+                }
+            }
+
+            // 3. Interactive Onboarding Tour (driver.js)
+            window.startTour = function() {
+                const sidebar = document.querySelector('aside');
+                if(sidebar) sidebar.id = 'sidebar';
+                
+                let customSteps = [];
+                const path = window.location.pathname;
+                
+                if (path.includes('dashboard') || path === '/') {
+                    customSteps = [
+                        { element: '#sidebar', popover: { title: 'Menu Utama', description: 'Di sini Anda dapat berpindah antar halaman seperti Dashboard, Transaksi, dan Performa Keuangan.', side: "right", align: 'start' }},
+                        { element: 'header button', popover: { title: 'Tema Layar & Tutorial', description: 'Ganti tema gelap/terang, dan putar ulang tutorial ini kapan saja Anda butuhkan.', side: "bottom", align: 'end' }},
+                        { element: 'a[href="/add_transaction"]', popover: { title: 'Catat Transaksi', description: 'Akses cepat untuk mencatat setiap pemasukan atau pengeluaran Anda.', side: "bottom", align: 'center' }},
+                        { element: 'select', popover: { title: 'Filter Waktu', description: 'Ubah rentang waktu untuk melihat tren ringkasan keuangan pada periode tertentu.', side: "bottom", align: 'start' }},
+                        { element: '.grid.gap-4 > div:nth-child(1)', popover: { title: 'Kartu Total Saldo', description: 'Jumlah gabungan dari semua rekening dan dompet Anda. Angka ini adalah kekayaan likuid Anda saat ini.', side: "bottom", align: 'center' }},
+                        { element: '.grid.gap-4 > div:nth-child(2)', popover: { title: 'Kartu Pemasukan', description: 'Akumulasi seluruh uang yang masuk (Gaji, Bonus, dll) dalam periode yang Anda pilih.', side: "bottom", align: 'center' }},
+                        { element: '.grid.gap-4 > div:nth-child(3)', popover: { title: 'Kartu Pengeluaran', description: 'Total seluruh uang yang Anda belanjakan dalam periode waktu yang dipilih.', side: "bottom", align: 'center' }},
+                        { element: '.grid.gap-4 > div:nth-child(4)', popover: { title: 'Pengeluaran Hari Ini', description: 'Laporan instan uang yang Anda habiskan khusus untuk hari ini saja. Berguna untuk membatasi pengeluaran harian.', side: "bottom", align: 'center' }},
+                        { element: '#cashFlowChart', popover: { title: 'Grafik Arus Kas (Cash Flow)', description: 'Grafik visual interaktif yang membandingkan tren pemasukan versus pengeluaran Anda.', side: "top", align: 'center' }},
+                        { element: '#categoryChart', popover: { title: 'Komposisi Pengeluaran', description: 'Melihat distribusi pengeluaran Anda. Apakah paling banyak untuk Makan, Belanja, atau Transportasi?', side: "left", align: 'center' }},
+                        { element: 'table', popover: { title: 'Aktivitas Terakhir', description: 'Daftar riwayat mutasi atau transaksi terbaru yang baru saja Anda catat.', side: "top", align: 'center' }},
+                        { element: '.fixed.bottom-6.right-6', popover: { title: 'Treasury Flow AI', description: 'Punya pertanyaan tentang dompet Anda? Chat dengan AI cerdas kami kapan saja di sini!', side: "left", align: 'end' }}
+                    ];
+                } else if (path.includes('transactions')) {
+                    customSteps = [
+                        { element: '.flex.items-center.p-1.border', popover: { title: 'Tampilan Layar', description: 'Pilih tampilan favorit Anda: Daftar Tabel (List) atau Kalender (Calendar).', side: "bottom", align: 'center' }},
+                        { element: '.grid.gap-4 > div:nth-child(1)', popover: { title: 'Pemasukan Teksaring', description: 'Total pemasukan berdasarkan filter waktu dan kategori yang sedang aktif saat ini.', side: "bottom", align: 'center' }},
+                        { element: '.grid.gap-4 > div:nth-child(2)', popover: { title: 'Pengeluaran Teksaring', description: 'Total pengeluaran berdasarkan filter waktu dan kategori yang sedang aktif saat ini.', side: "bottom", align: 'center' }},
+                        { element: '.grid.gap-4 > div:nth-child(3)', popover: { title: 'Arus Bersih (Net Flow)', description: 'Selisih antara Pemasukan dan Pengeluaran. Pastikan angkanya positif (hijau) agar Anda tidak merugi!', side: "bottom", align: 'center' }},
+                        { element: 'form', popover: { title: 'Kotak Pencarian & Filter', description: 'Ketik nama transaksi, atau filter secara mendetail berdasarkan tanggal, dompet, jenis, dan kategori (misal: "Makan" atau "BCA").', side: "top", align: 'start' }},
+                        { element: 'button[type="submit"]', popover: { title: 'Terapkan Filter', description: 'Klik tombol ini setelah Anda selesai memasukkan kriteria filter untuk memperbarui tabel.', side: "top", align: 'center' }},
+                        { element: 'div[x-data="{ exportOpen: false }"]', popover: { title: 'Unduh & Ekspor Laporan', description: 'Ekspor seluruh atau sebagian data transaksi Anda ke dalam format PDF, CSV, atau Excel (.xlsx) dengan sekali klik.', side: "bottom", align: 'end' }},
+                        { element: 'table', popover: { title: 'Tabel Histori Transaksi', description: 'Semua mutasi uang Anda tercatat rapi di sini. Anda juga dapat menyeleksi beberapa transaksi sekaligus untuk dihapus.', side: "top", align: 'center' }}
+                    ];
+                } else if (path.includes('financial_performance')) {
+                    customSteps = [
+                        { element: '.flex.border-b.mb-6', popover: { title: 'Navigasi Tab', description: 'Gunakan tab ini untuk berpindah antara menu Analisa Arus Kas, Aset, Utang Piutang, Kartu Kredit, atau Cicilan.', side: "bottom", align: 'center' }},
+                        { element: 'select[onchange*="window.location.href"]', popover: { title: 'Filter Periode Analisa', description: 'Ubah jangka waktu analisa Anda di sini, misalnya khusus untuk 30 hari terakhir atau 1 tahun.', side: "bottom", align: 'end' }},
+                        { element: 'div[x-show="activeTab === \'analytics\'"] .grid.gap-4 > div:nth-child(1)', popover: { title: 'Total Pemasukan (Total Income)', description: 'Akumulasi semua uang yang berhasil Anda kumpulkan pada periode ini.', side: "bottom", align: 'center' }},
+                        { element: 'div[x-show="activeTab === \'analytics\'"] .grid.gap-4 > div:nth-child(2)', popover: { title: 'Total Pengeluaran (Total Expense)', description: 'Jumlah keseluruhan uang yang Anda belanjakan atau keluarkan pada periode yang sama.', side: "bottom", align: 'center' }},
+                        { element: 'div[x-show="activeTab === \'analytics\'"] .grid.gap-4 > div:nth-child(3)', popover: { title: 'Arus Bersih (Net Flow)', description: 'Selisih antara Pemasukan dan Pengeluaran. Jika angkanya minus (merah), berarti Anda lebih besar pasak daripada tiang!', side: "bottom", align: 'center' }},
+                        { element: 'div[x-show="activeTab === \'analytics\'"] .grid.gap-4 > div:nth-child(4)', popover: { title: 'Tingkat Tabungan (Savings Rate)', description: 'Persentase uang yang berhasil Anda selamatkan (Net Flow dibagi Income). Pastikan angkanya di atas 20% agar finansial Anda tergolong sangat sehat!', side: "bottom", align: 'center' }},
+                        { element: '#timeSeriesChart', popover: { title: 'Tren Arus Kas', description: 'Grafik fluktuasi harian yang membandingkan secara visual berapa banyak uang yang masuk dan uang yang keluar.', side: "top", align: 'center' }},
+                        { element: '#expenseDonutChart', popover: { title: 'Rincian Pengeluaran', description: 'Bagan ini membelah total pengeluaran Anda ke dalam beberapa kategori sehingga Anda tahu letak kebocoran uang terbesar.', side: "top", align: 'center' }}
+                    ];
+                } else if (path.includes('setup_account')) {
+                    customSteps = [
+                        { element: 'form[action*="add_account"]', popover: { title: 'Tambah Rekening (Dompet)', description: 'Buat dompet baru (misalnya BCA, GoPay, Uang Tunai) untuk memisahkan pelacakan saldo Anda secara rapi dan akurat.', side: "bottom", align: 'start' }},
+                        { element: 'table', popover: { title: 'Daftar Dompet Aktif', description: 'Ini adalah daftar seluruh rekening dan dompet yang Anda miliki beserta saldo terkininya. Anda dapat mengedit atau menghapusnya.', side: "top", align: 'center' }},
+                        { element: 'form[action*="manage_budget"]', popover: { title: 'Pengaturan Anggaran Bulanan', description: 'Kunci keuangan Anda! Tetapkan batas pengeluaran maksimal untuk setiap kategori (Makan, Hiburan, dll) agar Anda tidak boros.', side: "bottom", align: 'start' }},
+                        { element: 'form[action*="import_csv"]', popover: { title: 'Impor Otomatis Data Bank', description: 'Malas mencatat manual? Anda bisa mengunduh mutasi dari m-Banking Anda, lalu mengimpornya langsung menggunakan file CSV ke dompet yang dipilih.', side: "top", align: 'start' }}
+                    ];
+                } else if (path.includes('settings')) {
+                    customSteps = [
+                        { element: 'form[action*="settings"]', popover: { title: 'Pengaturan Profil Pengguna', description: 'Perbarui nama, kata sandi (password), preferensi mata uang, dan data personal Anda di formulir ini.', side: "bottom", align: 'start' }},
+                        { element: 'button[onclick="registerBiometric()"]', popover: { title: 'Aktivasi Login Biometrik', description: 'Daftarkan sidik jari (Fingerprint) atau Face ID Anda agar login ke Treasury Flow jadi lebih praktis, instan, dan sangat aman.', side: "top", align: 'center' }},
+                        { element: 'a[href="/logout"]', popover: { title: 'Keluar (Sign Out)', description: 'Sangat disarankan untuk Logout jika aplikasi ini sedang digunakan di perangkat umum atau PC kantor.', side: "top", align: 'end' }}
+                    ];
+                } else if (path.includes('add_transaction')) {
+                    customSteps = [
+                        { element: 'form', popover: { title: 'Formulir Pencatatan', description: 'Isi detail transaksi Anda di sini. Mulai dari jenis, tanggal, hingga nominalnya.', side: "top", align: 'center' }},
+                        { element: 'select[name="type"]', popover: { title: 'Jenis Transaksi', description: 'Pilih apakah ini uang masuk (Pemasukan) atau uang keluar (Pengeluaran).', side: "bottom", align: 'start' }},
+                        { element: 'input[name="amount"]', popover: { title: 'Nominal Uang', description: 'Masukkan jumlah uangnya. Tidak perlu titik atau koma, sistem akan menatanya secara otomatis!', side: "bottom", align: 'start' }},
+                        { element: 'select[name="account_id"]', popover: { title: 'Pilih Dompet', description: 'Tentukan dompet mana yang uangnya bertambah atau berkurang (misal: Tunai atau Mandiri).', side: "top", align: 'start' }},
+                        { element: 'button[type="submit"]', popover: { title: 'Simpan Data', description: 'Klik simpan untuk merekam transaksi ini secara permanen ke dalam sistem.', side: "top", align: 'center' }}
+                    ];
+                } else {
+                    customSteps = [
+                        { element: '#sidebar', popover: { title: 'Menu Utama', description: 'Gunakan panel navigasi ini untuk berpindah ke fitur-fitur utama Treasury Flow.', side: "right", align: 'start' }},
+                        { element: 'header button', popover: { title: 'Header Navigasi', description: 'Di sini Anda dapat mengakses tombol mode gelap dan memutar ulang tutorial ini secara instan.', side: "bottom", align: 'center' }},
+                        { element: '.fixed.bottom-6.right-6', popover: { title: 'AI Assistant', description: 'Asisten cerdas kami selalu siap menemani Anda menganalisa keuangan 24/7.', side: "left", align: 'end' }}
+                    ];
+                }
+                
+                const driver = window.driver.js.driver;
+                const driverObj = driver({
+                    showProgress: true,
+                    steps: customSteps
+                });
+                driverObj.drive();
+            };
+
+            const tourDone = localStorage.getItem('onboardingTourCompleted');
+            if (!tourDone && window.location.pathname.includes('dashboard')) {
+                localStorage.setItem('onboardingTourCompleted', 'true');
+                setTimeout(() => window.startTour(), 500);
+            }
+        });
+    </script>
+
+</body>
+</html>

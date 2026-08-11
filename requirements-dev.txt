@@ -1,0 +1,5 @@
+pytest
+pytest-playwright
+pytest-flask
+Flask-Testing
+pytest-env

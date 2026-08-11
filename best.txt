@@ -1,0 +1,321 @@
+Created At: 2026-08-11T18:48:26+07:00
+Completed At: 2026-08-11T18:48:58+07:00
+The following changes were made by the multi_replace_file_content tool to: C:\Users\vinho\Downloads\FinanceTracker\templates\transactions_list.html. If relevant, proactively run terminal commands to execute this code for the USER. Don't ask for permission.
+[diff_block_start]
+@@ -1,311 +1,4 @@
+ {% extends 'base_shadcn.html' %}
+-{% block page_title %}Transactions{% endblock %}
+-{% block content %}
+-<div class="space-y-6">
+-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+-        <h2 class="text-2xl font-bold tracking-tight">Transaction History</h2>
+-        <div class="flex items-center gap-3 mt-4 sm:mt-0">
+-            <button @click="$dispatch('open-modal', 'importCsvModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 shadow-sm">
+-                <i data-lucide="upload" class="w-4 h-4 mr-2"></i>
+-                Import CSV
+-            </button>
+-                        <a href="{{ url_for('transactions.export_csv') }}" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium text-sm transition-colors flex items-center gap-2">
+-                <i class="fa-solid fa-file-csv"></i> Export CSV
+-            </a>
+-            <a href="{{ url_for('transactions.add_transaction') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 shadow-sm">
+-                <i data-lucide="plus" class="mr-2 h-4 w-4"></i> Add Transaction
+-            </a>
+-        </div>
+-    </div>
+-
+-    <!-- Summary Cards -->
+-    <div class="grid gap-4 md:grid-cols-3">
+-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
+-            <div class="flex items-center space-x-2">
+-                <i data-lucide="arrow-down-circle" class="h-4 w-4 text-emerald-500"></i>
+-                <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Filtered Income</h3>
+-            </div>
+-            <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Rp {{ "{:,.0f}".format(total_income).replace(',', '.') }}</div>
+-        </div>
+-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
+-            <div class="flex items-center space-x-2">
+-                <i data-lucide="arrow-up-circle" class="h-4 w-4 text-destructive"></i>
+-                <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Filtered Expense</h3>
+-            </div>
+-            <div class="text-2xl font-bold text-destructive">Rp {{ "{:,.0f}".format(total_expense).replace(',', '.') }}</div>
+-        </div>
+-        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
+-            <div class="flex items-center space-x-2">
+-                <i data-lucide="wallet" class="h-4 w-4 text-blue-500"></i>
+-                <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Net Flow</h3>
+-            </div>
+-            <div class="text-2xl font-bold {% if net_flow >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-destructive{% endif %}">
+-                Rp {{ "{:,.0f}".format(net_flow).replace(',', '.') }}
+-            </div>
+-        </div>
+-    </div>
+-
+-    <div x-data="{ 
+-        view: '{{ view }}', 
+-        selectedRows: [], 
+-        selectAll: false,
+-        toggleAll() {
+-            if (this.selectAll) {
+-                this.selectedRows = [{% for tx in transactions %}{{ tx.id }}{% if not loop.last %}, {% endif %}{% endfor %}];
+-            } else {
+-                this.selectedRows = [];
+-            }
+-        }
+-    }">
+-
+-        <div class="flex justify-between items-center mb-4">
+-            <!-- View Toggle -->
+-            <div class="flex items-center p-1 border border-border rounded-md bg-muted/50">
+-                <a href="?view=list&cal_year={{ cal_year }}&cal_month={{ cal_month }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'list' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
+-                    <i data-lucide="list" class="w-4 h-4 inline mr-1"></i> List
+-                </a>
+-                <a href="?view=calendar&cal_year={{ cal_year }}&cal_month={{ cal_month }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'calendar' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
+-                    <i data-lucide="calendar-days" class="w-4 h-4 inline mr-1"></i> Calendar
+-                </a>
+-            </div>
+-        </div>
+-
+-        <!-- Calendar View -->
+-        <div x-show="view === 'calendar'" x-cloak class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 mb-6">
+-            <div class="flex justify-between items-center mb-6">
+-                <h3 class="text-xl font-bold">{{ month_name }} {{ cal_year }}</h3>
+-                <div class="flex gap-2">
+-                    <a href="?view=calendar&cal_year={{ cal_year if cal_month > 1 else cal_year - 1 }}&cal_month={{ cal_month - 1 if cal_month > 1 else 12 }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
+-                        <i data-lucide="chevron-left" class="w-4 h-4"></i>
+-                    </a>
+-                    <a href="?view=calendar&cal_year={{ now.year }}&cal_month={{ now.month }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="px-3 py-2 border border-border rounded-md hover:bg-muted text-sm font-medium text-muted-foreground">
+-                        Today
+-                    </a>
+-                    <a href="?view=calendar&cal_year={{ cal_year if cal_month < 12 else cal_year + 1 }}&cal_month={{ cal_month + 1 if cal_month < 12 else 1 }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
+-                        <i data-lucide="chevron-right" class="w-4 h-4"></i>
+-                    </a>
+-                </div>
+-            </div>
+-            <div class="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden border border-border">
+-                {% for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
+-                <div class="bg-muted/50 p-2 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ day }}</div>
+-                {% endfor %}
+-                
+-                {% for week in month_days %}
+-                    {% for date in week %}
+-                        {% set d_str = date.strftime('%Y-%m-%d') %}
+-                        {% set is_current = date.month == cal_month %}
+-                        {% set is_today = date == now %}
+-                        <a href="?view=calendar&start_date={{ d_str }}&end_date={{ d_str }}&cal_month={{ cal_month }}&cal_year={{ cal_year }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="bg-background min-h-[100px] p-2 hover:bg-muted/50 transition-colors flex flex-col {% if not is_current %}opacity-40{% endif %} {% if start_date == d_str and end_date == d_str %}ring-2 ring-inset ring-primary bg-primary/5 z-10{% endif %}">
+-                            <div class="flex items-start justify-between">
+-                                <span class="text-sm font-medium {% if is_today %}bg-primary text-primary-foreground rounded-full w-6 h-6 inline-flex items-center justify-center{% elif start_date == d_str and end_date == d_str %}text-primary{% endif %}">{{ date.day }}</span>
+-                            </div>
+-                            <div class="mt-auto space-y-1 pt-2">
+-                            {% if d_str in cal_tx_map %}
+-                                {% if cal_tx_map[d_str]['income'] > 0 %}
+-                                <div class="text-[10px] font-medium text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-1 rounded truncate">
+-                                    +{{ "{:,.0f}".format(cal_tx_map[d_str]['income']/1000) }}k
+-                                </div>
+-                                {% endif %}
+-                                {% if cal_tx_map[d_str]['expense'] > 0 %}
+-                                <div class="text-[10px] font-medium text-destructive bg-destructive/10 px-1 rounded truncate">
+-                                    -{{ "{:,.0f}".format(cal_tx_map[d_str]['expense']/1000) }}k
+-                                </div>
+-                                {% endif %}
+-                            {% endif %}
+-                            </div>
+-                        </a>
+-                    {% endfor %}
+-                {% endfor %}
+-            </div>
+-        </div>
+-
+-        <!-- Filter Toolbar -->
+-        <div x-data="{ advancedOpen: false }" x-show="view === 'list'" class="flex flex-col gap-4 rounded-xl border border-border bg-card p-4 shadow-sm mb-6">
+-            <div class="flex justify-between items-center border-b border-border pb-3 mb-2">
+-                <h3 class="font-semibold text-lg flex items-center"><i data-lucide="search" class="w-5 h-5 mr-2 text-primary"></i> Cari Transaksi</h3>
+-                
+-                <!-- Export Dropdown -->
+-                <div x-data="{ exportOpen: false }" class="relative ml-auto">
+-                    <button type="button" @click="exportOpen = !exportOpen" @click.outside="exportOpen = false" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 shadow-sm">
+-                        <i data-lucide="download" class="w-4 h-4 mr-2"></i> Export <i data-lucide="chevron-down" class="w-4 h-4 ml-2 opacity-50"></i>
+-                    </button>
+-                    <div x-show="exportOpen" x-transition.opacity class="absolute right-0 top-full mt-1 w-32 rounded-md border border-border bg-popover text-popover-foreground shadow-md z-50 p-1" x-cloak>
+-                        {% set query_params = 'start_date=' + start_date + '&end_date=' + end_date + '&category=' + selected_category|urlencode + '&account_id=' + selected_account|string + '&search=' + search_query|urlencode %}
+-                        <a href="{{ url_for('transactions.export_pdf') }}?{{ query_params }}" class="flex items-center w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground">
+-                            <i data-lucide="file-text" class="h-4 w-4 mr-2 text-destructive"></i> PDF
+-                        </a>
+-                        <a href="{{ url_for('transactions.export_csv') }}?{{ query_params }}" class="flex items-center w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground">
+-                            <i data-lucide="file-spreadsheet" class="h-4 w-4 mr-2 text-emerald-600"></i> CSV
+-                        </a>
+-                        <a href="{{ url_for('transactions.export_excel') }}?{{ query_params }}" class="flex items-center w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground">
+-                            <i data-lucide="table" class="h-4 w-4 mr-2 text-blue-600"></i> Excel (.xlsx)
+-                        </a>
+-                    </div>
+-                </div>
+-            </div>
+-
+-            <form method="GET" action="{{ url_for('transactions.transactions_list') }}" class="flex flex-col gap-4 w-full">
+-                <input type="hidden" name="cal_month" value="{{ cal_month }}">
+-                <input type="hidden" name="cal_year" value="{{ cal_year }}">
+-                <input type="hidden" name="view" value="{{ view }}">
+-                
+-                <!-- Basic Row -->
+-                <div class="grid grid-cols-1 md:grid-cols-12 gap-3 w-full">
+-                    <!-- Search -->
+-                    <div class="relative md:col-span-4">
+-                        <i data-lucide="search" class="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground"></i>
+-                        <input type="text" name="search" placeholder="Cari deskripsi, nominal, tag..." value="{{ search_query }}" class="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+-                    </div>
+-                    
+-                    <!-- Date Pickers -->
+-                    <div class="flex items-center h-10 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring md:col-span-4">
+-                         <i data-lucide="calendar" class="h-4 w-4 mr-2 text-muted-foreground"></i>
+-                         <input type="date" name="start_date" value="{{ start_date }}" class="bg-transparent border-none p-0 outline-none focus:ring-0 text-muted-foreground w-full [&::-webkit-calendar-picker-indicator]:opacity-50">
+-                         <span class="mx-2 text-muted-foreground">-</span>
+-                         <input type="date" name="end_date" value="{{ end_date }}" class="bg-transparent border-none p-0 outline-none focus:ring-0 text-muted-foreground w-full [&::-webkit-calendar-picker-indicator]:opacity-50">
+-                    </div>
+-                    
+-                    <!-- Category -->
+-                    <select name="category" class="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring md:col-span-4">
+-                        <option value="">Semua Kategori</option>
+-                        {% for group, cats in categories.items() %}
+-                            <optgroup label="{{ group }}">
+-                                {% for cat in cats %}
+-                                    <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+-                                {% endfor %}
+-                            </optgroup>
+-                        {% endfor %}
+-                    </select>
+-                </div>
+-
+-                <!-- Action Buttons -->
+-                <div class="flex items-center gap-2">
+-                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6 shadow-sm">
+-                        Cari Transaksi
+-                    </button>
+-                    <button type="button" @click="advancedOpen = !advancedOpen" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 shadow-sm text-muted-foreground">
+-                        <i data-lucide="sliders-horizontal" class="w-4 h-4 mr-2"></i> Filter Lanjutan
+-                    </button>
+-                    <a href="{{ url_for('transactions.transactions_list') }}?view={{ view }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium hover:bg-destructive/10 hover:text-destructive h-10 px-4 shadow-none text-muted-foreground ml-auto">Reset</a>
+-                </div>
+-
+-                <!-- Advanced Filters Panel -->
+-                <div x-show="advancedOpen" x-transition x-cloak class="pt-4 mt-2 border-t border-border grid grid-cols-1 md:grid-cols-4 gap-4 bg-muted/30 p-4 rounded-lg border border-border/50">
+-                    <div class="space-y-1.5">
+-                        <label class="text-xs font-bold text-muted-foreground uppercase tracking-wider">Tipe Transaksi</label>
+-                        <select name="tx_type" class="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+-                            <option value="">Semua Tipe</option>
+-                            <option value="income" {% if request.args.get('tx_type') == 'income' %}selected{% endif %}>Pemasukan (Income)</option>
+-                            <option value="expense" {% if request.args.get('tx_type') == 'expense' %}selected{% endif %}>Pengeluaran (Expense)</option>
+-                            <option value="transfer" {% if request.args.get('tx_type') == 'transfer' %}selected{% endif %}>Transfer</option>
+-                        </select>
+-                    </div>
+-                    <div class="space-y-1.5">
+-                        <label class="text-xs font-bold text-muted-foreground uppercase tracking-wider">Akun Terkait</label>
+-                        <select name="account_id" class="h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+-                            <option value="">Semua Akun</option>
+-                            {% for acc in accounts %}
+-                                <option value="{{ acc.id }}" {% if selected_account|string == acc.id|string %}selected{% endif %}>{{ acc.name.split('] ')[-1] if '] ' in acc.name else acc.name }}</option>
+-                            {% endfor %}
+-                        </select>
+-                    </div>
+-                    <div class="space-y-1.5">
+-                        <label class="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nominal Minimum (Rp)</label>
+-                        <div class="relative">
+-                            <span class="absolute left-3 top-2.5 text-muted-foreground text-sm font-medium">Rp</span>
+-                            <input type="number" name="min_amount" placeholder="0" value="{{ request.args.get('min_amount', '') }}" class="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+-                        </div>
+-                    </div>
+-                    <div class="space-y-1.5">
+-                        <label class="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nominal Maksimum (Rp)</label>
+-                        <div class="relative">
+-                            <span class="absolute left-3 top-2.5 text-muted-foreground text-sm font-medium">Rp</span>
+-                            <input type="number" name="max_amount" placeholder="Tak Terhingga" value="{{ request.args.get('max_amount', '') }}" class="h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+-                        </div>
+-                    </div>
+-                </div>
+-            </form>
+-        </div>
+-        
+-        
+-    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
+-        <div class="p-0">
+-            {% if transactions %}
+-            <div class="relative w-full overflow-auto">
+-                <table class="w-full caption-bottom text-sm">
+-                    <thead class="[&_tr]:border-b">
+-                        <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+-                            {% macro sort_link(col_name, label, classes) %}
+-                                {% set is_active = (sort_by == col_name) %}
+-                                {% set new_order = 'asc' if (is_active and sort_order == 'desc') else 'desc' %}
+-                                <th class="h-12 px-4 {{ classes }} align-middle font-medium text-muted-foreground">
+-                                    <a href="?view={{ view }}&page={{ page }}&sort_by={{ col_name }}&sort_order={{ new_order }}&search={{ search_query }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}" class="inline-flex items-center hover:text-foreground transition-colors group">
+-                                        {{ label }}
+-                                        <i data-lucide="arrow-up-down" class="ml-1 h-3 w-3 opacity-50 group-hover:opacity-100 {% if is_active %}text-primary opacity-100{% endif %}"></i>
+-                                    </a>
+-                                </th>
+-                            {% endmacro %}
+-                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground w-12">
+-                                <input type="checkbox" x-model="selectAll" @change="toggleAll" class="rounded border-input text-primary focus:ring-ring w-4 h-4">
+-                            </th>
+-                            {{ sort_link('date', 'Date', 'text-left') }}
+-                            {{ sort_link('category', 'Category', 'text-left') }}
+-                            {{ sort_link('account_name', 'Account', 'text-left') }}
+-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Description</th>
+-                            {{ sort_link('amount', 'Amount', 'text-right justify-end w-full') }}
+-                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground w-[100px]">Actions</th>
+-                        </tr>
+-                    </thead>
+-                    <tbody class="[&_tr:last-child]:border-0">
+-                        {% for tx in transactions %}
+-                        <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted group">
+-                            <td class="p-4 align-middle text-center w-12">
+-                                <input type="checkbox" value="{{ tx.id }}" x-model.number="selectedRows" class="rounded border-input text-primary focus:ring-ring w-4 h-4">
+-                            </td>
+-                            <td class="p-4 align-middle whitespace-nowrap">{{ tx.date }}</td>
+-                            <td class="p-4 align-middle">
+-                                <div class="flex flex-col">
+-                                    <span class="font-medium">{{ tx.category }}</span>
+-                                    <span class="text-[10px] uppercase tracking-wider text-muted-foreground">{{ tx.type }}</span>
+-                                </div>
+-                            </td>
+-                            <td class="p-4 align-middle">
+-                                {% set d = tx.account_name.upper() if tx.account_name else '' %}
+-                                <div class="flex items-center gap-3">
+-                                    <div class="w-14 h-10 flex items-center justify-center">
+-                                        {% if 'CASH' in d %}<i data-lucide="banknote" class="w-7 h-7 text-emerald-500"></i>
+-                                        {% elif 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BCA">
+-                                        {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BNI">
+-                                        {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="w-full h-full object-contain drop-shadow-sm" alt="BRI">
+-                                        {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mandiri">
+-                                        {% elif 'JAGO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Logo-jago.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Jago">
+-                                        {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BSI">
+-                                        {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/38/CIMB_Niaga_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="CIMB">
+-                                        {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="SeaBank">
+-                                        {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/8/89/Jenius-logo.png" class="w-full h-full object-contain drop-shadow-sm" alt="Jenius">
+-                                        {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OCBC">
+-                                        {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mega">
+-                                        {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/48/PermataBank_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Permata">
+-                                        {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/BTN_2024.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BTN">
+-                                        {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="HSBC">
+-                                        {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Superbank">
+-                                        {% elif 'DKI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Bank_DKI.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DKI">
+-                                        {% elif 'BJB' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/41/Bank_BJB_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BJB">
+-                                        {% elif 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="GoPay">
+-                                        {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DANA">
+-                                        {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OVO">
+-                                        {% elif 'SHOPEEPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="w-full h-full object-contain drop-shadow-sm" alt="ShopeePay">
+-                                        {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg" class="w-full h-full object-contain drop-shadow-sm" alt="LinkAja">
+-                                        {% else %}<i data-lucide="wallet" class="w-7 h-7 text-primary"></i>{% endif %}
+-                                    </div>
+-                                    <span class="font-medium text-sm">{{ tx.account_name.split('] ')[-1] if '] ' in tx.account_name else tx.account_name }}</span>
+-                                </div>
+-                            </td>
+-                            <td class="p-4 align-middle max-w-[200px] truncate" title="{{ tx.description or '-' }}">
+-                                {% if search_query and tx.description and search_query.lower() in tx.description.lower() %}
+-                                    {% set lower_desc = tx.description.lower() %}
+-                                    {% set start_idx = lower_desc.find(search_query.lower()) %}
+                                     {% set end_idx = start_idx + search_query|length %}
+                                     {{ tx.description[:start_idx] }}<mark class="bg-yellow-200 dark:bg-yellow-900/50 text-yellow-900 dark:text-yellow-200 px-1 rounded-sm">{{ tx.description[start_idx:end_idx] }}</mark>{{ tx.description[end_idx:] }}
+                                 {% else %}
+[diff_block_end]
+
+Please note that the above snippet only shows the MODIFIED lines from the last change. It shows up to 3 lines of unchanged lines before and after the modified lines. The actual file contents may have many more lines not shown.
+
+We did our best to apply changes despite some inaccuracies. Double check if the edit applied is what you intended.

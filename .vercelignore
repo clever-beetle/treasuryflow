@@ -1,0 +1,10 @@
+.git
+frontend/node_modules/
+node_modules/
+__pycache__/
+*.pyc
+.env
+.venv/
+venv/
+tests/
+scratch/

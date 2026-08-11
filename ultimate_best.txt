@@ -1,0 +1,466 @@
+Created At: 2026-08-10T07:48:47+07:00
+Completed At: 2026-08-10T07:48:48+07:00
+File Path: `file:///C:/Users/vinho/Downloads/FinanceTracker/templates/transactions_list.html`
+Total Lines: 458
+Total Bytes: 42595
+Showing lines 1 to 458
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: {% extends 'base_shadcn.html' %}
+2: {% block page_title %}Transactions{% endblock %}
+3: {% block content %}
+4: <div class="space-y-6">
+5:     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+6:         <h2 class="text-2xl font-bold tracking-tight">Transaction History</h2>
+7:         <a href="{{ url_for('add_transaction') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shadow-sm">
+8:             <i data-lucide="plus" class="mr-2 h-4 w-4"></i> Add Transaction
+9:         </a>
+10:     </div>
+11: 
+12:     <!-- Summary Cards -->
+13:     <div class="grid gap-4 md:grid-cols-3">
+14:         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
+15:             <div class="flex items-center space-x-2">
+16:                 <i data-lucide="arrow-down-circle" class="h-4 w-4 text-emerald-500"></i>
+17:                 <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Filtered Income</h3>
+18:             </div>
+19:             <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Rp {{ "{:,.0f}".format(total_income).replace(',', '.') }}</div>
+20:         </div>
+21:         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
+22:             <div class="flex items-center space-x-2">
+23:                 <i data-lucide="arrow-up-circle" class="h-4 w-4 text-destructive"></i>
+24:                 <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Filtered Expense</h3>
+25:             </div>
+26:             <div class="text-2xl font-bold text-destructive">Rp {{ "{:,.0f}".format(total_expense).replace(',', '.') }}</div>
+27:         </div>
+28:         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
+29:             <div class="flex items-center space-x-2">
+30:                 <i data-lucide="wallet" class="h-4 w-4 text-blue-500"></i>
+31:                 <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Net Flow</h3>
+32:             </div>
+33:             <div class="text-2xl font-bold {% if net_flow >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-destructive{% endif %}">
+34:                 Rp {{ "{:,.0f}".format(net_flow).replace(',', '.') }}
+35:             </div>
+36:         </div>
+37:     </div>
+38: 
+39:     <div x-data="{ 
+40:         view: '{{ view }}', 
+41:         selectedRows: [], 
+42:         selectAll: false,
+43:         toggleAll() {
+44:             if (this.selectAll) {
+45:                 this.selectedRows = [{% for tx in transactions %}{{ tx.id }}{% if not loop.last %}, {% endif %}{% endfor %}];
+46:             } else {
+47:                 this.selectedRows = [];
+48:             }
+49:         }
+50:     }">
+51: 
+52:         <div class="flex justify-between items-center mb-4">
+53:             <!-- View Toggle -->
+54:             <div class="flex items-center p-1 border border-border rounded-md bg-muted/50">
+55:                 <a href="?view=list&cal_year={{ cal_year }}&cal_month={{ cal_month }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'list' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
+56:                     <i data-lucide="list" class="w-4 h-4 inline mr-1"></i> List
+57:                 </a>
+58:                 <a href="?view=calendar&cal_year={{ cal_year }}&cal_month={{ cal_month }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'calendar' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
+59:                     <i data-lucide="calendar-days" class="w-4 h-4 inline mr-1"></i> Calendar
+60:                 </a>
+61:             </div>
+62:         </div>
+63: 
+64:         <!-- Calendar View -->
+65:         <div x-show="view === 'calendar'" x-cloak class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 mb-6">
+66:             <div class="flex justify-between items-center mb-6">
+67:                 <h3 class="text-xl font-bold">{{ month_name }} {{ cal_year }}</h3>
+68:                 <div class="flex gap-2">
+69:                     <a href="?view=calendar&cal_year={{ cal_year if cal_month > 1 else cal_year - 1 }}&cal_month={{ cal_month - 1 if cal_month > 1 else 12 }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
+70:                         <i data-lucide="chevron-left" class="w-4 h-4"></i>
+71:                     </a>
+72:                     <a href="?view=calendar&cal_year={{ now.year }}&cal_month={{ now.month }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="px-3 py-2 border border-border rounded-md hover:bg-muted text-sm font-medium text-muted-foreground">
+73:                         Today
+74:                     </a>
+75:                     <a href="?view=calendar&cal_year={{ cal_year if cal_month < 12 else cal_year + 1 }}&cal_month={{ cal_month + 1 if cal_month < 12 else 1 }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
+76:                         <i data-lucide="chevron-right" class="w-4 h-4"></i>
+77:                     </a>
+78:                 </div>
+79:             </div>
+80:             <div class="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden border border-border">
+81:                 {% for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
+82:                 <div class="bg-muted/50 p-2 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ day }}</div>
+83:                 {% endfor %}
+84:                 
+85:                 {% for week in month_days %}
+86:                     {% for date in week %}
+87:                         {% set d_str = date.strftime('%Y-%m-%d') %}
+88:                         {% set is_current = date.month == cal_month %}
+89:                         {% set is_today = date == now %}
+90:                         <a href="?view=calendar&start_date={{ d_str }}&end_date={{ d_str }}&cal_month={{ cal_month }}&cal_year={{ cal_year }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="bg-background min-h-[100px] p-2 hover:bg-muted/50 transition-colors flex flex-col {% if not is_current %}opacity-40{% endif %} {% if start_date == d_str and end_date == d_str %}ring-2 ring-inset ring-primary bg-primary/5 z-10{% endif %}">
+91:                             <div class="flex items-start justify-between">
+92:                                 <span class="text-sm font-medium {% if is_today %}bg-primary text-primary-foreground rounded-full w-6 h-6 inline-flex items-center justify-center{% elif start_date == d_str and end_date == d_str %}text-primary{% endif %}">{{ date.day }}</span>
+93:                             </div>
+94:                             <div class="mt-auto space-y-1 pt-2">
+95:                             {% if d_str in cal_tx_map %}
+96:                                 {% if cal_tx_map[d_str]['income'] > 0 %}
+97:                                 <div class="text-[10px] font-medium text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-1 rounded truncate">
+98:                                     +{{ "{:,.0f}".format(cal_tx_map[d_str]['income']/1000) }}k
+99:                                 </div>
+100:                                 {% endif %}
+101:                                 {% if cal_tx_map[d_str]['expense'] > 0 %}
+102:                                 <div class="text-[10px] font-medium text-destructive bg-destructive/10 px-1 rounded truncate">
+103:                                     -{{ "{:,.0f}".format(cal_tx_map[d_str]['expense']/1000) }}k
+104:                                 </div>
+105:                                 {% endif %}
+106:                             {% endif %}
+107:                             </div>
+108:                         </a>
+109:                     {% endfor %}
+110:                 {% endfor %}
+111:             </div>
+112:         </div>
+113: 
+114:         <!-- Filter Toolbar -->
+115:         <div x-show="view === 'list'" class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between rounded-xl border border-border bg-card p-4 shadow-sm mb-6">
+116:             <form method="GET" action="{{ url_for('transactions_list') }}" class="flex flex-wrap items-center gap-3 w-full">
+117:                 <input type="hidden" name="cal_month" value="{{ cal_month }}">
+118:                 <input type="hidden" name="cal_year" value="{{ cal_year }}">
+119:                 <input type="hidden" name="view" value="{{ view }}">
+120:                 <!-- Search -->
+121:                 <div class="relative">
+122:                     <i data-lucide="search" class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground"></i>
+123:                     <input type="text" name="search" placeholder="Search description..." value="{{ search_query }}" class="h-9 w-full md:w-[180px] rounded-md border border-input bg-background pl-8 pr-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+124:                 </div>
+125:                 <!-- Date Pickers -->
+126:                 <div class="flex items-center h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring">
+127:                      <i data-lucide="calendar" class="h-4 w-4 mr-2 text-muted-foreground"></i>
+128:                      <input type="date" name="start_date" value="{{ start_date }}" class="bg-transparent border-none p-0 outline-none focus:ring-0 text-muted-foreground w-[110px] [&::-webkit-calendar-picker-indicator]:opacity-50">
+129:                      <span class="mx-2 text-muted-foreground">-</span>
+130:                      <input type="date" name="end_date" value="{{ end_date }}" class="bg-transparent border-none p-0 outline-none focus:ring-0 text-muted-foreground w-[110px] [&::-webkit-calendar-picker-indicator]:opacity-50">
+131:                 </div>
+132:                 <!-- Category -->
+133:                 <select name="category" class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+134:                     <option value="">All Categories</option>
+135:                     {% for group, cats in categories.items() %}
+136:                         <optgroup label="{{ group }}">
+137:                             {% for cat in cats %}
+138:                                 <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
+139:                             {% endfor %}
+140:                         </optgroup>
+141:                     {% endfor %}
+142:                 </select>
+143:                 <!-- Account -->
+144:                 <select name="account_id" class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+145:                     <option value="">All Accounts</option>
+146:                     {% for acc in accounts %}
+147:                         <option value="{{ acc.id }}" {% if selected_account|string == acc.id|string %}selected{% endif %}>{{ acc.name }}</option>
+148:                     {% endfor %}
+149:                 </select>
+150:                 <!-- Filter Actions -->
+151:                 <div class="flex gap-2 mr-auto">
+152:                     <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 shadow-sm">Filter</button>
+153:                     <a href="{{ url_for('transactions_list') }}?view={{ view }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 shadow-sm text-muted-foreground">Reset</a>
+154:                 </div>
+155:                 <!-- Export Dropdown -->
+156:                 <div x-data="{ exportOpen: false }" class="relative ml-auto">
+157:                     <button type="button" @click="exportOpen = !exportOpen" @click.outside="exportOpen = false" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 shadow-sm">
+158:                         <i data-lucide="download" class="w-4 h-4 mr-2"></i> Export <i data-lucide="chevron-down" class="w-4 h-4 ml-2 opacity-50"></i>
+159:                     </button>
+160:                     <div x-show="exportOpen" x-transition.opacity class="absolute right-0 top-full mt-1 w-32 rounded-md border border-border bg-popover text-popover-foreground shadow-md z-50 p-1" x-cloak>
+161:                         {% set query_params = 'start_date=' + start_date + '&end_date=' + end_date + '&category=' + selected_category|urlencode + '&account_id=' + selected_account|string + '&search=' + search_query|urlencode %}
+162:                         <a href="{{ url_for('export_pdf') }}?{{ query_params }}" class="flex items-center w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground">
+163:                             <i data-lucide="file-text" class="h-4 w-4 mr-2 text-destructive"></i> PDF
+164:                         </a>
+165:                         <a href="{{ url_for('export_csv') }}?{{ query_params }}" class="flex items-center w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground">
+166:                             <i data-lucide="file-spreadsheet" class="h-4 w-4 mr-2 text-emerald-600"></i> CSV
+167:                         </a>
+168:                     </div>
+169:                 </div>
+170:                 </div>
+171:             </form>
+172:             <div class="w-full flex flex-wrap gap-2 pt-4 mt-4 border-t border-border">
+173:                 <span class="text-xs font-semibold text-muted-foreground mr-1 self-center uppercase tracking-wider">Quick Filters:</span>
+174:                 {% set tm_start = now.replace(day=1).strftime('%Y-%m-%d') %}
+175:                 <a href="?view={{ view }}&start_date={{ tm_start }}&end_date=" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-secondary {% if start_date == tm_start and not end_date and not tx_type and not min_amount %}bg-secondary text-secondary-foreground{% else %}border-transparent bg-muted text-muted-foreground hover:text-foreground{% endif %}">
+176:                     This Month
+177:                 </a>
+178:                 <a href="?view={{ view }}&tx_type=income" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-secondary {% if tx_type == 'income' %}bg-secondary text-secondary-foreground{% else %}border-transparent bg-muted text-muted-foreground hover:text-foreground{% endif %}">
+179:                     <i data-lucide="arrow-down-circle" class="w-3 h-3 mr-1"></i> Income Only
+180:                 </a>
+181:                 <a href="?view={{ view }}&tx_type=expense" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-secondary {% if tx_type == 'expense' and not min_amount %}bg-secondary text-secondary-foreground{% else %}border-transparent bg-muted text-muted-foreground hover:text-foreground{% endif %}">
+182:                     <i data-lucide="arrow-up-circle" class="w-3 h-3 mr-1"></i> Expense Only
+183:                 </a>
+184:                 <a href="?view={{ view }}&tx_type=expense&min_amount=500000" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-secondary {% if min_amount == 500000.0 %}bg-secondary text-secondary-foreground{% else %}border-transparent bg-muted text-muted-foreground hover:text-foreground{% endif %}">
+185:                     <i data-lucide="flame" class="w-3 h-3 mr-1 text-orange-500"></i> High Expenses (>500k)
+186:                 </a>
+187:             </div>
+188:         </div>
+189: 
+190:     <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
+191:         <div class="p-0">
+192:             {% if transactions %}
+193:             <div class="relative w-full overflow-auto">
+194:                 <table class="w-full caption-bottom text-sm">
+195:                     <thead class="[&_tr]:border-b">
+196:                         <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+197:                             {% macro sort_link(col_name, label, classes) %}
+198:                                 {% set is_active = (sort_by == col_name) %}
+199:                                 {% set new_order = 'asc' if (is_active and sort_order == 'desc') else 'desc' %}
+200:                                 <th class="h-12 px-4 {{ classes }} align-middle font-medium text-muted-foreground">
+201:                                     <a href="?view={{ view }}&page={{ page }}&sort_by={{ col_name }}&sort_order={{ new_order }}&search={{ search_query }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}" class="inline-flex items-center hover:text-foreground transition-colors group">
+202:                                         {{ label }}
+203:                                         <i data-lucide="arrow-up-down" class="ml-1 h-3 w-3 opacity-50 group-hover:opacity-100 {% if is_active %}text-primary opacity-100{% endif %}"></i>
+204:                                     </a>
+205:                                 </th>
+206:                             {% endmacro %}
+207:                             <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground w-12">
+208:                                 <input type="checkbox" x-model="selectAll" @change="toggleAll" class="rounded border-input text-primary focus:ring-ring w-4 h-4">
+209:                             </th>
+210:                             {{ sort_link('date', 'Date', 'text-left') }}
+211:                             {{ sort_link('category', 'Category', 'text-left') }}
+212:                             {{ sort_link('account_name', 'Account', 'text-left') }}
+213:                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Description</th>
+214:                             {{ sort_link('amount', 'Amount', 'text-right justify-end w-full') }}
+215:                             <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground w-[100px]">Actions</th>
+216:                         </tr>
+217:                     </thead>
+218:                     <tbody class="[&_tr:last-child]:border-0">
+219:                         {% for tx in transactions %}
+220:                         <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted group">
+221:                             <td class="p-4 align-middle text-center w-12">
+222:                                 <input type="checkbox" value="{{ tx.id }}" x-model.number="selectedRows" class="rounded border-input text-primary focus:ring-ring w-4 h-4">
+223:                             </td>
+224:                             <td class="p-4 align-middle whitespace-nowrap">{{ tx.date }}</td>
+225:                             <td class="p-4 align-middle">
+226:                                 <div class="flex flex-col">
+227:                                     <span class="font-medium">{{ tx.category }}</span>
+228:                                     <span class="text-[10px] uppercase tracking-wider text-muted-foreground">{{ tx.type }}</span>
+229:                                 </div>
+230:                             </td>
+231:                             <td class="p-4 align-middle">
+232:                                 {% set d = tx.account_name.upper() if tx.account_name else '' %}
+233:                                 <div class="flex items-center gap-3">
+234:                                     <div class="w-14 h-10 flex items-center justify-center">
+235:                                         {% if 'CASH' in d %}<i data-lucide="banknote" class="w-7 h-7 text-emerald-500"></i>
+236:                                         {% elif 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BCA">
+237:                                         {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BNI">
+238:                                         {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="w-full h-full object-contain drop-shadow-sm" alt="BRI">
+239:                                         {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mandiri">
+240:                                         {% elif 'JAGO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Logo-jago.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Jago">
+241:                                         {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BSI">
+242:                                         {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/38/CIMB_Niaga_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="CIMB">
+243:                                         {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="SeaBank">
+244:                                         {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/8/89/Jenius-logo.png" class="w-full h-full object-contain drop-shadow-sm" alt="Jenius">
+245:                                         {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OCBC">
+246:                                         {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mega">
+247:                                         {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/48/PermataBank_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Permata">
+248:                                         {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/BTN_2024.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BTN">
+249:                                         {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="HSBC">
+250:                                         {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Superbank">
+251:                                         {% elif 'DKI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Bank_DKI.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DKI">
+252:                                         {% elif 'BJB' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/41/Bank_BJB_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BJB">
+253:                                         {% elif 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="GoPay">
+254:                                         {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DANA">
+255:                                         {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OVO">
+256:                                         {% elif 'SHOPEEPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="w-full h-full object-contain drop-shadow-sm" alt="ShopeePay">
+257:                                         {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg" class="w-full h-full object-contain drop-shadow-sm" alt="LinkAja">
+258:                                         {% else %}<i data-lucide="wallet" class="w-7 h-7 text-primary"></i>{% endif %}
+259:                                     </div>
+260:                                 </div>
+261:                             </td>
+262:                             <td class="p-4 align-middle max-w-[200px] truncate" title="{{ tx.description or '-' }}">
+263:                                 {% if search_query and tx.description and search_query.lower() in tx.description.lower() %}
+264:                                     {% set lower_desc = tx.description.lower() %}
+265:                                     {% set start_idx = lower_desc.find(search_query.lower()) %}
+266:                                     {% set end_idx = start_idx + search_query|length %}
+267:                                     {{ tx.description[:start_idx] }}<mark class="bg-yellow-200 dark:bg-yellow-900/50 text-yellow-900 dark:text-yellow-200 px-1 rounded-sm">{{ tx.description[start_idx:end_idx] }}</mark>{{ tx.description[end_idx:] }}
+268:                                 {% else %}
+269:                                     {{ tx.description or '-' }}
+270:                                 {% endif %}
+271:                             </td>
+272:                             <td class="p-4 align-middle text-right">
+273:                                 {% if tx.type == 'income' %}
+274:                                     <span class="font-medium text-emerald-600 dark:text-emerald-400">+Rp {{ "{:,.0f}".format(tx.amount).replace(',', '.') }}</span>
+275:                                 {% else %}
+276:                                     <span class="font-medium text-destructive">-Rp {{ "{:,.0f}".format(tx.amount).replace(',', '.') }}</span>
+277:                                 {% endif %}
+278:                             </td>
+279:                             <td class="p-4 align-middle text-center flex justify-center items-center gap-1">
+280:                                 <button type="button" @click='$dispatch("open-edit-modal", { id: {{ tx.id }}, amount: {{ tx.amount }}, description: {{ (tx.description or "")|tojson }}, date: "{{ tx.date }}", category: "{{ tx.category }}", account_id: {{ tx.account_id }}, type: "{{ tx.type }}" })' class="text-muted-foreground hover:text-blue-500 p-2 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Edit">
+281:                                     <i data-lucide="edit-2" class="w-4 h-4"></i>
+282:                                 </button>
+283:                                 <form action="{{ url_for('delete_transaction', transaction_id=tx.id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this transaction?');">
+284:                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+285:                                     <button type="submit" class="text-muted-foreground hover:text-destructive p-2 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Delete">
+286:                                         <i data-lucide="trash-2" class="w-4 h-4"></i>
+287:                                     </button>
+288:                                 </form>
+289:                             </td>
+290:                         </tr>
+291:                         {% endfor %}
+292:                     </tbody>
+293:                 </table>
+294:                 {% if total_pages > 1 %}
+295:                 <div class="p-4 border-t border-border flex items-center justify-between bg-card text-card-foreground">
+296:                     <p class="text-sm text-muted-foreground">Page {{ page }} of {{ total_pages }}</p>
+297:                     <div class="flex gap-2">
+298:                         {% if page > 1 %}
+299:                         <a href="?view={{ view }}&page={{ page - 1 }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&search={{ search_query }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
+300:                             <i data-lucide="chevron-left" class="w-4 h-4"></i>
+301:                         </a>
+302:                         {% endif %}
+303:                         {% if page < total_pages %}
+304:                         <a href="?view={{ view }}&page={{ page + 1 }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&search={{ search_query }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
+305:                             <i data-lucide="chevron-right" class="w-4 h-4"></i>
+306:                         </a>
+307:                         {% endif %}
+308:                     </div>
+309:                 </div>
+310:                 {% endif %}
+311:             </div>
+312:             {% else %}
+313:             <div class="flex flex-col items-center justify-center p-16 text-center">
+314:                 <svg class="w-48 h-48 mb-6 text-muted-foreground/30 dark:text-muted-foreground/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round">
+315:                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+316:                     <circle cx="12" cy="12" r="10" stroke-dasharray="2 4"/>
+317:                     <path d="M3 12h2M19 12h2M12 3V1M12 23v-2M5.6 5.6l-1.4-1.4M18.4 18.4l1.4 1.4M5.6 18.4l-1.4 1.4M18.4 5.6l1.4-1.4"/>
+318:                 </svg>
+319:                 <h3 class="text-2xl font-bold tracking-tight text-foreground">No transactions found</h3>
+320:                 <p class="text-muted-foreground mt-2 mb-8 max-w-md mx-auto text-base">We couldn't find any transactions matching your current filters. Try adjusting them or record a new entry to get started.</p>
+321:                 <div class="flex gap-4">
+322:                     <a href="{{ url_for('transactions_list') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8 shadow-sm">
+323:                         Clear Filters
+324:                     </a>
+325:                     <a href="{{ url_for('add_transaction') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 shadow-sm">
+326:                         <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add Transaction
+327:                     </a>
+328:                 </div>
+329:             </div>
+330:             {% endif %}
+331:         </div>
+332:     </div>
+333:     
+334:     <!-- Floating Bulk Actions -->
+335:     <!-- Floating Bulk Actions -->
+336:     <div x-show="selectedRows.length > 0" x-transition.translate.y x-cloak class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-popover border border-border shadow-lg rounded-full px-6 py-3 flex items-center gap-4 z-50">
+337:         <span class="text-sm font-medium">
+338:             <span x-text="selectedRows.length"></span> selected
+339:         </span>
+340:         <div class="flex items-center gap-2 border-l border-border pl-4">
+341:             <button type="button" @click="$dispatch('open-bulk-edit-modal')" class="inline-flex items-center justify-center rounded-full text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-4 shadow-sm">
+342:                 <i data-lucide="tag" class="w-3 h-3 mr-2"></i> Edit Category
+343:             </button>
+344:             <form action="{{ url_for('bulk_delete_transactions') }}" method="POST" class="m-0" onsubmit="return confirm('Are you sure you want to delete these transactions?');">
+345:                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+346:                 <input type="hidden" name="transaction_ids" :value="selectedRows.join(',')"/>
+347:                 <button type="submit" class="inline-flex items-center justify-center rounded-full text-xs font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-4 shadow-sm">
+348:                     <i data-lucide="trash-2" class="w-3 h-3 mr-2"></i> Delete
+349:                 </button>
+350:             </form>
+351:         </div>
+352:     </div>
+353: </div>
+354: 
+355: <!-- Edit Modal -->
+356: <div x-data="{ 
+357:     editOpen: false, 
+358:     tx: {id: '', amount: '', description: '', date: '', category: '', account_id: '', type: ''} 
+359: }" 
+360: @open-edit-modal.window="tx = $event.detail; editOpen = true;" 
+361: x-cloak>
+362:     
+363:     <div x-show="editOpen" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+364:         <div x-show="editOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"></div>
+365:         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+366:             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+367:                 <div x-show="editOpen" x-transition.scale.origin.bottom.duration.300 class="relative transform overflow-hidden rounded-xl bg-background text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-border">
+368:                     <form :action="'/edit_transaction/' + tx.id" method="POST">
+369:                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+370:                         <div class="px-6 py-6 pb-4">
+371:                             <h3 class="text-lg font-semibold leading-6 mb-4">Edit Transaction</h3>
+372:                             <div class="space-y-4">
+373:                                 <div>
+374:                                     <label class="block text-sm font-medium mb-1">Amount</label>
+375:                                     <input type="number" name="amount" x-model="tx.amount" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+376:                                 </div>
+377:                                 <div>
+378:                                     <label class="block text-sm font-medium mb-1">Description</label>
+379:                                     <input type="text" name="description" x-model="tx.description" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+380:                                 </div>
+381:                                 <div>
+382:                                     <label class="block text-sm font-medium mb-1">Date</label>
+383:                                     <input type="date" name="date" x-model="tx.date" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+384:                                 </div>
+385:                                 <div>
+386:                                     <label class="block text-sm font-medium mb-1">Category</label>
+387:                                     <select name="category" x-model="tx.category" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+388:                                         {% for group, cats in categories.items() %}
+389:                                             <optgroup label="{{ group }}">
+390:                                                 {% for cat in cats %}
+391:                                                     <option value="{{ cat }}">{{ cat }}</option>
+392:                                                 {% endfor %}
+393:                                             </optgroup>
+394:                                         {% endfor %}
+395:                                     </select>
+396:                                 </div>
+397:                                 <div>
+398:                                     <label class="block text-sm font-medium mb-1">Account</label>
+399:                                     <select name="account_id" x-model="tx.account_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+400:                                         {% for acc in accounts %}
+401:                                             <option value="{{ acc.id }}">{{ acc.name }}</option>
+402:                                         {% endfor %}
+403:                                     </select>
+404:                                 </div>
+405:                             </div>
+406:                         </div>
+407:                         <div class="bg-muted/50 px-6 py-4 flex flex-row-reverse sm:px-6">
+408:                             <button type="submit" class="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto">Save Changes</button>
+409:                             <button type="button" @click="editOpen = false" class="mt-3 inline-flex w-full justify-center rounded-md bg-background px-3 py-2 text-sm font-medium shadow-sm ring-1 ring-inset ring-border hover:bg-muted sm:mt-0 sm:w-auto">Cancel</button>
+410:                         </div>
+411:                     </form>
+412:                 </div>
+413:             </div>
+414:         </div>
+415:     </div>
+416: </div>
+417: 
+418: <!-- Bulk Edit Modal -->
+419: <div x-data="{ bulkEditOpen: false }" @open-bulk-edit-modal.window="bulkEditOpen = true" x-cloak>
+420:     <div x-show="bulkEditOpen" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+421:         <div x-show="bulkEditOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"></div>
+422:         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+423:             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+424:                 <div x-show="bulkEditOpen" x-transition.scale.origin.bottom.duration.300 class="relative transform overflow-hidden rounded-xl bg-background text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-border">
+425:                     <form action="{{ url_for('bulk_edit_transactions') }}" method="POST">
+426:                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+427:                         <input type="hidden" name="transaction_ids" :value="selectedRows.join(',')"/>
+428:                         <div class="px-6 py-6 pb-4">
+429:                             <h3 class="text-lg font-semibold leading-6 mb-4">Bulk Edit Category</h3>
+430:                             <p class="text-sm text-muted-foreground mb-4">You are about to change the category for <span class="font-bold text-foreground" x-text="selectedRows.length"></span> selected transaction(s).</p>
+431:                             <div class="space-y-4">
+432:                                 <div>
+433:                                     <label class="block text-sm font-medium mb-1">New Category</label>
+434:                                     <select name="category" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+435:                                         <option value="">-- Select Category --</option>
+436:                                         {% for group, cats in categories.items() %}
+437:                                             <optgroup label="{{ group }}">
+438:                                                 {% for cat in cats %}
+439:                                                     <option value="{{ cat }}">{{ cat }}</option>
+440:                                                 {% endfor %}
+441:                                             </optgroup>
+442:                                         {% endfor %}
+443:                                     </select>
+444:                                 </div>
+445:                             </div>
+446:                         </div>
+447:                         <div class="bg-muted/50 px-6 py-4 flex flex-row-reverse sm:px-6">
+448:                             <button type="submit" class="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto">Apply Change</button>
+449:                             <button type="button" @click="bulkEditOpen = false" class="mt-3 inline-flex w-full justify-center rounded-md bg-background px-3 py-2 text-sm font-medium shadow-sm ring-1 ring-inset ring-border hover:bg-muted sm:mt-0 sm:w-auto">Cancel</button>
+450:                         </div>
+451:                     </form>
+452:                 </div>
+453:             </div>
+454:         </div>
+455:     </div>
+456: </div>
+457: {% endblock %}
+458: 
+The above content shows the entire, complete file contents of the requested file.

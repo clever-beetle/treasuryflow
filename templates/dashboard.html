@@ -1,478 +1,732 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Treasury Flow</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <style>
-        body { background-color: #f5f5f5; color: #111827; font-family: 'Inter', sans-serif; -webkit-user-select: none; -ms-user-select: none; user-select: none; }
-        .navbar { border-bottom: 1px solid #f5f5f5; background-color: #ffffff !important; position: sticky; top: 0; z-index: 1050; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
-        .navbar-toggler { border: none !important; }
-        .navbar-toggler:focus, .navbar-toggler:active { outline: none !important; box-shadow: none !important; }
-        .navbar-brand { font-weight: 700; color: #11237e !important; display: flex !important; align-items: center !important; }
-        .navbar-logo { height: 70px; width: auto; object-fit: contain; margin-top: -13px; margin-bottom: 0px; margin-left: -25px; margin-right: 0px; }
-        .navbar-brand span { color: #11237e; font-size: 1.25rem; line-height: 1; }
+{% extends 'base_shadcn.html' %}
+{% block page_title %}Dashboard
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/cal-heatmap/dist/cal-heatmap.min.js"></script>
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/cal-heatmap/dist/plugins/Tooltip.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/cal-heatmap/dist/cal-heatmap.css">
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const cal = new CalHeatmap();
+        const rawData = {{ heatmap_json|safe }};
         
-        .sidebar-active { background-color: #11237e !important; color: #ffffff !important; font-weight: 800 !important; transition: all 0.3s ease; }
-        .sidebar-active i { color: #ffffff !important; }
-
-        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); background-color: #ffffff; }
-        .form-control-custom { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; transition: all 0.2s ease-in-out; }
-        .form-control-custom:focus { border-color: #11237e; background-color: #ffffff; box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05); outline: none; }
+        const dtStr = new Date();
+        dtStr.setMonth(dtStr.getMonth() - 11);
         
-        .nav-pills .nav-link { color: #4b5563; border-radius: 8px; margin-bottom: 5px; font-weight: 600; padding: 10px 18px; transition: all 0.2s; border: 1px solid transparent; }
-        .nav-pills .nav-link:hover { color: #11237e; background-color: #f8f9fa; }
-        .nav-pills .nav-link.active { background-color: #11237e !important; color: white !important; box-shadow: 0 4px 12px rgba(17, 35, 126, 0.15); }
-        
-        .btn-navy { background-color: #11237e !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #11237e !important; transition: all 0.2s ease-in-out; }
-        .btn-navy:hover { background-color: #ffffff !important; color: #11237e !important; transform: translateY(-1px); }
-        .btn-danger { background-color: #ef4444 !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #ef4444 !important; transition: all 0.2s ease-in-out; }
-        .btn-danger:hover { background-color: #ffffff !important; color: #ef4444 !important; transform: translateY(-1px); }
-        .btn-outline-navy { border: 2px solid #11237e !important; background-color: #ffffff !important; color: #11237e !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; transition: all 0.2s ease-in-out; }
-        .btn-outline-navy:hover { background-color: #11237e !important; color: #ffffff !important; }
-        
-        .modal-header.bg-danger { background-color: #ef4444 !important; border-bottom: none; }
-        .modal-content { border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        
-        .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: #11237e; }
-        .footer-branding { font-size: 0.8rem; color: #6c757d; margin-top: 50px; text-align: center; padding-bottom: 20px; }
-        .info-box { background-color: #f8f9fc; border: 1px solid #eaecf4; border-radius: 12px; padding: 20px; margin-bottom: 25px; }
+        cal.paint({
+            itemSelector: '#cal-heatmap',
+            domain: { type: 'month' },
+            subDomain: { type: 'day', width: 12, height: 12, radius: 2 },
+            data: { source: rawData, x: 'date', y: 'value' },
+            scale: {
+                color: {
+                    type: 'quantize',
+                    scheme: 'OrRd',
+                    domain: [0, 50000, 150000, 500000, 1000000]
+                }
+            },
+            date: { start: dtStr }
+        }, [
+            [
+                Tooltip,
+                {
+                    text: function (date, value, dayjsDate) {
+                        return (
+                            (value ? 'Rp ' + value.toLocaleString('id-ID') : 'Rp 0') +
+                            ' pada ' +
+                            dayjsDate.format('D MMM YYYY')
+                        );
+                    },
+                },
+            ]
+        ]);
+    });
+</script>
 
-        .btn-success { background-color: #ef4444 !important; color: #ffffff !important; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: 2px solid #ef4444 !important; transition: all 0.2s ease-in-out; }
-        .btn-success:hover { background-color: #ffffff !important; color: #ef4444 !important; transform: translateY(-1px); }
-        .btn-outline-secondary { background-color: #28a745 !important; color: #ffffff !important; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: 2px solid #28a745 !important; transition: all 0.2s ease-in-out; }
-        .btn-outline-secondary:hover { background-color: #ffffff !important; color: #28a745 !important; transform: translateY(-1px); }
-        .btn-light { background-color: #f5f5f5; color: #4b5563; border-radius: 10px; padding: 10px 20px; font-weight: 600; border: none; }
-
-        .card-saldo, .card-stats { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); transition: transform 0.2s; }
-        .card-saldo { background: linear-gradient(135deg, #11237e, #2a43c7) !important; color: white !important; }
-        .card-stats { background-color: #ffffff; color: #6c757d; }
-        .list-group-item { border-radius: 8px !important; margin-bottom: 4px; border: none !important; box-shadow: 0 2px 8px rgba(0,0,0,0.04); background-color: #ffffff; }
-        .list-group-item div { display: flex; align-items: center; }
-        
-        .logo-provider { height: 25px !important; width: auto !important; margin-right: 0px !important; vertical-align: middle !important; object-fit: contain !important; display: inline-block !important; }
-        
-        .wallet-GOPAY { color: #00AA13; } .wallet-DANA { color: #108DE6; } .wallet-OVO { color: #4C248D; } .wallet-LINKAJA { color: #FF2700; } .wallet-SHOPEEPAY { color: #EE4D2D; }
-        .bank-BCA { color: #005f9c; } .bank-BRI { color: #0037a3; } .bank-BNI { color: #fcc000; } .bank-MANDIRI { color: #004C92; } .bank-BSI { color: #00b050; } .bank-SEABANK { color: #87ceeb; } .icon-CASH { color: #5a5a5a; } 
-
-        .tx-income { border-left: 4px solid #28a745 !important; }
-        .tx-expense { border-left: 4px solid #ef4444 !important; }
-
-        .swipe-wrapper { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 8px; }
-        .swipe-content-tanggungan { min-width: 400px; }
-        .swipe-content-account { min-width: 380px; }
-        .swipe-wrapper::-webkit-scrollbar { height: 4px; }
-        .swipe-wrapper::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-    </style>
-</head>
-<body>
-
-{% macro get_account_icon(account_name) %}
-    {% set name_parts = account_name.split('] ') %}
-    {% set detail_name = name_parts[1] if name_parts|length > 1 else account_name %}
-    {% set category = account_name.split(']')[0].replace('[', '') if '[' in account_name else 'CASH' %}
-    {% set d = detail_name | upper %}
-
-    {% if category == 'CASH' %}
-        <img src="{{ url_for('static', filename='img/rupiah.jpg') }}" class="logo-provider">
-    {% elif category == 'BANK' %}
-        {% if 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="logo-provider">
-        {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="logo-provider">
-        {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="logo-provider">
-        {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="logo-provider">
-        {% elif 'JAGO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Logo-jago.svg" class="logo-provider">
-        {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia.svg" class="logo-provider">
-        {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/38/CIMB_Niaga_logo.svg" class="logo-provider">
-        {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="logo-provider">
-        {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/8/89/Jenius-logo.png" class="logo-provider">
-        {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg" class="logo-provider">
-        {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="logo-provider">
-        {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/48/PermataBank_logo.svg" class="logo-provider">
-        {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/BTN_2024.svg" class="logo-provider">
-        {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="logo-provider">
-        {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="logo-provider">
-        {% elif 'DKI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Bank_DKI.svg" class="logo-provider">
-        {% elif 'BJB' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/41/Bank_BJB_logo.svg" class="logo-provider">
-        {% else %}<span class="fw-bold text-dark" style="font-size:0.9rem;">{{ detail_name }}</span>
-        {% endif %}
-    {% elif category == 'E-WALLET' %}
-        {% if 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="logo-provider">
-        {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="logo-provider">
-        {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="logo-provider">
-        {% elif 'SHOPEEPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="logo-provider">
-        {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg" class="logo-provider">
-        {% else %}<span class="fw-bold text-dark" style="font-size:0.9rem;">{{ detail_name }}</span>
-        {% endif %}
-    {% else %}
-        <span class="fw-bold text-dark" style="font-size:0.9rem;">{{ detail_name }}</span>
-    {% endif %}
-{% endmacro %}
-
-    <nav class="navbar bg-white border-bottom p-3">
-        <div class="container-fluid">
-            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
-                <span>TREASURY FLOW</span>
+{% endblock %}
+{% block content %}
+<div class="space-y-6">
+    <!-- Dashboard Header & Filter -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div class="flex flex-col">
+            <h2 class="text-3xl font-bold tracking-tight text-foreground">Ringkasan Keuangan</h2>
+            <p class="text-sm text-muted-foreground mt-1">Pantau arus kas dan performa finansial Anda secara menyeluruh</p>
+        </div>
+        <div class="flex items-center space-x-2">
+            <a href="{{ url_for('transactions.add_transaction') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shadow-sm">
+                <i data-lucide="plus" class="mr-2 h-4 w-4"></i> Catat Transaksi
             </a>
-            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar">
-                <i class="fas fa-bars fa-lg"></i>
-            </button>
-            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
-                <div class="offcanvas-header border-bottom">
-                    <h5 class="offcanvas-title fw-bold" style="color: #11237e;">MENU</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
-                </div>
-                <div class="offcanvas-body" style="background-color: #f5f5f5;">
-                    <ul class="navbar-nav justify-content-end flex-grow-1">
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-wallet me-3 text-success" style="width: 20px; text-align: center;"></i> Manage Accounts</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance</a></li>
-                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings</a></li>
-                        <hr class="my-4">
-                        <li class="nav-item"><button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem;"><i class="fas fa-sign-out-alt me-2"></i> Logout</button></li>
-                    </ul>
-                </div>
+            <div class="relative">
+                <select onchange="window.location.href='?period=' + this.value" class="h-10 px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring">
+                    <option value="3" {% if period == 3 %}selected{% endif %}>3 Hari Terakhir</option>
+                    <option value="7" {% if period == 7 %}selected{% endif %}>7 Hari Terakhir</option>
+                    <option value="30" {% if period == 30 %}selected{% endif %}>30 Hari (1 Bulan)</option>
+                    <option value="90" {% if period == 90 %}selected{% endif %}>3 Bulan Terakhir</option>
+                    <option value="365" {% if period == 365 %}selected{% endif %}>1 Tahun Terakhir</option>
+                </select>
             </div>
         </div>
-    </nav>
+    </div>
 
-    <div class="container mt-5">
-        <h1 class="mb-4 fw-bold">Hi, {{ session.get('fullname') or 'Pengguna' }}!</h1>
-
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} border-0 shadow-sm" style="border-radius: 10px;">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <div class="row">
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="card card-saldo p-3 shadow-sm h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-white fw-bold mb-2"><i class="fas fa-coins me-2"></i> TOTAL SALDO</h5>
-                        <div class="d-flex align-items-center justify-content-start">
-                            <p class="card-text fs-2 fw-bold text-white mb-0" id="main-balance" data-value="{{ total_saldo | rupiah }}">
-                                {{ total_saldo | rupiah }}
-                            </p>
-                            <button type="button" id="btn-eye" class="btn btn-link text-white p-0 ms-3" style="text-decoration: none; border: none; box-shadow: none;">
-                                <i class="fas fa-eye" id="eye-icon" style="font-size: 1.2rem; opacity: 0.8;"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>  
+    <!-- Summary Cards -->
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <!-- Card 1: Total Saldo -->
+        <div class="rounded-xl border-0 bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-1 transition-all duration-300 relative overflow-hidden group">
+            <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            <div class="p-6 flex flex-row items-center justify-between space-y-0 pb-2 relative z-10">
+                <h3 class="tracking-tight text-sm font-medium text-blue-100 flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-300 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-200"></span>
+                    </span>
+                    Total Saldo
+                </h3>
+                <div class="p-2 bg-white/20 rounded-lg backdrop-blur-sm"><i data-lucide="wallet" class="h-5 w-5 text-white"></i></div>
+            </div>
+            <div class="p-6 pt-0 relative z-10">
+                <div class="text-2xl font-bold text-white drop-shadow-sm">Rp {{ "{:,.0f}".format(total_balance).replace(',', '.') }}</div>
+            </div>
+        </div>
         
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="card card-stats p-3 shadow-sm h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-danger d-flex justify-content-between align-items-center fw-bold mb-2">
-                            <span><i class="fas fa-calendar-alt me-2"></i> PERIODE</span>
-                            <div class="dropdown">
-                                <button type="button" class="btn btn-sm btn-outline-danger dropdown-toggle py-0 px-2 fw-bold" data-bs-toggle="dropdown" style="font-size: 0.75rem; height: 24px;">
-                                    {{ days_range }} Hari
-                                </button>
-                                <ul class="dropdown-menu shadow border-0">
-                                    <li><a class="dropdown-item small fw-bold" href="{{ url_for('dashboard', days=3) }}">3 Hari terakhir</a></li>
-                                    <li><a class="dropdown-item small fw-bold" href="{{ url_for('dashboard', days=7) }}">7 Hari terakhir</a></li>
-                                    <li><a class="dropdown-item small fw-bold" href="{{ url_for('dashboard', days=30) }}">30 Hari terakhir</a></li>
-                                    <li><a class="dropdown-item small fw-bold" href="{{ url_for('dashboard', days=90) }}">3 Bulan terakhir</a></li>
-                                    <li><a class="dropdown-item small fw-bold" href="{{ url_for('dashboard', days=180) }}">6 Bulan terakhir</a></li>
-                                    <li><a class="dropdown-item small fw-bold" href="{{ url_for('dashboard', days=365) }}">1 Tahun terakhir</a></li>
-                                </ul>
-                            </div>
-                        </h5>
-                        <p class="card-text fs-2 fw-bold text-danger mb-0">{{ expense_custom_range | rupiah }}</p>
-                    </div>
-                </div>
+        <!-- Card 2: Pemasukan -->
+        <div class="rounded-xl border border-emerald-500/30 bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-950/40 dark:to-emerald-900/20 text-card-foreground shadow-sm hover:shadow-emerald-500/20 hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
+            <div class="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+                <h3 class="tracking-tight text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    Pemasukan
+                </h3>
+                <div class="p-2 bg-emerald-100 dark:bg-emerald-500/20 rounded-lg text-emerald-600 dark:text-emerald-400"><i data-lucide="arrow-down-circle" class="h-5 w-5"></i></div>
             </div>
-             
-            <div class="col-lg-4 col-md-6 mb-4">
-                <div class="card card-stats p-3 shadow-sm h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-secondary fw-bold mb-2"><i class="fas fa-calendar-day me-2"></i> PENGELUARAN HARI INI</h5>
-                        <p class="card-text fs-2 fw-bold text-secondary mb-0">{{ expense_1d | rupiah }}</p>
-                    </div>
-                </div>
+            <div class="p-6 pt-0">
+                <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Rp {{ "{:,.0f}".format(total_income).replace(',', '.') }}</div>
             </div>
         </div>
 
-    {% if upcoming_alerts %}
-        <div class="card p-4 mb-4 border-0" style="border-radius: 16px; background: linear-gradient(145deg, #ffffff, #fffbfa); box-shadow: 0 10px 25px rgba(239, 68, 68, 0.05), 0 4px 12px rgba(0, 0, 0, 0.03);">
-            <div class="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom border-light">
-                <div class="d-flex align-items-center" style="color: #11237e; font-weight: 700; font-size: 1.05rem; letter-spacing: 0.3px;">
-                    <div class="spinner-grow spinner-grow-sm text-danger me-2" role="status" style="animation-duration: 1.5s;"></div>
-                    Tanggungan
+        <!-- Card 3: Pengeluaran -->
+        <div class="rounded-xl border border-destructive/30 bg-gradient-to-br from-rose-50 to-rose-100/50 dark:from-rose-950/40 dark:to-rose-900/20 text-card-foreground shadow-sm hover:shadow-destructive/20 hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
+            <div class="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+                <h3 class="tracking-tight text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-destructive"></span>
+                    </span>
+                    Pengeluaran
+                </h3>
+                <div class="p-2 bg-rose-100 dark:bg-rose-500/20 rounded-lg text-destructive"><i data-lucide="arrow-up-circle" class="h-5 w-5"></i></div>
+            </div>
+            <div class="p-6 pt-0">
+                <div class="text-2xl font-bold text-destructive">Rp {{ "{:,.0f}".format(total_expense).replace(',', '.') }}</div>
+            </div>
+        </div>
+        
+        <!-- Card 4: Pengeluaran Hari Ini -->
+        <div class="rounded-xl border border-amber-500/30 bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-950/40 dark:to-amber-900/20 text-card-foreground shadow-sm hover:shadow-amber-500/20 hover:-translate-y-1 transition-all duration-300 relative group overflow-hidden">
+            <div class="p-6 flex flex-row items-center justify-between space-y-0 pb-2">
+                <h3 class="tracking-tight text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <span class="relative flex h-2.5 w-2.5">
+                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                    </span>
+                    Pengeluaran Hari Ini
+                </h3>
+                <div class="p-2 bg-amber-100 dark:bg-amber-500/20 rounded-lg text-amber-600"><i data-lucide="calendar-clock" class="h-5 w-5"></i></div>
+            </div>
+            <div class="p-6 pt-0">
+                <div class="text-2xl font-bold text-amber-600 dark:text-amber-500">Rp {{ "{:,.0f}".format(expense_today).replace(',', '.') }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Cash Flow Chart -->
+        <div class="lg:col-span-2 rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
+            <div class="mb-4">
+                <h3 class="font-semibold leading-none tracking-tight">Arus Kas (Cash Flow)</h3>
+                <p class="text-sm text-muted-foreground">Grafik perbandingan pemasukan dan pengeluaran</p>
+            </div>
+            <div class="relative w-full h-[300px]">
+                <canvas id="cashFlowChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Expense Category Donut Chart -->
+        <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col">
+            <div class="mb-4">
+                <h3 class="font-semibold leading-none tracking-tight">Kategori Pengeluaran</h3>
+                <p class="text-sm text-muted-foreground">Distribusi pengeluaran</p>
+            </div>
+            <div class="relative w-full flex-1 min-h-[300px] flex items-center justify-center">
+                {% if category_chart_data and category_chart_data != '{"labels": [], "data": []}' %}
+                <canvas id="categoryChart"></canvas>
+                {% else %}
+                <div class="flex flex-col items-center justify-center text-center text-muted-foreground h-full">
+                    <i data-lucide="pie-chart" class="h-10 w-10 mb-2 opacity-20"></i>
+                    <p class="text-sm">Belum ada data pengeluaran</p>
                 </div>
-                <span class="badge bg-danger-subtle text-danger rounded-pill px-2.5 py-1 fw-bold" style="font-size: 0.75rem; background-color: #fce8e6;">
-                    {{ upcoming_alerts|length }} Jatuh Tempo
-                </span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Dashboard Area (Grid) -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column: Transactions -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Transactions List -->
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
+        <div class="flex items-center justify-between p-6 border-b border-border">
+            <div class="space-y-1">
+                <h3 class="font-semibold leading-none tracking-tight">Recent Transactions</h3>
+                <p class="text-sm text-muted-foreground">Your latest financial activities</p>
+            </div>
+            <a href="{{ url_for('transactions.transactions_list') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
+                View All
+            </a>
+        </div>
+        <div class="p-0">
+            {% if transactions %}
+            <div class="relative w-full overflow-auto">
+                <table class="w-full caption-bottom text-sm">
+                    <thead class="[&_tr]:border-b">
+                        <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Date</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Category</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Account</th>
+                            <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody class="[&_tr:last-child]:border-0">
+                        {% for tx in transactions[:10] %}
+                        <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                            <td class="p-4 align-middle">{{ tx.date }}</td>
+                            <td class="p-4 align-middle">
+                                <div class="flex flex-col">
+                                    <span class="font-medium">{{ tx.category }}</span>
+                                    <span class="text-xs text-muted-foreground">{{ tx.type | title }}</span>
+                                </div>
+                            </td>
+                            <td class="p-4 align-middle">
+                                {% set raw_d = tx.account_name.upper() if tx.account_name else '' %}
+                                {% set d = raw_d.replace(' ', '') %}
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-7 flex items-center justify-center">
+                                        {% if 'CASH' in d %}<i data-lucide="banknote" class="w-5 h-5 text-emerald-500"></i>
+                                        {% elif 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BCA">
+                                        {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BNI">
+                                        {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="w-full h-full object-contain drop-shadow-sm" alt="BRI">
+                                        {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mandiri">
+                                        {% elif 'JAGO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Logo-jago.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Jago">
+                                        {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BSI">
+                                        {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/38/CIMB_Niaga_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="CIMB">
+                                        {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="SeaBank">
+                                        {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/8/89/Jenius-logo.png" class="w-full h-full object-contain drop-shadow-sm" alt="Jenius">
+                                        {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OCBC">
+                                        {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mega">
+                                        {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/48/PermataBank_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Permata">
+                                        {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/BTN_2024.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BTN">
+                                        {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="HSBC">
+                                        {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Superbank">
+                                        {% elif 'DKI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Bank_DKI.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DKI">
+                                        {% elif 'BJB' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/41/Bank_BJB_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BJB">
+                                        {% elif 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="GoPay">
+                                        {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DANA">
+                                        {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OVO">
+                                        {% elif 'SHOPEEPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="w-full h-full object-contain drop-shadow-sm" alt="ShopeePay">
+                                        {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg" class="w-full h-full object-contain drop-shadow-sm" alt="LinkAja">
+                                        {% else %}<i data-lucide="wallet" class="w-5 h-5 text-primary"></i>{% endif %}
+                                    </div>
+                                    <span class="font-medium text-sm">{{ tx.account_name.split('] ')[-1] if '] ' in tx.account_name else tx.account_name }}</span>
+                                </div>
+                            </td>
+                            <td class="p-4 align-middle text-right">
+                                {% if tx.type == 'income' %}
+                                    <span class="font-medium text-emerald-600 dark:text-emerald-400">+Rp {{ "{:,.0f}".format(tx.amount).replace(',', '.') }}</span>
+                                {% else %}
+                                    <span class="font-medium text-destructive">-Rp {{ "{:,.0f}".format(tx.amount).replace(',', '.') }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="flex flex-col items-center justify-center p-8 text-center">
+                <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <i data-lucide="inbox" class="w-6 h-6 text-muted-foreground"></i>
+                </div>
+                <h3 class="font-medium">No transactions found</h3>
+                <p class="text-sm text-muted-foreground mt-1">Start by adding a new transaction.</p>
+                <a href="{{ url_for('transactions.add_transaction') }}" class="mt-4 inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2">
+                    Add Transaction
+                </a>
+            </div>
+            {% endif %}
+        </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Widgets -->
+        <div class="space-y-6">
+
+
+
+            <!-- Heatmap Widget -->
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 mb-6 overflow-hidden">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="calendar-days" class="h-5 w-5 text-green-500"></i>
+                    <h3 class="font-semibold leading-none tracking-tight">Jejak Pengeluaran Tahunan</h3>
+                </div>
+                <div id="cal-heatmap" class="overflow-x-auto pb-2 flex justify-center w-full"></div>
             </div>
 
-            <div class="swipe-wrapper">
-                <div class="d-flex flex-column gap-3 swipe-content-tanggungan">
-                    {% for alert in upcoming_alerts %}
-                    <div class="w-100">
-                        <div class="d-flex justify-content-between align-items-center p-3 rounded-4 bg-white" style="border: 1px solid #f1f5f9; box-shadow: 0 2px 6px rgba(0,0,0,0.01); border-radius: 12px;">
-                            <div class="d-flex align-items-center me-4">
-                                <div class="d-flex align-items-center justify-content-center rounded-circle me-3" style="width: 42px; height: 42px; flex-shrink: 0; background-color: #f8f9fa; border: 1px solid #e2e8f0;">
-                                    <i class="{{ 'fas fa-credit-card text-danger' if alert.type == 'Cicilan/Utang' else 'fas fa-sync text-primary' }}" style="font-size: 0.95rem;"></i>
-                                </div>
-                                <div>
-                                    <span class="d-block fw-bold text-dark mb-1" style="font-size: 0.95rem;">
-                                        {{ alert.name }}
-                                    </span>
-                                    <span class="text-muted fw-medium" style="font-size: 0.75rem; display: flex; align-items: center;">
-                                        <i class="far fa-clock me-1 text-warning"></i> {{ alert.info.split(' (')[0] | replace('Bill due in', 'Jatuh tempo dalam') | replace('Due in', 'Jatuh tempo dalam') | replace('days', 'hari') | replace('day', 'hari') | replace('Today', 'Hari ini') | replace('Tomorrow', 'Besok') }}
-                                    </span>
-                                </div>
-                            </div>
-                            <div>
-                                <span class="badge fw-bold px-3 py-2 text-danger" style="background-color: #fff5f5; border: 1px solid #fcdcdc; border-radius: 8px; font-size: 0.85rem; white-space: nowrap;">
-                                    {{ alert.amount | rupiah }}
-                                </span>
-                            </div>
+            <!-- Achievements / Badges Widget -->
+            {% if badges %}
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 mb-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="award" class="h-5 w-5 text-yellow-500"></i>
+                    <h3 class="font-semibold leading-none tracking-tight">Pencapaian Anda</h3>
+                </div>
+                <div class="flex flex-wrap gap-4">
+                    {% for badge in badges %}
+                    <div class="flex items-center space-x-3 p-3 rounded-lg border border-border {{ badge.bg }} transition-transform hover:scale-105">
+                        <div class="p-2 bg-background rounded-full shadow-sm">
+                            <i data-lucide="{{ badge.icon }}" class="w-5 h-5 {{ badge.color }}"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-bold {{ badge.color }}">{{ badge.name }}</p>
+                            <p class="text-xs text-muted-foreground">{{ badge.desc }}</p>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
             </div>
-        </div>
-    {% endif %}
-        
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="d-grid d-md-inline-block">
-                    <a href="{{ url_for('add_transaction') }}" class="btn btn-success py-3 px-4 shadow-sm fw-bold mb-2 mb-md-0">
-                        <i class="fas fa-plus me-1"></i> Catat Transaksi Baru
-                    </a>
-                    <a href="{{ url_for('transactions_list') }}" class="btn btn-outline-secondary py-3 px-4 shadow-sm fw-bold ms-md-3">
-                        <i class="fas fa-list me-1"></i> Lihat Semua Transaksi
-                    </a>
+            {% endif %}
+            <!-- Account Balances Widget -->
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="wallet" class="h-5 w-5 text-blue-500"></i>
+                    <h3 class="font-semibold leading-none tracking-tight">Account Balances</h3>
                 </div>
+                {% if accounts %}
+                <div class="space-y-4">
+                    {% for acc in accounts %}
+                    <div class="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors">
+                        <div class="flex items-center gap-3">
+                            {% set raw_d = acc.name.upper() %}
+                            {% set d = raw_d.replace(' ', '') %}
+                            <div class="w-8 h-6 flex items-center justify-center">
+                                {% if 'CASH' in d %}<i data-lucide="banknote" class="w-5 h-5 text-emerald-500"></i>
+                                {% elif 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BCA">
+                                {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BNI">
+                                {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="w-full h-full object-contain drop-shadow-sm" alt="BRI">
+                                {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mandiri">
+                                {% elif 'JAGO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Logo-jago.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Jago">
+                                {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BSI">
+                                {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/38/CIMB_Niaga_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="CIMB">
+                                {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="SeaBank">
+                                {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/8/89/Jenius-logo.png" class="w-full h-full object-contain drop-shadow-sm" alt="Jenius">
+                                {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OCBC">
+                                {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mega">
+                                {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/48/PermataBank_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Permata">
+                                {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/BTN_2024.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BTN">
+                                {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="HSBC">
+                                {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Superbank">
+                                {% elif 'DKI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Bank_DKI.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DKI">
+                                {% elif 'BJB' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/41/Bank_BJB_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BJB">
+                                {% elif 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="GoPay">
+                                {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DANA">
+                                {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OVO">
+                                {% elif 'SHOPEEPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="w-full h-full object-contain drop-shadow-sm" alt="ShopeePay">
+                                {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg" class="w-full h-full object-contain drop-shadow-sm" alt="LinkAja">
+                                {% else %}<i data-lucide="wallet" class="w-5 h-5 text-primary"></i>{% endif %}
+                            </div>
+                            {% set name_parts = acc.name.split('] ') %}
+                            {% set detail_name = name_parts[1] if name_parts|length > 1 else acc.name %}
+                            <span class="font-medium text-sm">{{ detail_name }}</span>
+                        </div>
+                        <span class="font-bold text-sm">Rp {{ "{:,.0f}".format(acc.current_balance).replace(',', '.') }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="flex flex-col items-center justify-center p-4 text-center">
+                    <i data-lucide="wallet" class="h-8 w-8 text-muted-foreground mb-2"></i>
+                    <p class="text-sm text-muted-foreground">No accounts configured.</p>
+                </div>
+                {% endif %}
             </div>
-        </div>
+            
 
-    {% if goals %}
-        <div class="row g-4 mb-5">
-            <div class="col-12">
-                <h3 class="fw-bold m-0" style="font-size: 1.3rem; color: #11237e;">
-                    <i class="fas fa-bullseye me-2 text-primary"></i> Target Finansial Berjalan
-                </h3>
-            </div>
-            {% for g in goals %}
-            <div class="col-md-6 col-12">
-                <div class="card p-4 shadow-sm h-100 d-flex flex-column" style="border-left: 5px solid #11237e;">
-                    <div class="d-flex justify-content-between align-items-start mb-3 gap-2">
-                        <span class="fw-bold text-dark fs-5 text-truncate" style="max-width: 70%;" title="{{ g.name }}">{{ g.name }}</span>
-                        <span class="badge bg-info text-white px-3 py-1" style="border-radius: 6px; font-size: 0.75rem; flex-shrink: 0;">BERJALAN</span>
-                    </div>
-                    
-                    <div class="d-flex justify-content-between align-items-end mb-1">
-                        <span class="small fw-bold text-secondary">Progress</span>
-                        <span class="small fw-bold text-primary">{{ g.percentage }}%</span>
-                    </div>
-                    
-                    <div class="progress mb-3" style="height: 12px; border-radius: 6px; background-color: #eaecf4;">
-                        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ g.percentage if g.percentage <= 100 else 100 }}%;"></div>
-                    </div>
-                    
-                    <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center small gap-2 mb-3">
-                        <span class="text-secondary fw-bold">Terkumpul: <span class="text-success fs-6">{{ g.current_amount | rupiah }}</span></span>
-                        <span class="text-muted fw-bold">Target: {{ g.target_amount | rupiah }}</span>
-                    </div>
-
-                    <div class="p-2 rounded mt-auto" style="background-color: #fef2f2; border: 1px dashed #fca5a5;">
-                        <div class="d-flex justify-content-between align-items-center small">
-                            <span class="text-danger fw-bold">Kekurangan:</span>
-                            <strong class="text-danger">
-                                {% set sisa = g.target_amount - g.current_amount %}
-                                {% if sisa > 0 %}
-                                    {{ sisa | rupiah }}
-                                {% else %}
-                                    Rp 0
-                                {% endif %}
-                            </strong>
+            <!-- Financial Health Score -->
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 relative overflow-hidden">
+                <div class="absolute top-0 right-0 p-4">
+                    {% if health_status == 'Excellent' %}
+                        <span class="inline-flex items-center rounded-full border border-transparent bg-emerald-500/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-600">Sangat Baik</span>
+                    {% elif health_status == 'Good' %}
+                        <span class="inline-flex items-center rounded-full border border-transparent bg-blue-500/20 px-2.5 py-0.5 text-xs font-semibold text-blue-600">Baik</span>
+                    {% else %}
+                        <span class="inline-flex items-center rounded-full border border-transparent bg-amber-500/20 px-2.5 py-0.5 text-xs font-semibold text-amber-600">Perlu Perhatian</span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="activity" class="h-5 w-5 text-purple-500"></i>
+                    <h3 class="font-semibold leading-none tracking-tight">Financial Health</h3>
+                </div>
+                
+                <div class="flex flex-col items-center justify-center py-2">
+                    <div class="relative flex items-center justify-center w-32 h-32">
+                        <!-- Background Circle -->
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                            <path class="text-muted/30" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.8"/>
+                            <path class="{% if health_score >= 80 %}text-emerald-500{% elif health_score >= 50 %}text-blue-500{% else %}text-amber-500{% endif %} transition-all duration-1000 ease-out" 
+                                  stroke-dasharray="{{ health_score }}, 100" 
+                                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.8"/>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center">
+                            <span class="text-3xl font-bold">{{ health_score }}</span>
+                            <span class="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Score</span>
                         </div>
                     </div>
                 </div>
             </div>
-            {% endfor %}
-        </div>
-    {% endif %}
 
-        <div class="row g-4">
-            <div class="col-md-5 mb-4">
-                <h3 class="mb-3 fw-bold" style="font-size: 1.3rem;">Accounts List</h3>
-                
-                <div class="swipe-wrapper">
-                    <ul class="list-group shadow-sm swipe-content-account">
-                        {% for account in accounts %}
-                        <li class="list-group-item d-flex justify-content-between align-items-center card-stats p-3">
-                            <div class="d-flex align-items-center">
-                                {{ get_account_icon(account.name) }}
-                            </div>
-                            <span class="badge bg-primary rounded-pill p-2 px-3 fw-bold" style="background-color: #11237e !important; white-space: nowrap;">{{ account.current_balance | rupiah }}</span>
-                        </li>
-                        {% else %}
-                        <li class="list-group-item list-group-item-light text-center py-3 fw-bold">
-                            Belum ada akun terdaftar. <a href="{{ url_for('setup_account') }}" class="fw-bold">Atur sekarang</a>.
-                        </li>
-                        {% endfor %}
-                    </ul>
+
+            <!-- Budget Health Widget -->
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="pie-chart" class="h-5 w-5 text-indigo-500"></i>
+                        <h3 class="font-semibold leading-none tracking-tight">Anggaran Bulanan</h3>
+                    </div>
+                    <button @click="$dispatch('open-modal', 'manageBudgetModal')" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 h-7 px-2">
+                        Atur
+                    </button>
                 </div>
+                
+                {% if budgets_data %}
+                <div class="space-y-4 max-h-[300px] overflow-y-auto pr-2">
+                    {% for b in budgets_data %}
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center text-sm">
+                            <span class="font-medium flex items-center gap-2">
+                                <form method="POST" action="{{ url_for('performance.manage_budget') }}" class="inline m-0">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <input type="hidden" name="action" value="delete">
+                                    <input type="hidden" name="budget_id" value="{{ b.id }}">
+                                    <button type="submit" class="text-muted-foreground hover:text-destructive" title="Hapus"><i data-lucide="x" class="w-3 h-3"></i></button>
+                                </form>
+                                {{ b.category_name }}
+                            </span>
+                            <span class="text-xs {% if b.percentage > 90 %}text-destructive font-bold{% elif b.percentage > 75 %}text-amber-500 font-bold{% else %}text-muted-foreground{% endif %}">
+                                Rp {{ "{:,.0f}".format(b.current_spent).replace(',', '.') }} / Rp {{ "{:,.0f}".format(b.limit_amount).replace(',', '.') }}
+                            </span>
+                        </div>
+                        <div class="h-2 w-full bg-secondary overflow-hidden rounded-full">
+                            <div class="h-full transition-all duration-500 {% if b.percentage > 90 %}bg-destructive{% elif b.percentage > 75 %}bg-amber-500{% else %}bg-emerald-500{% endif %}" 
+                                 style="width: {{ b.percentage if b.percentage <= 100 else 100 }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="flex flex-col items-center justify-center p-4 text-center border-2 border-dashed border-border rounded-lg mt-2">
+                    <p class="text-sm text-muted-foreground mb-3">Belum ada anggaran yang dibuat.</p>
+                    <button @click="$dispatch('open-modal', 'manageBudgetModal')" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-3">
+                        Buat Anggaran
+                    </button>
+                </div>
+                {% endif %}
             </div>
 
-            <div class="col-md-7 mb-4">
-                <h3 class="mb-3 fw-bold" style="font-size: 1.3rem;">Transaksi Terbaru</h3>
-                
-                <form method="GET" class="row g-2 mb-3 align-items-end card-stats p-3 rounded-3 shadow-sm bg-white m-0">
-                    <div class="col-md-5 col-6">
-                        <label class="small fw-bold text-muted mb-1">Akun</label>
-                        <select name="account_id" class="form-select form-select-sm bg-light border-0 fw-semibold" onchange="this.form.submit()" style="height: 38px;">
-                            <option value="all">Semua Akun</option>
-                            {% for acc in accounts %}
-                                <option value="{{ acc.id }}" {% if filter_account_id|string == acc.id|string %}selected{% endif %}>
-                                    {{ acc.name.split('] ')[1] if '] ' in acc.name else acc.name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="col-md-4 col-6">
-                        <label class="small fw-bold text-muted mb-1">Tipe</label>
-                        <select name="type" class="form-select form-select-sm bg-light border-0 fw-semibold" onchange="this.form.submit()" style="height: 38px;">
-                            <option value="all">Semua</option>
-                            <option value="income" {% if filter_type == 'income' %}selected{% endif %}>Pemasukan</option>
-                            <option value="expense" {% if filter_type == 'expense' %}selected{% endif %}>Pengeluaran</option>
-                        </select>
-                    </div>
-
-                    <div class="col-md-3 col-12">
-                        <a href="{{ url_for('dashboard') }}" class="btn btn-sm btn-light border w-100 d-flex align-items-center justify-content-center fw-bold text-muted" style="height: 38px; font-size: 0.8rem;">
-                            <i class="fas fa-undo me-2"></i> RESET
-                        </a>
-                    </div>
-                </form>
-
-                <div class="table-responsive bg-white rounded-3 shadow-sm p-3 mt-3 mb-4">
-                    <table class="table table-striped table-hover mb-0 text-nowrap align-middle">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Tanggal</th>
-                                <th>Akun</th>
-                                <th>Deskripsi</th>
-                                <th class="text-end">Jumlah</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for t in latest_transactions %}
-                            <tr class="{{ 'tx-income' if t.type == 'income' else 'tx-expense' }}">
-                                <td class="text-secondary small fw-semibold">{{ t.date }}</td>
-                                <td><span class="badge bg-light text-dark border fw-bold">{{ t.account_name.split('] ')[1] if '] ' in t.account_name else t.account_name }}</span></td>
-                                <td class="fw-bold text-dark">{{ t.description or '-' }}</td>
-                                <td class="text-end fw-bold {% if t.type == 'income' %}text-success{% elif t.type == 'expense' %}text-danger{% endif %}">
-                                    {{ '+' if t.type == 'income' else '-' }} {{ t.amount | rupiah }}
-                                </td>
-                            </tr>
-                            {% else %}
-                            <tr>
-                                <td colspan="4" class="text-center text-muted py-4 fw-bold">{% if filter_account_id or filter_type %}Tidak ada transaksi yang cocok dengan filter.{% else %}Belum ada transaksi tercatat.{% endif %}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            <!-- Upcoming Alerts Widget -->
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="bell-ring" class="h-5 w-5 text-amber-500"></i>
+                    <h3 class="font-semibold leading-none tracking-tight">Upcoming Alerts</h3>
                 </div>
+                {% if upcoming_alerts %}
+                <div class="space-y-4">
+                    {% for alert in upcoming_alerts %}
+                    <div class="flex flex-col space-y-1 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium text-sm">{{ alert.name }}</span>
+                            <span class="text-sm font-bold text-destructive">Rp {{ "{:,.0f}".format(alert.amount).replace(',', '.') }}</span>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-muted-foreground">
+                            <span>{{ alert.type }}</span>
+                            <span class="text-amber-600 dark:text-amber-500 font-medium">{{ alert.info }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="flex flex-col items-center justify-center p-4 text-center">
+                    <i data-lucide="check-circle" class="h-8 w-8 text-emerald-500 mb-2"></i>
+                    <p class="text-sm text-muted-foreground">All clear! No upcoming bills in 7 days.</p>
+                </div>
+                {% endif %}
             </div>
+
+            <!-- Financial Goals Widget -->
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
+                <div class="flex items-center space-x-2 mb-4">
+                    <i data-lucide="target" class="h-5 w-5 text-blue-500"></i>
+                    <h3 class="font-semibold leading-none tracking-tight">Financial Goals</h3>
+                </div>
+                {% if goals %}
+                <div class="space-y-5">
+                    {% for goal in goals %}
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="font-medium text-sm">{{ goal.name }}</span>
+                            <span class="text-xs font-semibold text-primary">{{ "{:.0f}".format(goal.percentage) }}%</span>
+                        </div>
+                        <div class="h-2 w-full bg-secondary overflow-hidden rounded-full">
+                            <div class="h-full bg-primary transition-all duration-500" style="width: {{ goal.percentage }}%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-muted-foreground">
+                            <span>Rp {{ "{:,.0f}".format(goal.current_amount).replace(',', '.') }}</span>
+                            <span>Target: Rp {{ "{:,.0f}".format(goal.target_amount).replace(',', '.') }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="flex flex-col items-center justify-center p-4 text-center">
+                    <i data-lucide="trending-up" class="h-8 w-8 text-muted-foreground mb-2"></i>
+                    <p class="text-sm text-muted-foreground">No active financial goals.</p>
+                </div>
+                {% endif %}
+            </div>
+
         </div>
     </div>
+</div>
 
-    <div class="modal fade" id="logoutModal" tabindex="-1" aria-labelledby="logoutModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-        <div class="modal-header bg-danger text-white">
-            <h5 class="modal-title fw-bold" id="logoutModalLabel">Confirmation Logout</h5>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body fw-bold text-secondary">
-            Are you sure you want to logout from Treasury Flow?
-        </div>
-        <div class="modal-footer border-0">
-            <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Cancel</button>
-            <a href="{{ url_for('logout') }}" class="btn btn-danger fw-bold">Yes, Logout</a>
-        </div>
+<!-- MANAGE BUDGET MODAL -->
+<template x-teleport="body">
+    <div x-show="modalOpen && modalId === 'manageBudgetModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+        <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
+            <div class="flex items-center justify-between p-4 border-b border-border">
+                <h3 class="font-semibold text-lg">Tambah Limit Anggaran</h3>
+                <button @click="$dispatch('close-modal')" class="text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+            <form method="POST" action="{{ url_for('performance.manage_budget') }}" class="p-4 space-y-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="action" value="add">
+                <div>
+                    <label class="text-sm font-medium mb-1 block">Kategori</label>
+                    <input type="text" name="category_name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Misal: Makan & Minum" required>
+                </div>
+                <div>
+                    <label class="text-sm font-medium mb-1 block">Batas Maksimal Pengeluaran (Bulan Ini)</label>
+                    <input type="text" name="limit_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
+                </div>
+                <div class="pt-2">
+                    <button type="submit" class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">Simpan Anggaran</button>
+                </div>
+            </form>
         </div>
     </div>
-    </div>
+</template>
 
-    <div class="footer-branding">
-        Powered by <strong>Fernando Capital</strong>
-    </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+document.addEventListener('alpine:init', () => {
+    // We can use Alpine or vanilla JS for chart
+});
 document.addEventListener('DOMContentLoaded', function() {
-    const balanceText = document.getElementById('main-balance');
-    const eyeIcon = document.getElementById('eye-icon');
-    const btnEye = document.getElementById('btn-eye');
+    const ctx = document.getElementById('cashFlowChart').getContext('2d');
+    const chartData = {{ chart_data|safe }};
+    
+    // Check dark mode for text colors
+    const isDark = document.documentElement.classList.contains('dark');
+    const textColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? '#334155' : '#e2e8f0';
 
-    if (!btnEye || !balanceText) return; 
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: chartData.labels,
+            datasets: [
+                {
+                    label: 'Pemasukan',
+                    data: chartData.income,
+                    borderColor: '#10b981', // emerald-500
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Pengeluaran',
+                    data: chartData.expense,
+                    borderColor: '#ef4444', // red-500
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    borderWidth: 2,
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: { color: textColor, font: { family: 'Inter, sans-serif' } }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                    titleColor: isDark ? '#f8fafc' : '#0f172a',
+                    bodyColor: isDark ? '#cbd5e1' : '#334155',
+                    borderColor: gridColor,
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            let label = context.dataset.label || '';
+                            if (label) { label += ': Rp '; }
+                            if (context.parsed.y !== null) {
+                                label += new Intl.NumberFormat('id-ID').format(context.parsed.y);
+                            }
+                            return label;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: gridColor, drawBorder: false },
+                    ticks: { color: textColor, maxTicksLimit: 7 }
+                },
+                y: {
+                    grid: { color: gridColor, drawBorder: false },
+                    ticks: {
+                        color: textColor,
+                        callback: function(value) {
+                            if (value === 0) return '0';
+                            return 'Rp ' + (value / 1000) + 'k';
+                        }
+                    }
+                }
+            },
+            interaction: {
+                mode: 'nearest',
+                axis: 'x',
+                intersect: false
+            }
+        }
+    });
 
-    let isHidden = localStorage.getItem('balanceHidden') === 'true';
-
-    function updateView() {
-        const originalValue = balanceText.getAttribute('data-value');
-        if (isHidden) {
-            balanceText.innerText = "Rp ••••••••••";
-            eyeIcon.classList.replace('fa-eye', 'fa-eye-slash');
-        } else {
-            balanceText.innerText = originalValue;
-            eyeIcon.classList.replace('fa-eye-slash', 'fa-eye');
+    const categoryCtx = document.getElementById('categoryChart');
+    if (categoryCtx) {
+        const catDataRaw = {{ category_chart_data|default('{"labels": [], "data": []}')|safe }};
+        if (catDataRaw.data.length > 0) {
+            new Chart(categoryCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: catDataRaw.labels,
+                    datasets: [{
+                        data: catDataRaw.data,
+                        backgroundColor: [
+                            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', 
+                            '#8b5cf6', '#ec4899', '#14b8a6', '#6366f1'
+                        ],
+                        borderWidth: isDark ? 2 : 1,
+                        borderColor: isDark ? '#1e293b' : '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: textColor,
+                                font: { family: 'Inter, sans-serif', size: 11 },
+                                boxWidth: 12
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+                            titleColor: isDark ? '#f8fafc' : '#0f172a',
+                            bodyColor: isDark ? '#cbd5e1' : '#334155',
+                            borderColor: gridColor,
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) { label += ': Rp '; }
+                                    if (context.parsed !== null) {
+                                        label += new Intl.NumberFormat('id-ID').format(context.parsed);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
         }
     }
-
-    updateView();
-
-    btnEye.addEventListener('click', function(e) {
-        e.preventDefault();
-        isHidden = !isHidden;
-        localStorage.setItem('balanceHidden', isHidden);
-        updateView();
-    });
 });
 </script>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<script src="https://unpkg.com/cal-heatmap/dist/cal-heatmap.min.js"></script>
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/cal-heatmap/dist/plugins/Tooltip.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/cal-heatmap/dist/cal-heatmap.css">
+
 <script>
-    (function() {
-        function hackerTrap(index) {
-            function preventInspect(i) {
-                if (typeof i === 'string') {
-                    return function() {}.constructor('while (true) {}').apply('counter');
-                } else if (('' + i / i).length !== 1 || i % 20 === 0) {
-                    (function() { return true; }).constructor('debugger').call('action');
-                } else {
-                    (function() { return false; }).constructor('debugger').apply('state');
+    document.addEventListener('DOMContentLoaded', function() {
+        const cal = new CalHeatmap();
+        const rawData = {{ heatmap_json|safe }};
+        
+        const dtStr = new Date();
+        dtStr.setMonth(dtStr.getMonth() - 11);
+        
+        cal.paint({
+            itemSelector: '#cal-heatmap',
+            domain: { type: 'month' },
+            subDomain: { type: 'day', width: 12, height: 12, radius: 2 },
+            data: { source: rawData, x: 'date', y: 'value' },
+            scale: {
+                color: {
+                    type: 'quantize',
+                    scheme: 'OrRd',
+                    domain: [0, 50000, 150000, 500000, 1000000]
                 }
-                preventInspect(++i);
-            }
-            try { if (index) { return preventInspect(index); } else { preventInspect(0); } } catch (e) {}
-        }
-        setInterval(function() { hackerTrap(); }, 100);
-    })();
-
-    document.addEventListener('contextmenu', function(e) {
-        if (e.target.tagName === 'BODY' || e.target.classList.contains('container') || e.target.closest('.row')) { e.preventDefault(); }
-    });
-
-    document.addEventListener('keydown', function(e) {
-        if (e.keyCode === 123) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.shiftKey && (e.keyCode === 73 || e.keyCode === 74 || e.keyCode === 67)) { e.preventDefault(); return false; }
-        if (e.ctrlKey && e.keyCode === 85) { e.preventDefault(); return false; }
+            },
+            date: { start: dtStr }
+        }, [
+            [
+                Tooltip,
+                {
+                    text: function (date, value, dayjsDate) {
+                        return (
+                            (value ? 'Rp ' + value.toLocaleString('id-ID') : 'Rp 0') +
+                            ' pada ' +
+                            dayjsDate.format('D MMM YYYY')
+                        );
+                    },
+                },
+            ]
+        ]);
     });
 </script>
-</body>
-</html>
+
+{% endblock %}
+
+

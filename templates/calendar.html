@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Interactive Calendar{% endblock %}
+{% block content %}
+<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+
+<div class="max-w-6xl mx-auto">
+    <div class="glass-card p-6">
+        <h2 class="text-2xl font-bold text-white mb-6"><i class="fa-regular fa-calendar-days text-primary mr-2"></i> Financial Calendar</h2>
+        <div id='calendar' class="bg-slate-900 rounded-xl p-4 min-h-[600px] text-white"></div>
+    </div>
+</div>
+
+<style>
+    /* FullCalendar Dark Mode Overrides */
+    .fc-theme-standard .fc-scrollgrid { border-color: #334155; }
+    .fc-theme-standard td, .fc-theme-standard th { border-color: #334155; }
+    .fc-col-header-cell-cushion { color: #cbd5e1; }
+    .fc-daygrid-day-number { color: #94a3b8; }
+    .fc-button-primary { background-color: #3b82f6 !important; border-color: #2563eb !important; }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek'
+            },
+            events: '/api/calendar_events',
+            eventColor: '#3b82f6'
+        });
+        calendar.render();
+    });
+</script>
+{% endblock %}
