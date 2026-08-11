@@ -121,14 +121,27 @@
                                 {% for col in table_data[0].keys() %}
                                 <th class="h-9 px-4 text-left align-middle font-medium text-muted-foreground">{{ col }}</th>
                                 {% endfor %}
+                                <th class="h-9 px-4 text-center align-middle font-medium text-muted-foreground">Action</th>
                             </tr>
                         </thead>
                         <tbody class="[&_tr:last-child]:border-0">
                             {% for row in table_data %}
                             <tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                {% for val in row %}
-                                <td class="p-4 align-middle whitespace-nowrap">{{ val }}</td>
+                                {% for col in table_data[0].keys() %}
+                                <td class="p-4 align-middle whitespace-nowrap">{{ row[col] }}</td>
                                 {% endfor %}
+                                <td class="p-4 align-middle whitespace-nowrap text-center">
+                                    {% if 'id' in table_data[0].keys() %}
+                                    <form action="{{ url_for('admin.dev_console') }}?key={{ key }}&view_table={{ selected_table }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this record?');">
+                                        <input type="hidden" name="action" value="delete_row">
+                                        <input type="hidden" name="table_name" value="{{ selected_table }}">
+                                        <input type="hidden" name="row_id" value="{{ row['id'] }}">
+                                        <button type="submit" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-red-100 text-red-600 hover:bg-red-200 h-8 px-2 py-1 transition-colors" title="Delete Row">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>

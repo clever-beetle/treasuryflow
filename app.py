@@ -124,7 +124,7 @@ csp = {
         'https:'
     ]
 }
-Talisman(app, content_security_policy=csp)
+#Talisman(app, content_security_policy=csp)
 
 def get_locale():
     return request.accept_languages.best_match(['en', 'id'])
@@ -467,21 +467,6 @@ app.register_blueprint(auth_biometric_bp)
 app.register_blueprint(graphql_bp)
 app.register_blueprint(stream_bp)
 app.register_blueprint(extra_bp)
-
-@app.before_request
-def chaos_monkey():
-    import os, random, time
-    
-    # Check if Chaos Monkey is enabled via environment variable
-    if os.environ.get('ENABLE_CHAOS_MONKEY') == '1':
-        # 10% chance to add 3 seconds latency
-        if random.random() < 0.10:
-            time.sleep(3)
-            
-        # 2% chance to drop the request entirely (Chaos!)
-        if random.random() < 0.02:
-            from werkzeug.exceptions import InternalServerError
-            raise InternalServerError("CHAOS MONKEY HAS STRUCK THIS REQUEST!")
 
 
 @app.after_request

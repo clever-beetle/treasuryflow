@@ -1,4 +1,5 @@
 {% extends 'base_shadcn.html' %}
+{% import 'macros.html' as macros %}
 {% block page_title %}Setup Accounts{% endblock %}
 {% block content %}
 <div class="max-w-3xl mx-auto space-y-6">
@@ -18,42 +19,12 @@
             <div class="p-6 pb-4 border-b border-border/50">
                 <div class="flex justify-between items-start">
                     <div class="flex items-center gap-4">
-                        <div class="w-16 h-10 flex items-center justify-center">
-                            {% set raw_d = account.name.upper() %}
-                            {% set d = raw_d.replace(' ', '') %}
-                            {% if 'CASH' in d %}<i data-lucide="banknote" class="w-8 h-8 text-emerald-500"></i>
-                            {% elif 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BCA" title="BCA">
-                            {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BNI" title="BNI">
-                            {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="w-full h-full object-contain drop-shadow-sm" alt="BRI" title="BRI">
-                            {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mandiri" title="Mandiri">
-                            {% elif 'JAGO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Logo-jago.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Jago" title="Jago">
-                            {% elif 'BSI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/a0/Bank_Syariah_Indonesia.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BSI" title="BSI">
-                            {% elif 'CIMB' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/3/38/CIMB_Niaga_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="CIMB" title="CIMB">
-                            {% elif 'SEABANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ac/SeaBank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="SeaBank" title="SeaBank">
-                            {% elif 'JENIUS' in d or 'BTPN' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/8/89/Jenius-logo.png" class="w-full h-full object-contain drop-shadow-sm" alt="Jenius" title="Jenius">
-                            {% elif 'OCBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/1/1d/Logo-ocbc.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OCBC" title="OCBC">
-                            {% elif 'MEGA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Bank_Mega_2013.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Mega" title="Mega">
-                            {% elif 'PERMATA' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/48/PermataBank_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Permata" title="Permata">
-                            {% elif 'BTN' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/ca/BTN_2024.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BTN" title="BTN">
-                            {% elif 'HSBC' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/aa/HSBC_logo_%282018%29.svg" class="w-full h-full object-contain drop-shadow-sm" alt="HSBC" title="HSBC">
-                            {% elif 'SUPERBANK' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c8/Superbank.svg" class="w-full h-full object-contain drop-shadow-sm" alt="Superbank" title="Superbank">
-                            {% elif 'DKI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Bank_DKI.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DKI" title="DKI">
-                            {% elif 'BJB' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/4/41/Bank_BJB_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="BJB" title="BJB">
-                            {% elif 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="w-full h-full object-contain drop-shadow-sm" alt="GoPay" title="GoPay">
-                            {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="w-full h-full object-contain drop-shadow-sm" alt="DANA" title="DANA">
-                            {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="w-full h-full object-contain drop-shadow-sm" alt="OVO" title="OVO">
-                            {% elif 'SHOPEEPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="w-full h-full object-contain drop-shadow-sm" alt="ShopeePay" title="ShopeePay">
-                            {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg" class="w-full h-full object-contain drop-shadow-sm" alt="LinkAja" title="LinkAja">
-                            {% else %}<i data-lucide="wallet" class="w-8 h-8 text-primary"></i>{% endif %}
-                        </div>
-                        {% set name_parts = account.name.split('] ') %}
+                        {{ macros.render_account_logo(account.name) }}
+                        {% set d = account.name.upper().replace(' ', '') %}
                         {% set category = account.name.split(']')[0].replace('[', '') if '[' in account.name else 'Custom' %}
-                        {% set detail_name = name_parts[1] if name_parts|length > 1 else account.name %}
-                        
                         {% set has_logo = ('CASH' in d or 'BCA' in d or 'BNI' in d or 'BRI' in d or 'MANDIRI' in d or 'JAGO' in d or 'BSI' in d or 'CIMB' in d or 'SEABANK' in d or 'JENIUS' in d or 'BTPN' in d or 'OCBC' in d or 'MEGA' in d or 'PERMATA' in d or 'BTN' in d or 'HSBC' in d or 'SUPERBANK' in d or 'DKI' in d or 'BJB' in d or 'GOPAY' in d or 'DANA' in d or 'OVO' in d or 'SHOPEEPAY' in d or 'LINKAJA' in d) %}
                         {% if not has_logo %}
-                        <div>
-                            <h3 class="font-semibold text-base">{{ detail_name }}</h3>
+                        <div class="ml-2">
                             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{{ category }}</span>
                         </div>
                         {% endif %}

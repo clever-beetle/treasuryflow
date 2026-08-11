@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Treasury Flow</title>
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
     <meta name="theme-color" content="#11237e">
     <link rel="icon" href="{{ url_for('static', filename='img/logo.png') }}" type="image/png">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-512x512.png') }}">
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -86,10 +86,7 @@
         }
     </script>
 
-    <!-- PWA -->
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#11237e">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icon-512x512.png') }}">
+    <!-- PWA settings handled above -->
     
     <!-- Driver.js for Onboarding Tour -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
@@ -145,34 +142,34 @@
                             <div class="relative flex-1 px-4 py-6 sm:px-6">
                                 <ul class="space-y-3">
                                     <li>
-                                        <a href="{{ url_for('dashboard.dashboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'dashboard' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="layout-dashboard" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'dashboard' else 'text-primary' }}"></i> Dashboard
+                                        <a href="{{ url_for('dashboard.dashboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'dashboard.dashboard' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="layout-dashboard" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'dashboard.dashboard' else 'text-primary' }}"></i> Dashboard
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="{{ url_for('settings.setup_account') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'setup_account' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="wallet" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'setup_account' else 'text-green-500' }}"></i> Manage Accounts
+                                        <a href="{{ url_for('settings.setup_account') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'settings.setup_account' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="wallet" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'settings.setup_account' else 'text-green-500' }}"></i> Manage Accounts
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="{{ url_for('transactions.transactions_list') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'transactions_list' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="list-ordered" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'transactions_list' else 'text-indigo-500' }}"></i> Transaction History
+                                        <a href="{{ url_for('transactions.transactions_list') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'transactions.transactions_list' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="list-ordered" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'transactions.transactions_list' else 'text-indigo-500' }}"></i> Transaction History
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="{{ url_for('transactions.add_transaction') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'add_transaction' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="plus-circle" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'add_transaction' else 'text-blue-500' }}"></i> Add Transaction
+                                        <a href="{{ url_for('transactions.add_transaction') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'transactions.add_transaction' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="plus-circle" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'transactions.add_transaction' else 'text-blue-500' }}"></i> Add Transaction
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="{{ url_for('performance.financial_performance') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'financial_performance' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="pie-chart" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'financial_performance' else 'text-amber-500' }}"></i> Financial Performance
+                                        <a href="{{ url_for('performance.financial_performance') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'performance.financial_performance' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="pie-chart" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'performance.financial_performance' else 'text-amber-500' }}"></i> Financial Performance
                                         </a>
                                     </li>
                                 </ul>
                                 <div class="mt-8 pt-6 border-t border-border">
-                                    <a href="{{ url_for('settings.settings') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'settings' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }} mb-4">
-                                        <i data-lucide="settings" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'settings' else 'text-slate-500' }}"></i> Settings
+                                    <a href="{{ url_for('settings.settings') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'settings.settings' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }} mb-4">
+                                        <i data-lucide="settings" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'settings.settings' else 'text-slate-500' }}"></i> Settings
                                     </a>
                                     <button @click="$dispatch('open-modal', 'logoutModal'); mobileMenuOpen = false" class="flex w-full items-center justify-center rounded-md bg-destructive px-3 py-3 text-sm font-semibold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all duration-200 hover:scale-[1.02] active:scale-95">
                                         <i data-lucide="log-out" class="h-4 w-4 mr-2"></i> Sign Out
@@ -352,7 +349,7 @@
             // 1. PWA Service Worker Registration
             if ('serviceWorker' in navigator) {
                 window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/static/service-worker.js')
+                    navigator.serviceWorker.register('/sw.js')
                         .then(registration => {
                             console.log('SW registered:', registration);
                         })

@@ -49,17 +49,34 @@ def dev_console():
         success = None
         
         if request.method == 'POST':
-            query = request.form.get('query', '').strip()
-            if query:
-                try:
-                    cursor = db.execute(query)
-                    if query.upper().startswith('SELECT'):
-                        query_result = [dict(row) for row in cursor.fetchall()]
-                    else:
+            action = request.form.get('action')
+            
+            if action == 'delete_row':
+                table_to_delete_from = request.form.get('table_name')
+                row_id = request.form.get('row_id')
+                if table_to_delete_from in tables and row_id:
+                    try:
+                        db.execute(f"DELETE FROM {table_to_delete_from} WHERE id = ?", (row_id,))
                         db.commit()
-                        success = "Query executed successfully."
-                except Exception as e:
-                    error = str(e)
+                        success = f"Row {row_id} deleted successfully from {table_to_delete_from}."
+                        # Refresh table data if we were viewing it
+                        if selected_table == table_to_delete_from:
+                            cursor = db.execute(f"SELECT * FROM {selected_table} LIMIT 100")
+                            table_data = [dict(row) for row in cursor.fetchall()]
+                    except Exception as e:
+                        error = f"Failed to delete: {str(e)}"
+            else:
+                query = request.form.get('query', '').strip()
+                if query:
+                    try:
+                        cursor = db.execute(query)
+                        if query.upper().startswith('SELECT'):
+                            query_result = [dict(row) for row in cursor.fetchall()]
+                        else:
+                            db.commit()
+                            success = "Query executed successfully."
+                    except Exception as e:
+                        error = str(e)
         elif selected_table in tables:
             try:
                 # Prevent SQL injection by verifying selected_table is in tables list
