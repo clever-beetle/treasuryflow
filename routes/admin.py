@@ -32,14 +32,14 @@ def dev_console():
     
     # Get all tables
     tables = []
-    try:
-        # SQLite
-        cursor = db.execute("SELECT name FROM sqlite_master WHERE type='table';")
-        tables = [row['name'] for row in cursor.fetchall()]
-    except:
+    if os.environ.get('DATABASE_URL'):
         # PostgreSQL
         cursor = db.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';")
         tables = [row['table_name'] for row in cursor.fetchall()]
+    else:
+        # SQLite
+        cursor = db.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [row['name'] for row in cursor.fetchall()]
         
     selected_table = request.args.get('view_table')
     table_data = None
