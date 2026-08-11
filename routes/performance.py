@@ -273,11 +273,11 @@ def financial_performance():
         insight_type = "neutral"
 
     credit_cards = db.execute('SELECT * FROM credit_cards WHERE user_id = ?', (user_id,)).fetchall()
-    total_saldo = sum(acc['current_balance'] for acc in db.execute('SELECT current_balance FROM accounts WHERE user_id = ?', (user_id,)).fetchall())
-    total_debt = sum(r['remaining_amount'] for r in records_active)
-    total_cc_usage = sum(cc['current_usage'] for cc in credit_cards)
-    total_cc_limit = sum(cc['limit_amount'] for cc in credit_cards)
-    total_annual_subscriptions = sum(inst['amount_per_cycle'] * 12 for inst in installments)
+    total_saldo = sum((acc['current_balance'] or 0) for acc in db.execute('SELECT current_balance FROM accounts WHERE user_id = ?', (user_id,)).fetchall())
+    total_debt = sum((r['remaining_amount'] or 0) for r in records_active)
+    total_cc_usage = sum((cc['current_usage'] or 0) for cc in credit_cards)
+    total_cc_limit = sum((cc['limit_amount'] or 0) for cc in credit_cards)
+    total_annual_subscriptions = sum((inst['amount_per_cycle'] or 0) * 12 for inst in installments)
     net_worth = total_saldo + total_asset_value - total_debt - total_cc_usage
 
     
