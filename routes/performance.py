@@ -232,7 +232,7 @@ def financial_performance():
     assets_list = db.execute("SELECT * FROM assets WHERE user_id = ? ORDER BY purchase_date DESC", (user_id,)).fetchall()
     total_asset_value = sum((asset['purchase_price'] or 0) for asset in assets_list)
 
-    asset_alloc_raw = db.execute("SELECT category, SUM(purchase_price) as total FROM assets WHERE user_id = ? GROUP BY category", (user_id,)).fetchall()
+    asset_alloc_raw = db.execute("SELECT category, COALESCE(SUM(purchase_price), 0) as total FROM assets WHERE user_id = ? GROUP BY category", (user_id,)).fetchall()
     import json
     asset_alloc = json.dumps({
         'labels': [a['category'] for a in asset_alloc_raw],
@@ -297,8 +297,8 @@ def financial_performance():
         ORDER BY t.date ASC
     ''', (user_id, days_ago_str)).fetchall()
     
-    analytics_total_income = sum(t['amount'] for t in analytics_transactions if t['type'] == 'income')
-    analytics_total_expense = sum(t['amount'] for t in analytics_transactions if t['type'] == 'expense')
+    analytics_total_income = sum((t['amount'] or 0) for t in analytics_transactions if t['type'] == 'income')
+    analytics_total_expense = sum((t['amount'] or 0) for t in analytics_transactions if t['type'] == 'expense')
     analytics_net_flow = analytics_total_income - analytics_total_expense
     analytics_savings_rate = (analytics_net_flow / analytics_total_income * 100) if analytics_total_income > 0 else 0
     
@@ -309,7 +309,7 @@ def financial_performance():
         
     for t in analytics_transactions:
         if t['date'] in date_map:
-            date_map[t['date']][t['type']] += t['amount']
+            date_map[t['date']][t['type']] += (t['amount'] or 0)
             
     chart_labels = []
     chart_income = []
@@ -334,7 +334,7 @@ def financial_performance():
     cat_map = {}
     for t in analytics_transactions:
         if t['type'] == 'expense':
-            cat_map[t['category']] = cat_map.get(t['category'], 0) + t['amount']
+            cat_map[t['category']] = cat_map.get(t['category'], 0) + (t['amount'] or 0)
             
     sorted_cats = sorted(cat_map.items(), key=lambda x: x[1], reverse=True)
     analytics_donut = json.dumps({
