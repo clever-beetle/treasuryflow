@@ -15,7 +15,7 @@ def recalculate_account_balances(db, user_id):
     # Recalculate all account balances for a user to ensure strict consistency
     db.execute('''
         UPDATE accounts
-        SET current_balance = initial_balance + 
+        SET current_balance = COALESCE(initial_balance, 0) + 
             COALESCE((SELECT SUM(amount) FROM transactions WHERE account_id = accounts.id AND type = 'income' AND user_id = ?), 0) - 
             COALESCE((SELECT SUM(amount) FROM transactions WHERE account_id = accounts.id AND type = 'expense' AND user_id = ?), 0)
         WHERE user_id = ?

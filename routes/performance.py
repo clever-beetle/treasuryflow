@@ -191,18 +191,19 @@ def financial_performance():
     days_ago_str = (today - timedelta(days=days_range)).strftime('%Y-%m-%d')
     
     accounts_data = db.execute("SELECT name, initial_balance, current_balance FROM accounts WHERE user_id = ?", (user_id,)).fetchall()
-    total_net_worth = sum(acc['current_balance'] for acc in accounts_data)
+    total_net_worth = sum((acc['current_balance'] or 0) for acc in accounts_data)
     theme_colors = ["#11237e", "#3f51b5", "#7986cb", "#9fa8da", "#c5cae9"]
     
     distribution_list = []
     if total_net_worth > 0:
         for index, acc in enumerate(accounts_data):
-            percentage = (acc['current_balance'] / total_net_worth) * 100
+            current = acc['current_balance'] or 0
+            percentage = (current / total_net_worth) * 100
             clean_name = acc['name'].split('] ')[1] if '] ' in acc['name'] else acc['name']
-            if acc['current_balance'] > 0:
+            if current > 0:
                 distribution_list.append({
                     'name': clean_name,
-                    'balance': acc['current_balance'],
+                    'balance': current,
                     'percentage': round(percentage, 1),
                     'color': theme_colors[index % len(theme_colors)]
                 })
@@ -229,7 +230,7 @@ def financial_performance():
     installments = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 1 ORDER BY due_day_of_month ASC", (user_id,)).fetchall()
 
     assets_list = db.execute("SELECT * FROM assets WHERE user_id = ? ORDER BY purchase_date DESC", (user_id,)).fetchall()
-    total_asset_value = sum(asset['purchase_price'] for asset in assets_list)
+    total_asset_value = sum((asset['purchase_price'] or 0) for asset in assets_list)
 
     asset_alloc_raw = db.execute("SELECT category, SUM(purchase_price) as total FROM assets WHERE user_id = ? GROUP BY category", (user_id,)).fetchall()
     import json
