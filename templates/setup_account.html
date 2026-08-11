@@ -29,12 +29,17 @@
                         </div>
                         {% endif %}
                     </div>
-                    <form action="{{ url_for('settings.setup_account', delete_id=account.id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this account? All associated transactions will be deleted.');">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <button type="submit" class="text-muted-foreground hover:text-destructive p-1.5 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100">
-                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    <div class="flex gap-1">
+                        <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ account.initial_balance }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Edit Initial Balance">
+                            <i data-lucide="edit-2" class="w-4 h-4"></i>
                         </button>
-                    </form>
+                        <form action="{{ url_for('settings.setup_account', delete_id=account.id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this account? All associated transactions will be deleted.');">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                            <button type="submit" class="text-muted-foreground hover:text-destructive p-1.5 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Delete Account">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
             <div class="p-6 pt-4 bg-muted/20">
@@ -123,6 +128,45 @@
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 pt-4">
                     <button type="button" @click="$dispatch('close-modal')" class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-5">Cancel</button>
                     <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-md shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11 px-5">Save Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</template>
+
+<!-- Edit Account Modal -->
+<template x-teleport="body">
+    <div x-data="{ open: false, edit_id: '', edit_balance: '' }" 
+         @open-edit-modal.window="open = true; edit_id = $event.detail.id; edit_balance = $event.detail.balance;" 
+         @close-modal.window="open = false" 
+         x-show="open" 
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" 
+         x-cloak>
+        <div @click.outside="open = false" class="bg-background w-full max-w-md p-6 rounded-2xl shadow-2xl border border-border mx-4">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h3 class="text-xl font-bold tracking-tight">Edit Initial Balance</h3>
+                    <p class="text-sm text-muted-foreground">Update the starting balance for this account.</p>
+                </div>
+                <button @click="open = false" class="text-muted-foreground hover:bg-muted p-2 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
+            </div>
+
+            <form action="{{ url_for('settings.setup_account') }}" method="POST" class="space-y-6">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="action" value="edit"/>
+                <input type="hidden" name="edit_account_id" :value="edit_id"/>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-semibold">New Initial Balance</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">Rp</span>
+                        <input type="text" name="initial_balance" :value="edit_balance" required class="auto-ribuan w-full rounded-lg border border-input bg-background pl-10 pr-4 py-2.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="0">
+                    </div>
+                </div>
+
+                <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 pt-4">
+                    <button type="button" @click="open = false" class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-5">Cancel</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-md shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11 px-5">Update Balance</button>
                 </div>
             </form>
         </div>

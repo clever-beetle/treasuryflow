@@ -240,7 +240,7 @@ def financial_performance():
 
     goals_list = db.execute('''
         SELECT id, name, target_amount, current_amount, due_date, status,
-               (current_amount / target_amount * 100) as percentage
+               CASE WHEN target_amount = 0 THEN 0 ELSE (current_amount / target_amount * 100) END as percentage
         FROM financial_goals WHERE user_id = ? ORDER BY status DESC, due_date ASC
     ''', (user_id,)).fetchall()
 

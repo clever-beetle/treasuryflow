@@ -479,8 +479,43 @@
                 localStorage.setItem('onboardingTourCompleted', 'true');
                 setTimeout(() => window.startTour(), 500);
             }
+            
+            // Global Auto-Ribuan Formatter
+            document.body.addEventListener('input', function(e) {
+                if (e.target && e.target.tagName === 'INPUT' && (e.target.classList.contains('auto-ribuan') || e.target.name === 'amount' || e.target.name === 'initial_balance' || e.target.name === 'total_amount' || e.target.name === 'amount_paid' || e.target.name === 'amount_per_cycle' || e.target.name === 'target_amount' || e.target.name === 'current_amount' || e.target.name === 'saving_amount')) {
+                    if (e.target.type !== 'number') {
+                        let value = e.target.value.replace(/[^,\d]/g, '');
+                        let parts = value.split(',');
+                        let sisa = parts[0].length % 3;
+                        let rupiah = parts[0].substr(0, sisa);
+                        let ribuan = parts[0].substr(sisa).match(/\d{3}/gi);
+                        if (ribuan) {
+                            let separator = sisa ? '.' : '';
+                            rupiah += separator + ribuan.join('.');
+                        }
+                        e.target.value = parts[1] !== undefined ? rupiah + ',' + parts[1] : rupiah;
+                    }
+                }
+            });
+            
+            // Reformat all on load
+            const autoInputs = document.querySelectorAll('input.auto-ribuan, input[name="amount"], input[name="initial_balance"], input[name="total_amount"], input[name="amount_paid"], input[name="amount_per_cycle"], input[name="target_amount"], input[name="current_amount"], input[name="saving_amount"]');
+            autoInputs.forEach(input => {
+                if (input.value && input.type !== 'number') {
+                    let value = input.value.replace(/[^,\d]/g, '');
+                    let parts = value.split(',');
+                    let sisa = parts[0].length % 3;
+                    let rupiah = parts[0].substr(0, sisa);
+                    let ribuan = parts[0].substr(sisa).match(/\d{3}/gi);
+                    if (ribuan) {
+                        let separator = sisa ? '.' : '';
+                        rupiah += separator + ribuan.join('.');
+                    }
+                    input.value = parts[1] !== undefined ? rupiah + ',' + parts[1] : rupiah;
+                }
+            });
+            
         });
     </script>
-
 </body>
 </html>

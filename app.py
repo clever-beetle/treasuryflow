@@ -477,6 +477,25 @@ def add_header(response):
         response.headers['Expires'] = '-1'
     return response
 
+from flask_wtf.csrf import CSRFError
+@app.errorhandler(CSRFError)
+def handle_csrf_error(e):
+    flash('Your session expired or was invalid. Please try again.', 'warning')
+    return redirect(request.url)
+
+@app.errorhandler(Exception)
+def handle_500(e):
+    from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        return e
+    import traceback
+    logger.error(f"Internal Server Error: {str(e)}\n{traceback.format_exc()}")
+    # Instead of full crashing, return a friendly flash or 500
+    try:
+        flash(f'An internal error occurred: {str(e)[:100]}...', 'danger')
+        return redirect(url_for('dashboard.dashboard'))
+    except:
+        return "Internal Server Error. Please contact admin.", 500
 @app.context_processor
 def inject_notifications():
     from utils import get_db

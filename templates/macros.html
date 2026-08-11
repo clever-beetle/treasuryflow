@@ -7,9 +7,9 @@
 
 <div class="flex items-center gap-3">
     <div class="w-16 h-10 flex items-center justify-center bg-white rounded-md p-1 border border-border/50 shrink-0" title="{{ account_name }}">
-        {% if 'CASH' in d %}<i data-lucide="banknote" class="w-6 h-6 text-emerald-500"></i>
+        {% if 'CASH' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/42/IDR_100.000_2022_O.jpg/320px-IDR_100.000_2022_O.jpg" class="w-full h-full object-cover rounded-md" alt="Cash" onerror="this.outerHTML='<i data-lucide=\'banknote\' class=\'w-6 h-6 text-emerald-500\'></i>'">
         {% elif 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w-full h-full object-contain" alt="BCA" onerror="this.outerHTML='<i data-lucide=\'wallet\' class=\'w-6 h-6 text-primary\'></i>'">
-        {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/id/5/55/BNI_logo.svg" class="w-full h-full object-contain" alt="BNI" onerror="this.outerHTML='<i data-lucide=\'wallet\' class=\'w-6 h-6 text-primary\'></i>'">
+        {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="w-full h-full object-contain" alt="BNI" onerror="this.outerHTML='<i data-lucide=\'wallet\' class=\'w-6 h-6 text-primary\'></i>'">
         {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/2/2e/BRI_2020.svg" class="w-full h-full object-contain" alt="BRI" onerror="this.outerHTML='<i data-lucide=\'wallet\' class=\'w-6 h-6 text-primary\'></i>'">
         {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="w-full h-full object-contain" alt="Mandiri" onerror="this.outerHTML='<i data-lucide=\'wallet\' class=\'w-6 h-6 text-primary\'></i>'">
         {% elif 'JAGO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/c/c0/Logo-jago.svg" class="w-full h-full object-contain" alt="Jago" onerror="this.outerHTML='<i data-lucide=\'wallet\' class=\'w-6 h-6 text-primary\'></i>'">

@@ -433,4 +433,23 @@ x-cloak>
 </div>
 {% endif %}
 </div>
+</div>
+
+<script>
+    // Clean up empty URL parameters from links before clicking
+    document.addEventListener('mouseover', function(e) {
+        let link = e.target.closest('a');
+        if (link && link.href && link.href.includes('?') && link.origin === window.location.origin) {
+            try {
+                let url = new URL(link.href);
+                let toDelete = [];
+                url.searchParams.forEach((val, key) => {
+                    if (!val || val === 'None' || val === 'null') toDelete.push(key);
+                });
+                toDelete.forEach(key => url.searchParams.delete(key));
+                link.href = url.href;
+            } catch(err) {}
+        }
+    });
+</script>
 {% endblock %}

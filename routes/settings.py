@@ -177,7 +177,7 @@ def setup_account():
             
             if action == 'edit':
                 edit_account_id = request.form['edit_account_id']
-                db.execute('UPDATE accounts SET initial_balance = ?, current_balance = ? WHERE id = ? AND user_id = ?', (balance, balance, edit_account_id, user_id))
+                db.execute('UPDATE accounts SET initial_balance = ? WHERE id = ? AND user_id = ?', (balance, edit_account_id, user_id))
                 db.commit()
                 message = "Initial account balance has been successfully updated."
                 return redirect(url_for('settings.setup_account', message=message))
