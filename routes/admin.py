@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, request, session, abort, os
+import os
+from flask import Blueprint, render_template, request, session, abort
 from utils import get_db, admin_required
 
 admin_bp = Blueprint('admin', __name__)
