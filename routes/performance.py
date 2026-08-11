@@ -236,7 +236,7 @@ def financial_performance():
     import json
     asset_alloc = json.dumps({
         'labels': [a['category'] for a in asset_alloc_raw],
-        'data': [a['total'] for a in asset_alloc_raw]
+        'data': [float(a['total']) for a in asset_alloc_raw]
     })
 
     goals_list = db.execute('''
@@ -326,9 +326,9 @@ def financial_performance():
     import json
     analytics_time_series = json.dumps({
         'labels': chart_labels,
-        'income': chart_income,
-        'expense': chart_expense,
-        'netflow': chart_netflow
+        'income': [float(x) for x in chart_income],
+        'expense': [float(x) for x in chart_expense],
+        'netflow': [float(x) for x in chart_netflow]
     })
     
     cat_map = {}
@@ -339,7 +339,7 @@ def financial_performance():
     sorted_cats = sorted(cat_map.items(), key=lambda x: x[1], reverse=True)
     analytics_donut = json.dumps({
         'labels': [c[0] for c in sorted_cats],
-        'data': [c[1] for c in sorted_cats]
+        'data': [float(c[1]) for c in sorted_cats]
     })
     
     analytics_insights = []
