@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, session
+from flask import Blueprint, render_template, request, session, abort, os
 from utils import get_db, admin_required
 
 admin_bp = Blueprint('admin', __name__)
@@ -16,3 +16,63 @@ def admin_dashboard():
     <p>Total Transactions: {transactions_count}</p>
     <a href='/dashboard'>Back to Dashboard</a>
     """
+
+@admin_bp.route('/dev-console', methods=['GET', 'POST'])
+def dev_console():
+    # Secret Key Authentication
+    provided_key = request.args.get('key')
+    dev_secret_key = os.environ.get('DEV_SECRET_KEY')
+    
+    # Require DEV_SECRET_KEY to be set in environment and match provided key
+    if not dev_secret_key or provided_key != dev_secret_key:
+        abort(403)
+        
+    db = get_db()
+    
+    # Get all tables
+    tables = []
+    try:
+        # SQLite
+        cursor = db.execute("SELECT name FROM sqlite_master WHERE type='table';")
+        tables = [row['name'] for row in cursor.fetchall()]
+    except:
+        # PostgreSQL
+        cursor = db.execute("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public';")
+        tables = [row['table_name'] for row in cursor.fetchall()]
+        
+    selected_table = request.args.get('view_table')
+    table_data = None
+    query_result = None
+    error = None
+    success = None
+    
+    if request.method == 'POST':
+        query = request.form.get('query', '').strip()
+        if query:
+            try:
+                cursor = db.execute(query)
+                if query.upper().startswith('SELECT'):
+                    query_result = [dict(row) for row in cursor.fetchall()]
+                else:
+                    db.commit()
+                    success = "Query executed successfully."
+            except Exception as e:
+                error = str(e)
+    elif selected_table in tables:
+        try:
+            # Prevent SQL injection by verifying selected_table is in tables list
+            cursor = db.execute(f"SELECT * FROM {selected_table} LIMIT 100")
+            table_data = [dict(row) for row in cursor.fetchall()]
+        except Exception as e:
+            error = str(e)
+
+    return render_template(
+        'dev_console.html', 
+        key=provided_key,
+        tables=tables, 
+        selected_table=selected_table,
+        table_data=table_data,
+        query_result=query_result,
+        error=error,
+        success=success
+    )

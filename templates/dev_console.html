@@ -1,0 +1,184 @@
+{% extends "base_shadcn.html" %}
+
+{% block title %}Dev Console (God Mode){% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="flex flex-col md:flex-row items-start md:items-center justify-between mb-8 gap-4">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight text-red-600 flex items-center gap-2">
+                <i data-lucide="shield-alert" class="w-8 h-8"></i>
+                Developer God Mode
+            </h1>
+            <p class="text-muted-foreground mt-2">DANGER: Direct Database Access</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-red-100 text-red-900 border-red-200">
+                Live Database Connected
+            </span>
+            <a href="{{ url_for('dashboard.index') }}" class="inline-flex items-center rounded-md border border-input bg-background px-3 py-1 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+                <i data-lucide="home" class="w-4 h-4 mr-2"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    {% if error %}
+    <div class="rounded-md border border-red-200 bg-red-50 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i data-lucide="alert-circle" class="h-5 w-5 text-red-600"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-red-800">Execution Error</h3>
+                <div class="mt-2 text-sm text-red-700">
+                    <p>{{ error }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if success %}
+    <div class="rounded-md border border-emerald-200 bg-emerald-50 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i data-lucide="check-circle-2" class="h-5 w-5 text-emerald-600"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-emerald-800">{{ success }}</p>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- Sidebar: Table Viewer -->
+        <div class="lg:col-span-1 space-y-6">
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                <div class="flex flex-col space-y-1.5 p-4 border-b border-border">
+                    <h3 class="font-semibold leading-none tracking-tight">Tables Explorer</h3>
+                </div>
+                <div class="p-2 space-y-1 max-h-[500px] overflow-y-auto">
+                    {% for table in tables %}
+                    <form action="{{ url_for('admin.dev_console') }}" method="GET" class="m-0">
+                        <input type="hidden" name="key" value="{{ key }}">
+                        <input type="hidden" name="view_table" value="{{ table }}">
+                        <button type="submit" class="w-full flex items-center justify-between rounded-md px-3 py-2 text-sm transition-colors {% if selected_table == table %}bg-primary text-primary-foreground font-medium{% else %}hover:bg-accent hover:text-accent-foreground{% endif %}">
+                            <span class="flex items-center gap-2">
+                                <i data-lucide="table-2" class="w-4 h-4"></i>
+                                {{ table }}
+                            </span>
+                            <i data-lucide="chevron-right" class="w-4 h-4 opacity-50"></i>
+                        </button>
+                    </form>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content: Data & Query -->
+        <div class="lg:col-span-3 space-y-6">
+            
+            <!-- SQL Executor -->
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                <div class="flex flex-col space-y-1.5 p-4 border-b border-border bg-red-50/50 dark:bg-red-950/10">
+                    <h3 class="font-semibold leading-none tracking-tight flex items-center gap-2 text-red-600 dark:text-red-400">
+                        <i data-lucide="terminal-square" class="w-5 h-5"></i>
+                        Raw SQL Executor
+                    </h3>
+                </div>
+                <div class="p-4">
+                    <form action="{{ url_for('admin.dev_console') }}?key={{ key }}" method="POST">
+                        <div class="space-y-4">
+                            <div>
+                                <textarea name="query" rows="3" class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-mono" placeholder="SELECT * FROM users WHERE id = 1;"></textarea>
+                            </div>
+                            <div class="flex justify-end">
+                                <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 bg-red-600 text-white hover:bg-red-700 h-9 px-4 py-2">
+                                    <i data-lucide="play" class="w-4 h-4 mr-2"></i>
+                                    Execute
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Table Data Viewer -->
+            {% if selected_table %}
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                <div class="flex flex-col space-y-1.5 p-4 border-b border-border flex-row items-center justify-between">
+                    <div>
+                        <h3 class="font-semibold leading-none tracking-tight">Data: {{ selected_table }}</h3>
+                        <p class="text-sm text-muted-foreground mt-1">Showing top 100 rows</p>
+                    </div>
+                </div>
+                <div class="p-0 overflow-x-auto">
+                    {% if table_data and table_data|length > 0 %}
+                    <table class="w-full caption-bottom text-sm">
+                        <thead class="[&_tr]:border-b bg-muted/50">
+                            <tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                                {% for col in table_data[0].keys() %}
+                                <th class="h-9 px-4 text-left align-middle font-medium text-muted-foreground">{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody class="[&_tr:last-child]:border-0">
+                            {% for row in table_data %}
+                            <tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                                {% for val in row %}
+                                <td class="p-4 align-middle whitespace-nowrap">{{ val }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="p-12 text-center text-muted-foreground">
+                        <i data-lucide="database" class="w-12 h-12 mx-auto mb-4 opacity-20"></i>
+                        <p>Table is empty.</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% elif query_result %}
+            <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
+                <div class="flex flex-col space-y-1.5 p-4 border-b border-border flex-row items-center justify-between bg-emerald-50/50 dark:bg-emerald-950/10">
+                    <div>
+                        <h3 class="font-semibold leading-none tracking-tight">Query Result</h3>
+                    </div>
+                </div>
+                <div class="p-0 overflow-x-auto">
+                    {% if query_result|length > 0 %}
+                    <table class="w-full caption-bottom text-sm">
+                        <thead class="[&_tr]:border-b bg-muted/50">
+                            <tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                                {% for col in query_result[0].keys() %}
+                                <th class="h-9 px-4 text-left align-middle font-medium text-muted-foreground">{{ col }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody class="[&_tr:last-child]:border-0">
+                            {% for row in query_result %}
+                            <tr class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
+                                {% for val in row %}
+                                <td class="p-4 align-middle whitespace-nowrap">{{ val }}</td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <div class="p-8 text-center text-muted-foreground">
+                        <p>Query executed successfully (no rows returned).</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+        </div>
+    </div>
+</div>
+{% endblock %}
