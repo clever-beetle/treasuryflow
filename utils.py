@@ -18,7 +18,7 @@ logger.remove()
 logger.add(sys.stderr, level="INFO")
 
 cache = Cache(config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 60})
-limiter = Limiter(key_func=get_remote_address, default_limits=["200 per day", "50 per hour"])
+limiter = Limiter(key_func=get_remote_address, default_limits=["2000 per day", "500 per hour"])
 babel = Babel()
 bg_executor = ThreadPoolExecutor(max_workers=3)
 
