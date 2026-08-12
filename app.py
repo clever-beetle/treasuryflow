@@ -491,6 +491,7 @@ def handle_csrf_error(e):
 @app.route('/debug_logs')
 def debug_logs():
     try:
+        init_db()
         db = psycopg2.connect(utils.DATABASE_URL)
         cursor = db.cursor()
         cursor.execute("SELECT created_at, error FROM error_logs ORDER BY created_at DESC LIMIT 10")
