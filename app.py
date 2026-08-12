@@ -590,7 +590,7 @@ def handle_500(e):
     from werkzeug.exceptions import HTTPException
     import traceback
     err_str = f"Internal Server Error: {str(e)}\n{traceback.format_exc()}"
-    logger.error(err_str)
+    print(err_str)
     
     try:
         db = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
