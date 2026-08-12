@@ -574,7 +574,7 @@ def test_performance():
 @app.route('/debug_logs')
 def debug_logs():
     try:
-        db = psycopg2.connect(utils.DATABASE_URL)
+        db = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
         cursor = db.cursor()
         cursor.execute("SELECT created_at, error FROM error_logs ORDER BY created_at DESC LIMIT 10")
         rows = cursor.fetchall()
@@ -593,7 +593,7 @@ def handle_500(e):
     logger.error(err_str)
     
     try:
-        db = psycopg2.connect(utils.DATABASE_URL)
+        db = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
         db.autocommit = True
         cursor = db.cursor()
         cursor.execute("CREATE TABLE IF NOT EXISTS error_logs (id SERIAL PRIMARY KEY, error TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
@@ -687,6 +687,7 @@ def dump_logs():
         return f"<pre>{out}</pre>"
     except Exception as e:
         return f"Error connecting: {e}"
+
 
 
 
