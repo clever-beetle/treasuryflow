@@ -633,8 +633,7 @@ def handle_500(e):
 
     # Instead of full crashing, return a friendly flash or 500
     try:
-        flash(f'An internal error occurred: {str(e)[:100]}...', 'danger')
-        return redirect(url_for('dashboard.dashboard'))
+        return f"Internal Server Error: {str(e)[:200]}... Please check logs.", 500
     except:
         return "Internal Server Error. Please contact admin.", 500
 @app.context_processor
