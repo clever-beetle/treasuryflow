@@ -142,14 +142,14 @@
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-sm font-medium leading-none" x-text="['KARTU KREDIT', 'PAYLATER', 'PINJOL'].includes(selectedCategory) ? 'Current Outstanding Debt (Negative)' : 'Initial Balance'">Initial Balance</label>
+                    <label class="text-sm font-medium leading-none" x-text="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? 'Current Outstanding Debt (Negative)' : 'Initial Balance'">Initial Balance</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
-                        <input type="text" name="initial_balance" id="balanceInput" required class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0" :value="['KARTU KREDIT', 'PAYLATER', 'PINJOL'].includes(selectedCategory) ? '0' : ''">
+                        <input type="text" name="initial_balance" id="balanceInput" required class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0" :value="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? '0' : ''">
                     </div>
                 </div>
 
-                <div class="space-y-2" x-show="['KARTU KREDIT', 'PAYLATER', 'PINJOL'].includes(selectedCategory)" x-transition>
+                <div class="space-y-2" x-show="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL'" x-transition>
                     <label class="text-sm font-medium leading-none">Credit Limit</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
