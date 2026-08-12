@@ -216,6 +216,11 @@ def init_db():
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         ''')
+        try:
+            cursor.execute("ALTER TABLE debts_receivables ADD COLUMN status TEXT DEFAULT 'BELUM LUNAS'")
+        except Exception:
+            pass
+            
         cursor.execute(f'''
             CREATE TABLE IF NOT EXISTS debt_payments (
                 id {pk_type},
@@ -482,6 +487,20 @@ from flask_wtf.csrf import CSRFError
 def handle_csrf_error(e):
     flash('Your session expired or was invalid. Please try again.', 'warning')
     return redirect(request.url)
+
+@app.route('/debug_logs')
+def debug_logs():
+    try:
+        db = psycopg2.connect(utils.DATABASE_URL)
+        cursor = db.cursor()
+        cursor.execute("SELECT created_at, error FROM error_logs ORDER BY created_at DESC LIMIT 10")
+        rows = cursor.fetchall()
+        out = ""
+        for r in rows:
+            out += f"{r[0]}: {r[1]}\n\n"
+        return f"<pre>{out}</pre>"
+    except Exception as e:
+        return f"Error: {e}"
 
 @app.errorhandler(Exception)
 def handle_500(e):
