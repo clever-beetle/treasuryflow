@@ -626,6 +626,18 @@ def inject_notifications():
 if __name__ == '__main__':
     app.run(debug=True)
 
+@app.route('/run_migration')
+def run_migration():
+    try:
+        import psycopg2
+        conn = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
+        conn.autocommit = True
+        cursor = conn.cursor()
+        cursor.execute("ALTER TABLE debts_receivables ADD COLUMN status TEXT DEFAULT 'BELUM LUNAS'")
+        return "Migration Success!"
+    except Exception as e:
+        return f"Error: {e}"
+
 @app.route('/dump_logs')
 def dump_logs():
     try:
@@ -640,6 +652,7 @@ def dump_logs():
         return f"<pre>{out}</pre>"
     except Exception as e:
         return f"Error connecting: {e}"
+
 
 
 
