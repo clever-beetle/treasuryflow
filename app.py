@@ -493,6 +493,71 @@ def handle_csrf_error(e):
     flash('Your session expired or was invalid. Please try again.', 'warning')
     return redirect(request.url)
 
+@app.route('/session_expired')
+def session_expired():
+    from flask import session
+    try:
+        if 'user_id' not in session:
+            return "Not logged in"
+        user_id = session['user_id']
+        db = utils.get_db()
+        cursor = db.cursor()
+        
+        queries = {
+            "get_accounts": "SELECT name, initial_balance, current_balance, id FROM accounts WHERE user_id = %s",
+            "debts_receivables": "SELECT * FROM debts_receivables WHERE user_id = %s AND status = 'BELUM LUNAS' ORDER BY due_date ASC",
+            "recurring_installments": "SELECT * FROM recurring_installments WHERE user_id = %s AND is_active = 1 ORDER BY due_day_of_month ASC",
+            "credit_cards": "SELECT * FROM credit_cards WHERE user_id = %s ORDER BY name ASC",
+            "assets": "SELECT category, COALESCE(SUM(purchase_price), 0) as total FROM assets WHERE user_id = %s GROUP BY category",
+            "financial_goals": "SELECT id, name, target_amount, current_amount, due_date, status, COALESCE((current_amount / NULLIF(target_amount, 0) * 100), 0) as percentage FROM financial_goals WHERE user_id = %s ORDER BY status DESC, due_date ASC"
+        }
+        
+        results = []
+        for name, q in queries.items():
+            try:
+                cursor.execute(q, (user_id,))
+                cursor.fetchall()
+                results.append(f"{name}: OK")
+            except Exception as e:
+                db.conn.rollback()
+                return f"Query {name} failed: {e}"
+        return "<br>".join(results)
+    except Exception as e:
+        return f"Outer Error: {e}"
+
+@app.route('/test_performance')
+def test_performance():
+    from flask import session
+    try:
+        if 'user_id' not in session:
+            return "Not logged in"
+        user_id = session['user_id']
+        db = utils.get_db()
+        cursor = db.cursor()
+        
+        queries = {
+            "get_accounts": "SELECT name, initial_balance, current_balance, id FROM accounts WHERE user_id = %s",
+            "debts_receivables": "SELECT * FROM debts_receivables WHERE user_id = %s AND status = 'BELUM LUNAS' ORDER BY due_date ASC",
+            "recurring_installments": "SELECT * FROM recurring_installments WHERE user_id = %s AND is_active = 1 ORDER BY due_day_of_month ASC",
+            "credit_cards": "SELECT * FROM credit_cards WHERE user_id = %s ORDER BY name ASC",
+            "assets": "SELECT category, COALESCE(SUM(purchase_price), 0) as total FROM assets WHERE user_id = %s GROUP BY category",
+            "financial_goals": "SELECT id, name, target_amount, current_amount, due_date, status, COALESCE((current_amount / NULLIF(target_amount, 0) * 100), 0) as percentage FROM financial_goals WHERE user_id = %s ORDER BY status DESC, due_date ASC"
+        }
+        
+        results = []
+        for name, q in queries.items():
+            try:
+                cursor.execute(q, (user_id,))
+                cursor.fetchall()
+                results.append(f"{name}: OK")
+            except Exception as e:
+                db.conn.rollback()
+                return f"Query {name} failed: {e}"
+        return "<br>".join(results)
+    except Exception as e:
+        return f"Outer Error: {e}"
+
+
 @app.route('/debug_logs')
 def debug_logs():
     try:
