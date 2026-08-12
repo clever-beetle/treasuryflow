@@ -334,20 +334,19 @@
                             <h3 class="text-lg font-semibold tracking-tight">Pelacakan Kartu Kredit</h3>
                             <p class="text-sm text-muted-foreground">Monitor sisa limit dan tagihan berjalan.</p>
                         </div>
-                        <a href="{{ url_for('settings.setup_account') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 shadow">
-                            <i data-lucide="settings" class="w-4 h-4 mr-2"></i> Manage Kartu/Paylater
-                        </a>
+                        <button @click="$dispatch('open-modal', 'addCCModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 shadow">
+                            <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Tambah Kartu
+                        </button>
                     </div>
                     <div class="p-6">
                         {% if credit_cards %}
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {% for cc in credit_cards %}
-                                {% set cc_limit = cc.limit_amount or 0 %}
-                                {% set cc_usage = cc.current_usage or 0 %}
-                                {% set cc_percent = (cc_usage / cc_limit * 100) if cc_limit > 0 else 0 %}
+                                {% set cc_percent = (cc.current_usage / cc.limit_amount * 100) if cc.limit_amount > 0 else 0 %}
                                 <div class="rounded-xl border border-border bg-card p-5 relative overflow-hidden group">
                                     <div class="absolute top-0 right-0 p-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <a href="{{ url_for('settings.setup_account') }}" class="p-1.5 bg-background border border-border rounded text-muted-foreground hover:text-blue-500 shadow-sm" title="Manage Account"><i data-lucide="settings" class="w-3 h-3"></i></a>
+                                        <button @click="$dispatch('open-modal', 'editCCModal{{ cc.id }}')" class="p-1.5 bg-background border border-border rounded text-muted-foreground hover:text-blue-500 shadow-sm"><i data-lucide="edit-2" class="w-3 h-3"></i></button>
+                                        <button @click="$dispatch('open-modal', 'deleteCCModal{{ cc.id }}')" class="p-1.5 bg-background border border-border rounded text-muted-foreground hover:text-red-500 shadow-sm"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                                     </div>
                                     <div class="flex items-center gap-3 mb-4">
                                         <div class="w-10 h-10 rounded bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
@@ -690,6 +689,92 @@
                 </div>
             </div>
         </template>
+        
+        <!-- ADD CC MODAL -->
+        <template x-teleport="body">
+            <div x-show="modalOpen && modalId === 'addCCModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
+                    <div class="flex items-center justify-between p-4 border-b border-border bg-indigo-600 dark:bg-indigo-900 text-white">
+                        <h3 class="font-semibold text-lg">Tambah Kartu Kredit</h3>
+                        <button @click="$dispatch('close-modal')" class="text-white hover:bg-white/20 p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('settings.add_cc') }}" class="p-4 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div>
+                            <label class="text-sm font-medium mb-1 block">Nama Kartu</label>
+                            <input type="text" name="name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" required>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium mb-1 block">Total Limit</label>
+                            <input type="text" name="limit_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" required>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium mb-1 block">Tagihan Berjalan Saat Ini</label>
+                            <input type="text" name="current_usage" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" value="0" required>
+                        </div>
+                        <div class="pt-2">
+                            <button type="submit" class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-indigo-600 text-white hover:bg-indigo-700 h-10 px-4 py-2">Tambah</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </template>
+        
+        <!-- OTHER MODALS (Dynamic list based on loops) -->
+        <!-- Since we can't put Jinja loops inside a teleport easily without duplicating the wrapper, we generate them inline here -->
+
+        {% for cc in credit_cards %}
+        <template x-teleport="body">
+            <div x-show="modalOpen && modalId === 'editCCModal{{ cc.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
+                    <div class="flex items-center justify-between p-4 border-b border-border">
+                        <h3 class="font-semibold text-lg">Edit Kartu Kredit</h3>
+                        <button @click="$dispatch('close-modal')" class="text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
+                    </div>
+                    <form method="POST" action="{{ url_for('settings.edit_cc', id=cc.id) }}" class="p-4 space-y-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div>
+                            <label class="text-sm font-medium mb-1 block">Nama Kartu</label>
+                            <input type="text" name="name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ cc.name }}" required>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium mb-1 block">Total Limit</label>
+                            <input type="text" name="limit_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ cc.limit_amount }}" required>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium mb-1 block">Tagihan Berjalan</label>
+                            <input type="text" name="current_usage" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ cc.current_usage }}" required>
+                        </div>
+                        <div class="pt-2 flex gap-2">
+                            <button type="button" @click="$dispatch('close-modal')" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">Batal</button>
+                            <button type="submit" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">Simpan</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </template>
+        <template x-teleport="body">
+            <div x-show="modalOpen && modalId === 'deleteCCModal{{ cc.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+                <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-destructive/20 w-full max-w-sm overflow-hidden relative">
+                    <div class="p-6 text-center space-y-4">
+                        <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto">
+                            <i data-lucide="alert-triangle" class="w-6 h-6 text-red-600 dark:text-red-500"></i>
+                        </div>
+                        <h3 class="font-bold text-lg">Hapus Kartu Kredit?</h3>
+                        <p class="text-sm text-muted-foreground">Anda yakin ingin menghapus data kartu {{ cc.name }}? Aksi ini permanen.</p>
+                        <div class="flex gap-2 w-full pt-4">
+                            <button @click="$dispatch('close-modal')" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-10">Batal</button>
+                            <form action="{{ url_for('settings.delete_cc', id=cc.id) }}" method="POST" class="flex-1">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10">Hapus</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </template>
+        {% endfor %}
+        
         
         <!-- ASSET & GOAL ADD MODALS -->
         <template x-teleport="body">

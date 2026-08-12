@@ -146,7 +146,10 @@ def setup_account():
         'CASH': ['Cash'],
         'E-WALLET': ['DANA', 'GoPay', 'LinkAja', 'OVO', 'ShopeePay'],
         'BANK': ['BCA', 'BNI', 'BRI', 'BSI', 'CIMB Niaga', 'Mandiri', 'Bank Jago', 'Permata Bank', 'SeaBank', 
-                'Superbank', 'Bank DKI', 'Bank Mega', 'BJB', 'Jenius', 'OCBC NISP', 'BTN', 'HSBC']
+                'Superbank', 'Bank DKI', 'Bank Mega', 'BJB', 'Jenius', 'OCBC NISP', 'BTN', 'HSBC'],
+        'KARTU KREDIT': ['BCA Card', 'Mandiri Card', 'BNI Card', 'BRI Card', 'CIMB Niaga Card', 'Citi Card', 'HSBC Card', 'DBS Card', 'Mega Card', 'Lainnya'],
+        'PAYLATER': ['SPayLater', 'GoPayLater', 'Traveloka PayLater', 'Kredivo', 'Akulaku', 'Indodana', 'Lainnya'],
+        'PINJOL': ['AdaKami', 'Easycash', 'Kredit Pintar', 'Julo', 'Rupiah Cepat', 'Lainnya']
     }
     
     ACCOUNT_TYPES['E-WALLET'].sort()
@@ -168,7 +171,7 @@ def setup_account():
         return redirect(url_for('settings.setup_account', message=message, error=error))
 
     if edit_id:
-        account_to_edit = db.execute('SELECT id, name, initial_balance FROM accounts WHERE id = ? AND user_id = ?', (edit_id, user_id)).fetchone()
+        account_to_edit = db.execute('SELECT id, name, initial_balance, limit_amount FROM accounts WHERE id = ? AND user_id = ?', (edit_id, user_id)).fetchone()
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -198,11 +201,26 @@ def setup_account():
                 if category_key not in ACCOUNT_TYPES or name_detail not in ACCOUNT_TYPES[category_key]:
                      raise ValueError("Invalid category or name selection.")
                 
+                # Check if it's a liability type
+                is_liability = category_key in ['KARTU KREDIT', 'PAYLATER', 'PINJOL']
+                account_type = 'liability' if is_liability else 'asset'
+                
+                # If liability, balance is always 0 initially.
+                # If they already owe money, they can input a negative initial balance, but usually it's 0.
+                if is_liability:
+                    limit_raw = request.form.get('limit_amount', '0').replace('.', '').replace(',', '.')
+                    limit_amount = float(limit_raw) if limit_raw else 0.0
+                    # Initial balance for liability could be 0, or if they input negative, we keep it.
+                    # Usually, user input is 0.
+                else:
+                    limit_amount = 0.0
+                
                 existing_account = db.execute('SELECT id FROM accounts WHERE user_id = ? AND name = ?', (user_id, final_name)).fetchone()
                 if existing_account:
                      error = f"Account '{final_name}' is already registered."
                 else:
-                    db.execute('INSERT INTO accounts (user_id, name, initial_balance, current_balance) VALUES (?, ?, ?, ?)', (user_id, final_name, balance, balance))
+                    db.execute('INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount) VALUES (?, ?, ?, ?, ?, ?)', 
+                               (user_id, final_name, balance, balance, account_type, limit_amount))
                     db.commit()
                     from routes.dashboard import recalculate_account_balances
                     recalculate_account_balances(db, user_id)
@@ -218,55 +236,4 @@ def setup_account():
 
     accounts = db.execute('SELECT id, name, initial_balance, current_balance FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     return render_template('setup_account.html', accounts=accounts, message=message, error=error, categories=ACCOUNT_TYPES, account_to_edit=account_to_edit)
-
-@settings_bp.route('/add_cc', methods=['POST'])
-@login_required
-def add_cc():
-    db = get_db()
-    user_id = session['user_id']
-    try:
-        name = request.form['name']
-        raw_limit = request.form.get('limit_amount', '0').replace('.', '').replace(',', '.')
-        limit_amount = float(raw_limit) if raw_limit else 0.0
-        raw_usage = request.form.get('current_usage', '0').replace('.', '').replace(',', '.')
-        current_usage = float(raw_usage) if raw_usage else 0.0
-        db.execute('INSERT INTO credit_cards (user_id, name, limit_amount, current_usage) VALUES (?, ?, ?, ?)',
-                   (user_id, name, limit_amount, current_usage))
-        db.commit()
-        flash('Kartu kredit berhasil ditambahkan.', 'success')
-    except Exception as e:
-        flash(f'Gagal menambahkan kartu kredit: {e}', 'danger')
-    return redirect(url_for('performance.financial_performance'))
-
-@settings_bp.route('/edit_cc/<int:id>', methods=['POST'])
-@login_required
-def edit_cc(id):
-    db = get_db()
-    user_id = session['user_id']
-    try:
-        name = request.form['name']
-        raw_limit = request.form.get('limit_amount', '0').replace('.', '').replace(',', '.')
-        limit_amount = float(raw_limit) if raw_limit else 0.0
-        raw_usage = request.form.get('current_usage', '0').replace('.', '').replace(',', '.')
-        current_usage = float(raw_usage) if raw_usage else 0.0
-        db.execute('UPDATE credit_cards SET name = ?, limit_amount = ?, current_usage = ? WHERE id = ? AND user_id = ?',
-                   (name, limit_amount, current_usage, id, user_id))
-        db.commit()
-        flash('Kartu kredit berhasil diperbarui.', 'success')
-    except Exception as e:
-        flash(f'Gagal memperbarui kartu kredit: {e}', 'danger')
-    return redirect(url_for('performance.financial_performance'))
-
-@settings_bp.route('/delete_cc/<int:id>', methods=['POST'])
-@login_required
-def delete_cc(id):
-    db = get_db()
-    user_id = session['user_id']
-    try:
-        db.execute('DELETE FROM credit_cards WHERE id = ? AND user_id = ?', (id, user_id))
-        db.commit()
-        flash('Kartu kredit berhasil dihapus.', 'success')
-    except Exception as e:
-        flash(f'Gagal menghapus kartu kredit: {e}', 'danger')
-    return redirect(url_for('performance.financial_performance'))
 

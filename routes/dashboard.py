@@ -36,7 +36,7 @@ def dashboard():
     
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     
-    total_balance = db.execute('SELECT SUM(current_balance) FROM accounts WHERE user_id = ?', (user_id,)).fetchone()[0] or 0
+    total_balance = db.execute("SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND account_type = 'asset'", (user_id,)).fetchone()[0] or 0
 
     today = datetime.now().date()
     today_str = today.strftime('%Y-%m-%d')
@@ -192,7 +192,9 @@ def dashboard():
         })
 
     total_assets = sum(asset['purchase_price'] for asset in db.execute('SELECT purchase_price FROM assets WHERE user_id = ?', (user_id,)).fetchall()) + total_balance
-    total_debt = sum(debt['remaining_amount'] for debt in db.execute("SELECT remaining_amount FROM debts_receivables WHERE user_id = ? AND status='BELUM LUNAS'", (user_id,)).fetchall())
+    total_debt_records = sum(debt['remaining_amount'] for debt in db.execute("SELECT remaining_amount FROM debts_receivables WHERE user_id = ? AND status='BELUM LUNAS'", (user_id,)).fetchall())
+    total_liability_accounts = db.execute("SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND account_type = 'liability'", (user_id,)).fetchone()[0] or 0
+    total_debt = total_debt_records + abs(total_liability_accounts)
     
     # Financial Health Score Algorithm
     health_score = 50

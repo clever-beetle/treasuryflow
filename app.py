@@ -200,6 +200,8 @@ def init_db():
                 name TEXT NOT NULL,
                 initial_balance REAL NOT NULL DEFAULT 0.0,
                 current_balance REAL NOT NULL DEFAULT 0.0,
+                account_type TEXT DEFAULT 'asset',
+                limit_amount REAL DEFAULT 0.0,
                 FOREIGN KEY (user_id) REFERENCES users (id),
                 UNIQUE (user_id, name)
             )
@@ -237,6 +239,31 @@ def init_db():
         try:
             cursor.execute("ALTER TABLE debts_receivables ADD COLUMN status TEXT DEFAULT 'BELUM LUNAS'")
         except Exception:
+            pass
+            
+        try:
+            cursor.execute("ALTER TABLE accounts ADD COLUMN account_type TEXT DEFAULT 'asset'")
+            cursor.execute("ALTER TABLE accounts ADD COLUMN limit_amount REAL DEFAULT 0.0")
+        except Exception:
+            pass
+            
+        try:
+            # Migrate existing credit cards to accounts if they exist, then delete them from credit_cards
+            # to avoid duplicate migration on subsequent runs.
+            cursor.execute("SELECT * FROM credit_cards")
+            cards = cursor.fetchall()
+            for c in cards:
+                # Add to accounts
+                try:
+                    cursor.execute('''
+                        INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    ''', (c['user_id'], f"[KARTU KREDIT] {c['name']}", 0.0, -float(c['current_usage']), 'liability', c['limit_amount']))
+                    # Delete from credit cards
+                    cursor.execute("DELETE FROM credit_cards WHERE id = %s", (c['id'],))
+                except Exception as ex:
+                    logger.warning(f"Failed to migrate card {c['id']}: {ex}")
+        except Exception as e:
             pass
             
         cursor.execute(f'''

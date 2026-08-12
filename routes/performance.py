@@ -190,7 +190,7 @@ def financial_performance():
     today_str = today.strftime('%Y-%m-%d')
     days_ago_str = (today - timedelta(days=days_range)).strftime('%Y-%m-%d')
     
-    accounts_data = db.execute("SELECT name, initial_balance, current_balance FROM accounts WHERE user_id = ?", (user_id,)).fetchall()
+    accounts_data = db.execute("SELECT name, initial_balance, current_balance FROM accounts WHERE user_id = ? AND account_type = 'asset'", (user_id,)).fetchall()
     total_net_worth = sum((acc['current_balance'] or 0) for acc in accounts_data)
     theme_colors = ["#11237e", "#3f51b5", "#7986cb", "#9fa8da", "#c5cae9"]
     
@@ -272,13 +272,14 @@ def financial_performance():
         smart_insight = "Terus catat transaksi Anda agar AI dapat membandingkan pengeluaran periode ini dan sebelumnya."
         insight_type = "neutral"
 
-    credit_cards = db.execute('SELECT * FROM credit_cards WHERE user_id = ?', (user_id,)).fetchall()
-    total_saldo = sum((acc['current_balance'] or 0) for acc in db.execute('SELECT current_balance FROM accounts WHERE user_id = ?', (user_id,)).fetchall())
-    total_debt = sum((r['remaining_amount'] or 0) for r in records_active)
+    credit_cards = db.execute("SELECT id, name, limit_amount, ABS(current_balance) as current_usage FROM accounts WHERE user_id = ? AND account_type = 'liability'", (user_id,)).fetchall()
+    total_saldo = sum((acc['current_balance'] or 0) for acc in accounts_data)
+    total_debt_records = sum((r['remaining_amount'] or 0) for r in records_active)
     total_cc_usage = sum((cc['current_usage'] or 0) for cc in credit_cards)
     total_cc_limit = sum((cc['limit_amount'] or 0) for cc in credit_cards)
+    total_debt = total_debt_records + total_cc_usage
     total_annual_subscriptions = sum((inst['amount_per_cycle'] or 0) * 12 for inst in installments)
-    net_worth = total_saldo + total_asset_value - total_debt - total_cc_usage
+    net_worth = total_saldo + total_asset_value - total_debt
 
     
     # --- Analytics Integration ---

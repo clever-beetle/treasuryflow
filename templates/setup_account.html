@@ -91,6 +91,9 @@
                             <option value="BANK">Bank Account</option>
                             <option value="E-WALLET">E-Wallet</option>
                             <option value="CASH">Cash</option>
+                            <option value="KARTU KREDIT">Kartu Kredit</option>
+                            <option value="PAYLATER">Paylater</option>
+                            <option value="PINJOL">Pinjaman Online (Pinjol)</option>
                         </select>
                     </div>
                 </div>
@@ -113,15 +116,44 @@
                                     {% endfor %}
                                 </optgroup>
                             </template>
+                            <template x-if="selectedCategory === 'KARTU KREDIT'">
+                                <optgroup label="Kartu Kredit">
+                                    {% for cc in categories['KARTU KREDIT'] %}
+                                    <option value="{{ cc }}">{{ cc }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </template>
+                            <template x-if="selectedCategory === 'PAYLATER'">
+                                <optgroup label="Paylater">
+                                    {% for pl in categories['PAYLATER'] %}
+                                    <option value="{{ pl }}">{{ pl }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </template>
+                            <template x-if="selectedCategory === 'PINJOL'">
+                                <optgroup label="Pinjaman Online">
+                                    {% for pj in categories['PINJOL'] %}
+                                    <option value="{{ pj }}">{{ pj }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </template>
                         </select>
                     </div>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-sm font-medium leading-none">Initial Balance</label>
+                    <label class="text-sm font-medium leading-none" x-text="['KARTU KREDIT', 'PAYLATER', 'PINJOL'].includes(selectedCategory) ? 'Current Outstanding Debt (Negative)' : 'Initial Balance'">Initial Balance</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
-                        <input type="text" name="initial_balance" id="balanceInput" required class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0">
+                        <input type="text" name="initial_balance" id="balanceInput" required class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0" :value="['KARTU KREDIT', 'PAYLATER', 'PINJOL'].includes(selectedCategory) ? '0' : ''">
+                    </div>
+                </div>
+
+                <div class="space-y-2" x-show="['KARTU KREDIT', 'PAYLATER', 'PINJOL'].includes(selectedCategory)" x-transition>
+                    <label class="text-sm font-medium leading-none">Credit Limit</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
+                        <input type="text" name="limit_amount" id="limitInput" class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0">
                     </div>
                 </div>
 
