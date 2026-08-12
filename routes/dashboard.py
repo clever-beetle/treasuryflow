@@ -36,8 +36,6 @@ def dashboard():
     
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     
-    total_balance = db.execute("SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND account_type = 'asset'", (user_id,)).fetchone()[0] or 0
-
     today = datetime.now().date()
     today_str = today.strftime('%Y-%m-%d')
     period = request.args.get('period', type=int, default=30)
@@ -46,20 +44,31 @@ def dashboard():
         
     days_ago_str = (today - timedelta(days=period)).strftime('%Y-%m-%d')
     
-    total_expense = db.execute(
-        "SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND date >= ? AND category != 'Transfer'", 
-        (user_id, days_ago_str)
-    ).fetchone()[0]
+    # Bundle scalar queries into a single round-trip to reduce latency
+    stats_query = '''
+        SELECT 
+            (SELECT SUM(current_balance) FROM accounts WHERE user_id = %(uid)s AND account_type = 'asset') as total_balance,
+            (SELECT SUM(amount) FROM transactions WHERE user_id = %(uid)s AND type = 'expense' AND date >= %(days_ago)s AND category != 'Transfer') as total_expense,
+            (SELECT SUM(amount) FROM transactions WHERE user_id = %(uid)s AND type = 'income' AND date >= %(days_ago)s AND category != 'Transfer') as total_income,
+            (SELECT SUM(amount) FROM transactions WHERE user_id = %(uid)s AND type = 'expense' AND date = %(today)s AND category != 'Transfer') as expense_today,
+            (SELECT SUM(limit_amount) FROM budgets WHERE user_id = %(uid)s) as total_budget
+    '''
+    # SQLite uses ?, Postgres uses %s, but since DBWrapper replaces ? with %s we can use ? safely if we pass tuple
+    stats_query_compat = '''
+        SELECT 
+            (SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND account_type = 'asset') as total_balance,
+            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date >= ? AND category != 'Transfer') as total_expense,
+            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income' AND date >= ? AND category != 'Transfer') as total_income,
+            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date = ? AND category != 'Transfer') as expense_today
+    '''
+    stats = db.execute(stats_query_compat, (user_id, user_id, days_ago_str, user_id, days_ago_str, user_id, today_str)).fetchone()
     
-    total_income = db.execute(
-        "SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'income' AND date >= ? AND category != 'Transfer'", 
-        (user_id, days_ago_str)
-    ).fetchone()[0]
-
-    expense_today = db.execute(
-        "SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND date = ? AND category != 'Transfer'", 
-        (user_id, today_str)
-    ).fetchone()[0]
+    total_balance = stats['total_balance'] or 0
+    total_expense = stats['total_expense'] or 0
+    total_income = stats['total_income'] or 0
+    expense_today = stats['expense_today'] or 0
+    total_budget = stats['total_budget'] or 0
+    budget_usage = (total_expense / total_budget * 100) if total_budget > 0 else 0
     
     # Chart Data
     chart_data_rows = db.execute('''
@@ -166,10 +175,6 @@ def dashboard():
         'labels': [r['category'] for r in cat_rows],
         'data': [r['total'] for r in cat_rows]
     })
-    
-    total_budget_row = db.execute('SELECT SUM(limit_amount) as total FROM budgets WHERE user_id = ?', (user_id,)).fetchone()
-    total_budget = total_budget_row['total'] if total_budget_row['total'] else 0
-    budget_usage = (total_expense / total_budget * 100) if total_budget > 0 else 0
 
     # Fetch active budgets & compute monthly usage
     first_day_current_month = today.replace(day=1).strftime('%Y-%m-%d')
