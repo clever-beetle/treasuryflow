@@ -1,3 +1,244 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Performance - Treasury Flow</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body { background-color: #f5f5f5; color: #111827; font-family: 'Inter', sans-serif; -webkit-user-select: none; -ms-user-select: none; user-select: none; }
+        .navbar { border-bottom: 1px solid #f5f5f5; background-color: #ffffff !important; position: sticky; top: 0; z-index: 1050; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .navbar-toggler { border: none !important; }
+        .navbar-toggler:focus, .navbar-toggler:active { outline: none !important; box-shadow: none !important; }
+        .navbar-brand { font-weight: 700; color: #11237e !important; display: flex !important; align-items: center !important; }
+        .navbar-logo { height: 70px; width: auto; object-fit: contain; margin-top: -13px; margin-bottom: 0px; margin-left: -25px; margin-right: 0px; }
+        .navbar-brand span { color: #11237e; font-size: 1.25rem; line-height: 1; }
+        
+        .sidebar-active { background-color: #11237e !important; color: #ffffff !important; font-weight: 800 !important; transition: all 0.3s ease; }
+        .sidebar-active i { color: #ffffff !important; }
+
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); background-color: #ffffff; margin-bottom: 1.5rem; }
+        .form-control-custom { background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px; transition: all 0.2s ease-in-out; }
+        .form-control-custom:focus { border-color: #11237e; background-color: #ffffff; box-shadow: 0 0 0 4px rgba(17, 35, 126, 0.05); outline: none; }
+        
+        .form-select-custom { background-color: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; color: #4b5563; font-weight: 600; padding: 10px 15px; width: 100%; transition: all 0.2s; }
+        .form-select-custom:focus { border-color: #11237e; box-shadow: 0 0 0 3px rgba(17, 35, 126, 0.1); outline: none; }
+
+        .nav-pills .nav-link { color: #4b5563; border-radius: 8px; margin-bottom: 5px; font-weight: 600; padding: 10px 18px; transition: all 0.2s; border: 1px solid transparent; }
+        .nav-pills .nav-link:hover { color: #11237e; background-color: #f8f9fa; }
+        .nav-pills .nav-link.active { background-color: #11237e !important; color: white !important; box-shadow: 0 4px 12px rgba(17, 35, 126, 0.15); }
+        
+        .btn-navy { background-color: #11237e !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #11237e !important; transition: all 0.2s ease-in-out; }
+        .btn-navy:hover { background-color: #ffffff !important; color: #11237e !important; transform: translateY(-1px); }
+        .btn-danger { background-color: #ef4444 !important; color: white !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; border: 2px solid #ef4444 !important; transition: all 0.2s ease-in-out; }
+        .btn-danger:hover { background-color: #ffffff !important; color: #ef4444 !important; transform: translateY(-1px); }
+        .btn-outline-navy { border: 2px solid #11237e !important; background-color: #ffffff !important; color: #11237e !important; border-radius: 10px; padding: 10px 24px; font-weight: 600; transition: all 0.2s ease-in-out; }
+        .btn-outline-navy:hover { background-color: #11237e !important; color: #ffffff !important; }
+        
+        .modal-header.bg-danger { background-color: #ef4444 !important; border-bottom: none; }
+        .modal-content { border-radius: 16px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        
+        .section-title { font-size: 1.1rem; font-weight: 700; margin-bottom: 20px; color: #11237e; }
+        .footer-branding { font-size: 0.8rem; color: #6c757d; margin-top: 50px; text-align: center; padding-bottom: 20px; }
+
+        .table-responsive { -webkit-overflow-scrolling: touch; padding-bottom: 5px; }
+        .table-responsive::-webkit-scrollbar { height: 6px; }
+        .table-responsive::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
+
+        .badge-debt { background-color: #ef4444; color: white; border-radius: 6px; padding: 5px 10px; font-weight: 600; }
+        .badge-receivable { background-color: #28a745; color: white; border-radius: 6px; padding: 5px 10px; font-weight: 600; }
+        .list-group-item { border-radius: 12px !important; margin-bottom: 8px; border: none; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); background-color: #ffffff; padding: 15px; }
+        .analytics-item-income { border-left: 5px solid #28a745; }
+        .analytics-item-expense { border-left: 5px solid #ef4444; }
+        .analytics-item-neutral { border-left: 5px solid #11237e; }
+
+        @media (max-width: 768px) {
+            .navbar-logo { height: 60px; margin-left: -15px; }
+            .section-title { font-size: 1rem; }
+            h4.fw-bold { font-size: 1.15rem; text-align: center; }
+            .card { padding: 1.25rem !important; }
+            .table-responsive td, .table-responsive th { font-size: 0.85rem; padding: 12px 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar bg-white border-bottom p-3">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}">
+                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo Treasury Flow" class="navbar-logo">
+                <span>TREASURY FLOW</span>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasNavbar">
+                <i class="fas fa-bars fa-lg"></i>
+            </button>
+            <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasNavbar">
+                <div class="offcanvas-header border-bottom">
+                    <h5 class="offcanvas-title fw-bold" style="color: #11237e;">MENU</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+                </div>
+                <div class="offcanvas-body" style="background-color: #f5f5f5;">
+                    <ul class="navbar-nav justify-content-end flex-grow-1">
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'dashboard' }}" href="{{ url_for('dashboard') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-home me-3 text-primary" style="width: 20px; text-align: center;"></i> Dashboard</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'setup_account' }}" href="{{ url_for('setup_account') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-wallet me-3 text-success" style="width: 20px; text-align: center;"></i> Manage Accounts</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'transactions_list' }}" href="{{ url_for('transactions_list') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-list me-3 text-info" style="width: 20px; text-align: center;"></i> Transaction History</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'financial_performance' }}" href="{{ url_for('financial_performance') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-chart-line me-3 text-warning" style="width: 20px; text-align: center;"></i> Financial Performance</a></li>
+                        <li class="nav-item mb-2"><a class="nav-link p-3 rounded shadow-sm bg-white fw-bold {{ 'sidebar-active' if request.endpoint == 'settings' }}" href="{{ url_for('settings') }}" style="color: #111827; font-size: 1rem; display: block;"><i class="fas fa-user-cog me-3 text-secondary" style="width: 20px; text-align: center;"></i> Settings</a></li>
+                        <hr class="my-4">
+                        <li class="nav-item"><button type="button" class="btn btn-danger w-100 p-3 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#logoutModal" style="border-radius: 12px; font-size: 1rem;"><i class="fas fa-sign-out-alt me-2"></i> Logout</button></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+<div class="container mt-4 mt-md-5">
+    
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+        <h1 class="mb-0 fw-bold" style="color: #111827; font-size: 1.8rem;">
+            <i class="fas fa-chart-line me-2 text-warning" style="font-size: 2rem; vertical-align: middle;"></i> Financial Performance
+        </h1>
+        
+        <ul class="nav nav-pills d-flex flex-wrap justify-content-center justify-content-md-end gap-2 p-1 bg-white rounded-3 shadow-sm" id="pills-tab" role="tablist" style="border: 1px solid #eaecf4;">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="pills-m1-tab" data-bs-toggle="pill" data-bs-target="#pills-m1" type="button" role="tab"><i class="fas fa-chart-bar me-1"></i>Analisis Arus Kas</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-m2-tab" data-bs-toggle="pill" data-bs-target="#pills-m2" type="button" role="tab"><i class="fas fa-file-invoice-dollar me-1"></i>Kewajiban & Langganan</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-m3-tab" data-bs-toggle="pill" data-bs-target="#pills-m3" type="button" role="tab"><i class="fas fa-gem me-1"></i>Portofolio Aset</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="pills-m4-tab" data-bs-toggle="pill" data-bs-target="#pills-m4" type="button" role="tab"><i class="fas fa-bullseye me-1"></i>Target Finansial</button>
+            </li>
+        </ul>
+    </div>
+
+    <div class="tab-content" id="pills-tabContent">
+        
+        <div class="tab-pane fade show active" id="pills-m1" role="tabpanel" aria-labelledby="pills-m1-tab">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+                <h4 class="fw-bold text-dark mb-0">Analisis Performa Finansial</h4>
+                <form method="GET" action="{{ url_for('financial_performance') }}" class="w-100" style="max-width: 250px;">
+                    <select name="days" class="form-select form-select-custom shadow-sm text-center" onchange="this.form.submit()">
+                        <option value="3" {% if days_range == 3 %}selected{% endif %}>3 Hari Terakhir</option>
+                        <option value="7" {% if days_range == 7 %}selected{% endif %}>7 Hari Terakhir</option>
+                        <option value="30" {% if days_range == 30 %}selected{% endif %}>30 Hari Terakhir</option>
+                        <option value="90" {% if days_range == 90 %}selected{% endif %}>3 Bulan Terakhir</option>
+                        <option value="180" {% if days_range == 180 %}selected{% endif %}>6 Bulan Terakhir</option>
+                        <option value="365" {% if days_range == 365 %}selected{% endif %}>1 Tahun Terakhir</option>
+                    </select>
+                </form>
+            </div>
+
+            <div class="card p-4">
+                <div class="section-title">Rasio Distribusi Kapital Berdasarkan Akun</div>
+                <div class="progress mb-4" style="height: 24px; border-radius: 10px; overflow: hidden; background-color: #eaecf4;">
+                    {% for item in distribution_list %}
+                        <div class="progress-bar" role="progressbar" style="width: {{ item.percentage }}%; background-color: {{ item.color }}; font-weight: 700; font-size: 0.85rem;">
+                             {% if item.percentage > 7 %}{{ item.percentage }}%{% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+                <div class="row g-2">
+                    {% for item in distribution_list %}
+                    <div class="col-6 col-md-3">
+                        <div class="d-flex align-items-center p-2 rounded" style="background-color: #f8f9fc; border: 1px solid #eaecf4;">
+                            <div style="width: 12px; height: 12px; background-color: {{ item.color }}; border-radius: 3px; margin-right: 10px; flex-shrink: 0;"></div>
+                            <div class="overflow-hidden">
+                                <div class="fw-bold text-dark small text-truncate" style="line-height: 1.2;">{{ item.name }}</div>
+                                <small class="text-muted" style="font-size: 0.75rem;">{{ item.percentage }}%</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="row g-4">
+                <div class="col-md-6 col-12">
+                    <div class="card p-4 h-100">
+                        <div class="section-title">Rata-rata Arus Kas Harian</div>
+                        <ul class="list-group mb-4">
+                            <li class="list-group-item d-flex justify-content-between align-items-center analytics-item-income gap-2">
+                                <span class="fw-bold text-secondary">Rata-rata Pemasukan</span>
+                                <span class="badge bg-success rounded-pill p-2 px-3 fs-6">{% if avg_income_daily %}{{ avg_income_daily | rupiah }}{% else %}Rp 0{% endif %}</span>
+                            </li>
+                            <li class="list-group-item d-flex justify-content-between align-items-center analytics-item-expense gap-2">
+                                <span class="fw-bold text-secondary">Rata-rata Pengeluaran</span>
+                                <span class="badge bg-danger rounded-pill p-2 px-3 fs-6">{% if avg_expense_daily %}{{ avg_expense_daily | rupiah }}{% else %}Rp 0{% endif %}</span>
+                            </li>
+                        </ul>
+                        <div class="section-title mb-3">Proyeksi Pengeluaran Masa Depan</div>
+                        <ul class="list-group">
+                            <li class="list-group-item d-flex flex-column gap-1 analytics-item-neutral">
+                                <span class="text-secondary fw-bold small">Estimasi 7 Hari Mendatang</span>
+                                <span class="fw-bold text-dark fs-5">{% if proyeksi_seminggu_out %}{{ proyeksi_seminggu_out | rupiah }}{% else %}Rp 0{% endif %}</span>
+                            </li>
+                            <li class="list-group-item d-flex flex-column gap-1 analytics-item-neutral">
+                                <span class="text-secondary fw-bold small">Estimasi 30 Hari Mendatang</span>
+                                <span class="fw-bold text-dark fs-5">{% if proyeksi_sebulan_out %}{{ proyeksi_sebulan_out | rupiah }}{% else %}Rp 0{% endif %}</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6 col-12">
+                    <div class="card p-4 h-100">
+                        <div class="section-title">Statistik Rentang Pengeluaran</div>
+                        <div class="d-flex flex-column justify-content-center h-100 gap-3">
+                            <div class="p-4 rounded text-center" style="background-color: #fef2f2; border: 1px solid #fca5a5;">
+                                <span class="small text-uppercase text-danger fw-bold">Puncak Pengeluaran Maksimum 🔥</span>
+                                <h2 class="text-danger fw-bold mb-0 mt-2">{% if max_expense %}{{ max_expense | rupiah }}{% else %}Rp 0{% endif %}</h2>
+                            </div>
+                            <div class="p-4 rounded text-center" style="background-color: #f0fdf4; border: 1px solid #86efac;">
+                                <span class="small text-uppercase text-success fw-bold">Pengeluaran Minimum Terendah 🍃</span>
+                                <h2 class="text-success fw-bold mb-0 mt-2">{% if min_expense %}{{ min_expense | rupiah }}{% else %}Rp 0{% endif %}</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="pills-m2" role="tabpanel" aria-labelledby="pills-m2-tab">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4 gap-3">
+                <h4 class="fw-bold text-dark mb-0 text-center text-md-start">Manajemen Kewajiban & Berlangganan</h4>
+                <div class="d-flex flex-wrap gap-2 w-100 w-md-auto justify-content-center justify-content-md-end">
+                    <button class="btn btn-navy fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#formAddDebtModal"><i class="fas fa-plus me-2"></i>Catat Kewajiban</button>
+                    <button class="btn btn-navy fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#formAddInstModal"><i class="fas fa-plus me-2"></i>Catat Langganan</button>
+                </div>
+            </div>
+
+            <div class="card p-4">
+                <div class="section-title"><i class="fas fa-spinner me-2 text-warning"></i>Daftar Kewajiban Finansial Aktif</div>
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle text-nowrap">
+                        <thead class="table-hover">
+                            <tr>
+                                <th>Deskripsi Kewajiban</th>
+                                <th>Jenis</th>
+                                <th>Nilai Pokok</th>
+                                <th>Sisa Kewajiban</th>
+                                <th>Jatuh Tempo</th>
+                                <th>Status</th>
+                                <th class="text-center">Tindakan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in records_active %}
+                            <tr>
+                                <td class="fw-bold text-dark">{{ row.person_name }}</td>
+                                <td><span class="badge {{ 'badge-debt' if row.type == 'debt' else 'badge-receivable' }}">{{ 'UTANG' if row.type == 'debt' else 'PIUTANG' }}</span></td>
+                                <td class="fw-bold">{% if row.total_amount %}{{ row.total_amount | rupiah }}{% else %}Rp 0{% endif %}</td>
+                                <td class="text-danger fw-bold">{% if row.remaining_amount %}{{ row.remaining_amount | rupiah }}{% else %}Rp 0{% endif %}</td>
+                                <td>{{ row.due_date }}</td>
+                                <td><span class="badge bg-warning text-dark">{{ row.status }}</span></td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-2">
+                                        <button class="btn btn-sm btn-navy fw-bold px-3 py-1" data-bs-toggle="modal" data-bs-target="#payModal{{ row.id }}">Proses Transaksi</button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ row.id }}"><i class="fas fa-trash-alt"></i></button>
                                     </div>
                                 </div>
                                 {% endfor %}
