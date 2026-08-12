@@ -132,7 +132,20 @@ utils.babel.init_app(app, locale_selector=get_locale)
 
 @app.route('/sw.js')
 def sw():
-    return app.send_static_file('sw.js')
+    return app
+
+@app.route('/test_db')
+def test_db():
+    try:
+        import psycopg2
+        import traceback
+        conn = psycopg2.connect(utils.DATABASE_URL)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM debts_receivables LIMIT 1")
+        return "Query succeeded!"
+    except Exception as e:
+        import traceback
+        return f"<pre>{traceback.format_exc()}</pre>".send_static_file('sw.js')
 
 # Database initialization is now moved to CLI commands to prevent slow Vercel cold starts
 # ----------------------------------------------------
@@ -612,5 +625,6 @@ def inject_notifications():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 
