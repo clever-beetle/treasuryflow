@@ -159,6 +159,11 @@ def init_db():
         db = utils.get_db()
         cursor = db.cursor()
         
+        try:
+            db.conn.autocommit = True
+        except:
+            pass
+            
         is_pg = bool(utils.DATABASE_URL)
         pk_type = "SERIAL PRIMARY KEY" if is_pg else "INTEGER PRIMARY KEY AUTOINCREMENT"
         blob_type = "BYTEA" if is_pg else "BLOB"
@@ -491,14 +496,13 @@ def handle_csrf_error(e):
 @app.route('/debug_logs')
 def debug_logs():
     try:
-        init_db()
         db = psycopg2.connect(utils.DATABASE_URL)
         cursor = db.cursor()
         cursor.execute("SELECT created_at, error FROM error_logs ORDER BY created_at DESC LIMIT 10")
         rows = cursor.fetchall()
         out = ""
         for r in rows:
-            out += f"{r[0]}: {r[1]}\n\n"
+            out += f"{r[0]}:\n{r[1]}\n\n"
         return f"<pre>{out}</pre>"
     except Exception as e:
         return f"Error: {e}"
