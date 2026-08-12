@@ -486,10 +486,22 @@ def handle_csrf_error(e):
 @app.errorhandler(Exception)
 def handle_500(e):
     from werkzeug.exceptions import HTTPException
+    import traceback
+    err_str = f"Internal Server Error: {str(e)}\n{traceback.format_exc()}"
+    logger.error(err_str)
+    
+    try:
+        db = psycopg2.connect(DATABASE_URL)
+        db.autocommit = True
+        cursor = db.cursor()
+        cursor.execute("CREATE TABLE IF NOT EXISTS error_logs (id SERIAL PRIMARY KEY, error TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+        cursor.execute("INSERT INTO error_logs (error) VALUES (%s)", (err_str,))
+    except Exception as db_err:
+        pass
+        
     if isinstance(e, HTTPException):
         return e
-    import traceback
-    logger.error(f"Internal Server Error: {str(e)}\n{traceback.format_exc()}")
+
     # Instead of full crashing, return a friendly flash or 500
     try:
         flash(f'An internal error occurred: {str(e)[:100]}...', 'danger')
