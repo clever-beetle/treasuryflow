@@ -691,11 +691,42 @@ def test_all_queries():
 def run_migration():
     try:
         import psycopg2
-        conn = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
-        conn.autocommit = True
-        cursor = conn.cursor()
-        cursor.execute("ALTER TABLE debts_receivables ADD COLUMN status TEXT DEFAULT 'BELUM LUNAS'")
-        return "Migration Success!"
+        import utils
+        results = []
+
+        if utils.DATABASE_URL:
+            conn = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
+            conn.autocommit = True
+            cursor = conn.cursor()
+            try:
+                cursor.execute("ALTER TABLE accounts ADD COLUMN account_type TEXT DEFAULT 'asset'")
+                results.append("Added account_type to primary DB")
+            except Exception as e:
+                results.append(f"Primary account_type error: {e}")
+                
+            try:
+                cursor.execute("ALTER TABLE accounts ADD COLUMN limit_amount REAL DEFAULT 0")
+                results.append("Added limit_amount to primary DB")
+            except Exception as e:
+                results.append(f"Primary limit_amount error: {e}")
+
+        if utils.REPLICA_DATABASE_URL:
+            conn = psycopg2.connect(utils.REPLICA_DATABASE_URL, sslmode='require')
+            conn.autocommit = True
+            cursor = conn.cursor()
+            try:
+                cursor.execute("ALTER TABLE accounts ADD COLUMN account_type TEXT DEFAULT 'asset'")
+                results.append("Added account_type to replica DB")
+            except Exception as e:
+                results.append(f"Replica account_type error: {e}")
+                
+            try:
+                cursor.execute("ALTER TABLE accounts ADD COLUMN limit_amount REAL DEFAULT 0")
+                results.append("Added limit_amount to replica DB")
+            except Exception as e:
+                results.append(f"Replica limit_amount error: {e}")
+                
+        return "<br>".join(results)
     except Exception as e:
         return f"Error: {e}"
 
