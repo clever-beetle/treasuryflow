@@ -491,7 +491,7 @@ def handle_500(e):
     logger.error(err_str)
     
     try:
-        db = psycopg2.connect(DATABASE_URL)
+        db = psycopg2.connect(utils.DATABASE_URL)
         db.autocommit = True
         cursor = db.cursor()
         cursor.execute("CREATE TABLE IF NOT EXISTS error_logs (id SERIAL PRIMARY KEY, error TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
