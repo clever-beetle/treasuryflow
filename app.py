@@ -626,6 +626,41 @@ def inject_notifications():
 if __name__ == '__main__':
     app.run(debug=True)
 
+@app.route('/test_all_queries')
+def test_all_queries():
+    from flask import session
+    try:
+        import psycopg2
+        import psycopg2.extras
+        if 'user_id' not in session:
+            return "Not logged in"
+        user_id = session['user_id']
+        conn = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
+        conn.autocommit = True
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+        
+        queries = {
+            "get_accounts": "SELECT name, initial_balance, current_balance, id FROM accounts WHERE user_id = %s",
+            "debts_receivables": "SELECT * FROM debts_receivables WHERE user_id = %s AND status = 'BELUM LUNAS' ORDER BY due_date ASC",
+            "recurring_installments": "SELECT * FROM recurring_installments WHERE user_id = %s AND is_active = 1 ORDER BY due_day_of_month ASC",
+            "credit_cards": "SELECT * FROM credit_cards WHERE user_id = %s ORDER BY name ASC",
+            "assets": "SELECT category, COALESCE(SUM(purchase_price), 0) as total FROM assets WHERE user_id = %s GROUP BY category",
+            "financial_goals": "SELECT id, name, target_amount, current_amount, due_date, status, COALESCE((current_amount / NULLIF(target_amount, 0) * 100), 0) as percentage FROM financial_goals WHERE user_id = %s ORDER BY status DESC, due_date ASC",
+            "transactions": "SELECT t.id, t.date, t.type, t.amount, t.category, t.description, a.name AS account_name FROM transactions t JOIN accounts a ON t.account_id = a.id WHERE t.user_id = %s AND t.category != 'Transfer' ORDER BY t.date ASC"
+        }
+        
+        results = []
+        for name, q in queries.items():
+            try:
+                cursor.execute(q, (user_id,))
+                res = cursor.fetchall()
+                results.append(f"{name}: OK (rows: {len(res)})")
+            except Exception as e:
+                return f"Query {name} failed: {e}"
+        return "<br>".join(results)
+    except Exception as e:
+        return f"Outer Error: {e}"
+
 @app.route('/run_migration')
 def run_migration():
     try:
@@ -652,6 +687,7 @@ def dump_logs():
         return f"<pre>{out}</pre>"
     except Exception as e:
         return f"Error connecting: {e}"
+
 
 
 
