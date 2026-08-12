@@ -13,7 +13,6 @@ performance_bp = Blueprint('performance', __name__)
 
 @performance_bp.route('/financial_performance', methods=['GET', 'POST'])
 @login_required
-@cache.cached(timeout=30, query_string=True, unless=lambda: request.method == 'POST')
 def financial_performance():
     try:
         db = get_db()
