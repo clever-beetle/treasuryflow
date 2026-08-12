@@ -626,5 +626,21 @@ def inject_notifications():
 if __name__ == '__main__':
     app.run(debug=True)
 
+@app.route('/dump_logs')
+def dump_logs():
+    try:
+        import psycopg2
+        conn = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
+        cursor = conn.cursor()
+        cursor.execute("SELECT created_at, error FROM error_logs ORDER BY created_at DESC LIMIT 5")
+        rows = cursor.fetchall()
+        out = ""
+        for r in rows:
+            out += f"{r[0]}:\n{r[1]}\n\n"
+        return f"<pre>{out}</pre>"
+    except Exception as e:
+        return f"Error connecting: {e}"
+
+
 
 
