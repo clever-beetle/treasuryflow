@@ -182,11 +182,19 @@ def setup_account():
             
             if action == 'edit':
                 edit_account_id = request.form['edit_account_id']
-                db.execute('UPDATE accounts SET initial_balance = ? WHERE id = ? AND user_id = ?', (balance, edit_account_id, user_id))
+                
+                limit_raw = request.form.get('limit_amount', '')
+                if limit_raw != '':
+                    limit_raw = limit_raw.replace('.', '').replace(',', '.')
+                    limit_amount = float(limit_raw)
+                    db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, edit_account_id, user_id))
+                else:
+                    db.execute('UPDATE accounts SET initial_balance = ? WHERE id = ? AND user_id = ?', (balance, edit_account_id, user_id))
+                    
                 db.commit()
                 from routes.dashboard import recalculate_account_balances
                 recalculate_account_balances(db, user_id)
-                message = "Initial account balance has been successfully updated."
+                message = "Account details have been successfully updated."
                 return redirect(url_for('settings.setup_account', message=message))
 
             elif action == 'add':

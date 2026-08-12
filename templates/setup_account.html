@@ -30,7 +30,7 @@
                         {% endif %}
                     </div>
                     <div class="flex gap-1">
-                        <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ account.initial_balance }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Edit Initial Balance">
+                        <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ account.initial_balance }}', limit: '{{ account.limit_amount if account.account_type == \"liability\" else \"\" }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Edit Initial Balance">
                             <i data-lucide="edit-2" class="w-4 h-4"></i>
                         </button>
                         <form action="{{ url_for('settings.setup_account', delete_id=account.id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this account? All associated transactions will be deleted.');">
@@ -168,8 +168,8 @@
 
 <!-- Edit Account Modal -->
 <template x-teleport="body">
-    <div x-data="{ open: false, edit_id: '', edit_balance: '' }" 
-         @open-edit-modal.window="open = true; edit_id = $event.detail.id; edit_balance = $event.detail.balance;" 
+    <div x-data="{ open: false, edit_id: '', edit_balance: '', edit_limit: '' }" 
+         @open-edit-modal.window="open = true; edit_id = $event.detail.id; edit_balance = $event.detail.balance; edit_limit = $event.detail.limit;" 
          @close-modal.window="open = false" 
          x-show="open" 
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" 
@@ -193,6 +193,14 @@
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">Rp</span>
                         <input type="text" name="initial_balance" :value="edit_balance" required class="auto-ribuan w-full rounded-lg border border-input bg-background pl-10 pr-4 py-2.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="0">
+                    </div>
+                </div>
+                
+                <div class="space-y-2" x-show="edit_limit !== null && edit_limit !== undefined" x-transition>
+                    <label class="text-sm font-semibold">New Credit Limit</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">Rp</span>
+                        <input type="text" name="limit_amount" :value="edit_limit" class="auto-ribuan w-full rounded-lg border border-input bg-background pl-10 pr-4 py-2.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="0">
                     </div>
                 </div>
 
