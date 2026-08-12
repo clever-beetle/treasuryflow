@@ -547,11 +547,11 @@ def test_performance():
         results = []
         for name, q in queries.items():
             try:
-                cursor.execute(q, (user_id,))
-                cursor.fetchall()
+                res = db.execute(q, (user_id,))
+                res.fetchall()
                 results.append(f"{name}: OK")
             except Exception as e:
-                db.conn.rollback()
+                db.primary_conn.rollback()
                 return f"Query {name} failed: {e}"
         return "<br>".join(results)
     except Exception as e:
