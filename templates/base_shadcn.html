@@ -482,7 +482,7 @@
             
             // Global Auto-Ribuan Formatter
             document.body.addEventListener('input', function(e) {
-                if (e.target && e.target.tagName === 'INPUT' && (e.target.classList.contains('auto-ribuan') || e.target.name === 'amount' || e.target.name === 'initial_balance' || e.target.name === 'total_amount' || e.target.name === 'amount_paid' || e.target.name === 'amount_per_cycle' || e.target.name === 'target_amount' || e.target.name === 'current_amount' || e.target.name === 'saving_amount')) {
+                if (e.target && e.target.tagName === 'INPUT' && (e.target.classList.contains('auto-ribuan') || e.target.name === 'amount' || e.target.name === 'initial_balance' || e.target.name === 'limit_amount' || e.target.name === 'purchase_price' || e.target.name === 'total_amount' || e.target.name === 'amount_paid' || e.target.name === 'amount_per_cycle' || e.target.name === 'target_amount' || e.target.name === 'current_amount' || e.target.name === 'saving_amount')) {
                     if (e.target.type !== 'number') {
                         let value = e.target.value.replace(/[^,\d]/g, '');
                         let parts = value.split(',');
@@ -499,7 +499,7 @@
             });
             
             // Reformat all on load
-            const autoInputs = document.querySelectorAll('input.auto-ribuan, input[name="amount"], input[name="initial_balance"], input[name="total_amount"], input[name="amount_paid"], input[name="amount_per_cycle"], input[name="target_amount"], input[name="current_amount"], input[name="saving_amount"]');
+            const autoInputs = document.querySelectorAll('input.auto-ribuan, input[name="amount"], input[name="initial_balance"], input[name="limit_amount"], input[name="purchase_price"], input[name="total_amount"], input[name="amount_paid"], input[name="amount_per_cycle"], input[name="target_amount"], input[name="current_amount"], input[name="saving_amount"]');
             autoInputs.forEach(input => {
                 if (input.value && input.type !== 'number') {
                     let value = input.value.replace(/[^,\d]/g, '');
