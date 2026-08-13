@@ -101,7 +101,7 @@
     <nav class="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div class="container mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <a href="{{ url_for('dashboard.dashboard') }}" class="flex items-center gap-2 transition-transform hover:scale-105 active:scale-95">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="h-10 w-auto drop-shadow-md dark:brightness-110 dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
+                <img src="{{ url_for('static', filename='img/logo_v4.png') }}" alt="Logo" class="h-10 w-auto drop-shadow-md dark:brightness-110 dark:drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]">
                 <span class="font-bold text-lg tracking-tight text-primary dark:text-foreground">TREASURY FLOW</span>
             </a>
             <div class="flex items-center gap-3">
@@ -228,7 +228,7 @@
     <div x-data="aiChat()" class="fixed bottom-6 right-6 z-50">
         <!-- Chat Toggle Button -->
         <button @click="toggleChat" class="flex h-14 w-14 items-center justify-center rounded-full bg-white text-[#11237e] shadow-xl hover:scale-110 active:scale-95 transition-all duration-300 relative group overflow-hidden border-2 border-[#11237e]">
-            <img src="{{ url_for('static', filename='img/logo.png') }}" class="h-10 w-10 object-contain" alt="AI">
+            <img src="{{ url_for('static', filename='img/logo_v4.png') }}" class="h-10 w-10 object-contain" alt="AI">
             <span class="absolute -top-2 -right-2 flex h-4 w-4">
                 <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span class="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-[#11237e]"></span>
@@ -244,7 +244,7 @@
             <!-- Header -->
             <div class="flex items-center justify-between bg-gradient-to-r from-[#11237e] to-indigo-600 p-4 text-white rounded-t-2xl">
                 <div class="flex items-center gap-3">
-                    <img src="{{ url_for('static', filename='img/logo.png') }}" class="h-8 w-8 object-contain drop-shadow-md" alt="AI">
+                    <img src="{{ url_for('static', filename='img/logo_v4.png') }}" class="h-8 w-8 object-contain drop-shadow-md" alt="AI">
                     <div>
                         <h3 class="font-bold text-sm">Treasury Flow AI</h3>
                         <p class="text-[10px] text-emerald-300 flex items-center gap-1"><span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span> Online</p>
