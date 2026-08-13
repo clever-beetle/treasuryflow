@@ -244,7 +244,8 @@
                                             {% elif 'GOPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/86/Gopay_logo.svg" class="w-5 h-5 object-contain" alt="GoPay" title="GoPay">
                                             {% elif 'DANA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/7/72/Logo_dana_blue.svg" class="w-5 h-5 object-contain" alt="DANA" title="DANA">
                                             {% elif 'OVO' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/e/eb/Logo_ovo_purple.svg" class="w-5 h-5 object-contain" alt="OVO" title="OVO">
-                                            {% elif 'SHOPEEPAY' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="w-5 h-5 object-contain" alt="ShopeePay" title="ShopeePay">
+                                            {% elif 'SHOPEEPAY' in d or 'SPINJAM' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg" class="w-5 h-5 object-contain" alt="ShopeePay" title="ShopeePay">
+                                            {% elif 'HONEST' in d %}<img src="https://icon.horse/icon/honest.co.id" class="w-5 h-5 object-contain" alt="Honest Card" title="Honest Card">
                                             {% elif 'LINKAJA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/8/85/LinkAja.svg" class="w-5 h-5 object-contain" alt="LinkAja" title="LinkAja">
                                             {% else %}<i data-lucide="landmark" class="w-5 h-5 text-blue-500"></i>{% endif %}
                                             <span class="font-medium">{{ acc.name }}</span>

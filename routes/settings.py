@@ -147,9 +147,9 @@ def setup_account():
         'E-WALLET': ['DANA', 'GoPay', 'LinkAja', 'OVO', 'ShopeePay'],
         'BANK': ['BCA', 'BNI', 'BRI', 'BSI', 'CIMB Niaga', 'Mandiri', 'Bank Jago', 'Permata Bank', 'SeaBank', 
                 'Superbank', 'Bank DKI', 'Bank Mega', 'BJB', 'Jenius', 'OCBC NISP', 'BTN', 'HSBC'],
-        'KARTU KREDIT': ['BCA Card', 'Mandiri Card', 'BNI Card', 'BRI Card', 'CIMB Niaga Card', 'Citi Card', 'HSBC Card', 'DBS Card', 'Mega Card', 'Lainnya'],
+        'KARTU KREDIT': ['BCA Card', 'Mandiri Card', 'BNI Card', 'BRI Card', 'NEX Card BRI', 'Honest Card', 'CIMB Niaga Card', 'Citi Card', 'HSBC Card', 'DBS Card', 'Mega Card', 'Lainnya'],
         'PAYLATER': ['SPayLater', 'GoPayLater', 'Traveloka PayLater', 'Kredivo', 'Akulaku', 'Indodana', 'Lainnya'],
-        'PINJOL': ['AdaKami', 'Easycash', 'Kredit Pintar', 'Julo', 'Rupiah Cepat', 'Lainnya']
+        'PINJOL': ['SPinjam', 'AdaKami', 'Easycash', 'Kredit Pintar', 'Julo', 'Rupiah Cepat', 'Lainnya']
     }
     
     ACCOUNT_TYPES['E-WALLET'].sort()
