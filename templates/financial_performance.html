@@ -223,7 +223,8 @@
                                         <div class="flex items-center gap-2">
                                             {% set raw_d = acc.name.upper() %}
                                             {% set d = raw_d.replace(' ', '') %}
-                                            {% if 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w-5 h-5 object-contain" alt="BCA" title="BCA">
+                                            {% if 'CASH' in d %}<img src="{{ url_for('static', filename='img/cash_100k.jpg') }}" class="w-5 h-5 object-cover rounded-sm" alt="Cash" title="Cash">
+                                              {% elif 'BCA' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/5/5c/Bank_Central_Asia.svg" class="w-5 h-5 object-contain" alt="BCA" title="BCA">
                                             {% elif 'BNI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/f/f0/Bank_Negara_Indonesia_logo_%282004%29.svg" class="w-5 h-5 object-contain" alt="BNI" title="BNI">
                                             {% elif 'BRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/6/6d/BRI_2025.png" class="w-5 h-5 object-contain" alt="BRI" title="BRI">
                                             {% elif 'MANDIRI' in d %}<img src="https://upload.wikimedia.org/wikipedia/commons/a/ad/Bank_Mandiri_logo_2016.svg" class="w-5 h-5 object-contain" alt="Mandiri" title="Mandiri">
