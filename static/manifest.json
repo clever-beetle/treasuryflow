@@ -1,6 +1,6 @@
 {
     "name": "Treasury Flow",
-    "short_name": "TreasuryFlow",
+    "short_name": "Treasury Flow",
     "description": "Enterprise Personal Finance Tracker",
     "start_url": "/",
     "display": "standalone",
