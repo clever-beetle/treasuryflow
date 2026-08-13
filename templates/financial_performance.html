@@ -333,7 +333,7 @@
                 <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
                     <div class="p-6 border-b border-border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div>
-                            <h3 class="text-lg font-semibold tracking-tight">Pelacakan Kartu Kredit</h3>
+                            <h3 class="text-lg font-semibold tracking-tight">Kartu Kredit, Pinjaman Online, dan Paylater</h3>
                             <p class="text-sm text-muted-foreground">Monitor sisa limit dan tagihan berjalan.</p>
                         </div>
                         <a href="{{ url_for('settings.setup_account') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 shadow">
@@ -352,11 +352,12 @@
                                         <a href="{{ url_for('settings.setup_account') }}" class="p-1.5 bg-background border border-border rounded text-muted-foreground hover:text-blue-500 shadow-sm" title="Manage Account"><i data-lucide="settings" class="w-3 h-3"></i></a>
                                     </div>
                                     <div class="flex items-center gap-3 mb-4">
-                                        <div class="w-10 h-10 rounded bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
-                                            <i data-lucide="credit-card" class="w-5 h-5 text-indigo-600 dark:text-indigo-400"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="font-semibold text-sm">{{ cc.name }}</h4>
+                                        <div class="w-12 h-8 bg-white border border-border/50 rounded flex items-center justify-center p-1 shrink-0">
+                                              {{ macros.render_icon_only(cc.name) }}
+                                          </div>
+                                          <div>
+                                              {% set clean_name = cc.name.split('] ')[1] if '] ' in cc.name else cc.name %}
+                                              <h4 class="font-semibold text-sm">{{ clean_name }}</h4>
                                             <p class="text-xs text-muted-foreground">Limit: {{ cc.limit_amount | rupiah }}</p>
                                         </div>
                                     </div>
