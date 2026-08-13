@@ -241,10 +241,10 @@ def setup_account():
                 db.rollback()
             except:
                 pass
-             if 'UNIQUE' in str(e) or 'IntegrityError' in str(type(e).__name__):
-                 error = "Data integrity error occurred."
-             else:
-                 error = f"An error occurred: {e}"
+            if 'UNIQUE' in str(e) or 'IntegrityError' in str(type(e).__name__):
+                error = "Data integrity error occurred."
+            else:
+                error = f"An error occurred: {e}"
 
     accounts = db.execute('SELECT id, name, initial_balance, current_balance FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     return render_template('setup_account.html', accounts=accounts, message=message, error=error, categories=ACCOUNT_TYPES, account_to_edit=account_to_edit)
