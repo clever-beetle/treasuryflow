@@ -59,9 +59,10 @@ def dashboard():
             (SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND account_type = 'asset') as total_balance,
             (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date >= ? AND category != 'Transfer') as total_expense,
             (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income' AND date >= ? AND category != 'Transfer') as total_income,
-            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date = ? AND category != 'Transfer') as expense_today
+            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date = ? AND category != 'Transfer') as expense_today,
+            (SELECT SUM(limit_amount) FROM budgets WHERE user_id = ?) as total_budget
     '''
-    stats = db.execute(stats_query_compat, (user_id, user_id, days_ago_str, user_id, days_ago_str, user_id, today_str)).fetchone()
+    stats = db.execute(stats_query_compat, (user_id, user_id, days_ago_str, user_id, days_ago_str, user_id, today_str, user_id)).fetchone()
     
     total_balance = stats['total_balance'] or 0
     total_expense = stats['total_expense'] or 0
