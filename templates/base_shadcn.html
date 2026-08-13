@@ -152,8 +152,8 @@
                                         </a>
                                     </li>
                                     <li>
-                                        <a href="{{ url_for('transactions.transactions_list') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'transactions.transactions_list' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="list-ordered" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'transactions.transactions_list' else 'text-indigo-500' }}"></i> Transaction History
+                                        <a href="{{ url_for('transactions.transactions_list') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint in ['transactions.transactions_list', 'transactions.transactions_calendar'] else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="list-ordered" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint in ['transactions.transactions_list', 'transactions.transactions_calendar'] else 'text-indigo-500' }}"></i> Transaction History
                                         </a>
                                     </li>
                                     <li>
