@@ -1,9 +1,9 @@
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open('treasuryflow-v3').then((cache) => {
+    caches.open('treasuryflow-v4').then((cache) => {
       return cache.addAll([
         '/',
-        '/static/img/logo.png',
+        '/static/img/logo_v4.png',
       ]);
     })
   );
@@ -16,7 +16,7 @@ self.addEventListener('fetch', (event) => {
         // Cache the latest version if successful
         if (event.request.method === 'GET' && networkResponse.status === 200) {
           const responseClone = networkResponse.clone();
-          caches.open('treasuryflow-v3-dynamic').then((cache) => {
+          caches.open('treasuryflow-v4-dynamic').then((cache) => {
             cache.put(event.request, responseClone);
           });
         }
@@ -34,7 +34,7 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.filter((name) => !name.startsWith('treasuryflow-v3')).map((name) => caches.delete(name))
+        cacheNames.filter((name) => !name.startsWith('treasuryflow-v4')).map((name) => caches.delete(name))
       );
     })
   );
