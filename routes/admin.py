@@ -64,6 +64,10 @@ def dev_console():
                             cursor = db.execute(f"SELECT * FROM {selected_table} LIMIT 100")
                             table_data = [dict(row) for row in cursor.fetchall()]
                     except Exception as e:
+                        try:
+                            db.rollback()
+                        except:
+                            pass
                         error = f"Failed to delete: {str(e)}"
             else:
                 query = request.form.get('query', '').strip()
@@ -76,6 +80,10 @@ def dev_console():
                             db.commit()
                             success = "Query executed successfully."
                     except Exception as e:
+                        try:
+                            db.rollback()
+                        except:
+                            pass
                         error = str(e)
         elif selected_table in tables:
             try:
@@ -83,6 +91,10 @@ def dev_console():
                 cursor = db.execute(f"SELECT * FROM {selected_table} LIMIT 100")
                 table_data = [dict(row) for row in cursor.fetchall()]
             except Exception as e:
+                try:
+                    db.rollback()
+                except:
+                    pass
                 error = str(e)
 
         return render_template(
@@ -96,6 +108,10 @@ def dev_console():
             success=success
         )
     except Exception as e:
+        try:
+            db.rollback()
+        except:
+            pass
         import traceback
         err_msg = str(e) + "\\n" + traceback.format_exc()
         return render_template(

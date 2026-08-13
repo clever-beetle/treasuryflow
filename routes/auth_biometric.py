@@ -53,6 +53,10 @@ def register_verify():
         db.commit()
         return jsonify({"status": "ok"})
     except Exception as e:
+        try:
+            db.rollback()
+        except:
+            pass
         return jsonify({"status": "error", "message": str(e)}), 400
 
 # Authentication logic would go here similarly...

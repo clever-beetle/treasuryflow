@@ -237,6 +237,10 @@ def dashboard():
                         db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (inst['amount_per_cycle'], account['id']))
                         db.commit()
                     except Exception as e:
+                        try:
+                            db.rollback()
+                        except:
+                            pass
                         logger.error(f"Error sync recurring: {e}")
 
 

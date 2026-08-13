@@ -73,6 +73,10 @@ def api_chat():
             
         return jsonify({'reply': reply})
     except Exception as e:
+        try:
+            db.rollback()
+        except:
+            pass
         logger.error(f"Chat Error: {e}")
         return jsonify({'reply': 'Aduh, terjadi kesalahan pada sistem saya. Coba lagi nanti ya!'})
 
@@ -108,6 +112,10 @@ def api_forecast():
             'historical_points': len(expenses)
         })
     except Exception as e:
+        try:
+            db.rollback()
+        except:
+            pass
         logger.error(f"Forecast Error: {e}")
         return jsonify({'status': 'error', 'message': 'AI Engine error'})
 
@@ -155,6 +163,10 @@ def api_rag_chat():
         return jsonify({'reply': reply})
         
     except Exception as e:
+        try:
+            db.rollback()
+        except:
+            pass
         logger.error(f"RAG Error: {e}")
         return jsonify({'reply': 'Aduh, Vector Engine saya sedang bermasalah.'})
         
@@ -213,5 +225,9 @@ def predict_future():
             'message': 'Prediction generated using custom Linear Regression AI.'
         })
     except Exception as e:
+        try:
+            db.rollback()
+        except:
+            pass
         logger.error(f"Predict Future Error: {e}")
         return jsonify({'status': 'error', 'message': 'Fitur AI gagal diproses.'})
