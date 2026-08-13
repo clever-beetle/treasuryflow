@@ -53,10 +53,10 @@
         <div class="flex justify-between items-center mb-4">
             <!-- View Toggle -->
             <div class="flex items-center p-1 border border-border rounded-md bg-muted/50">
-                <a href="?view=list&cal_year={{ cal_year }}&cal_month={{ cal_month }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'list' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
+                <a href="{{ clean_url('transactions.transactions_list', view='list', cal_year=cal_year, cal_month=cal_month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'list' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
                     <i data-lucide="list" class="w-4 h-4 inline mr-1"></i> List
                 </a>
-                <a href="?view=calendar&cal_year={{ cal_year }}&cal_month={{ cal_month }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'calendar' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
+                <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=cal_year, cal_month=cal_month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'calendar' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
                     <i data-lucide="calendar-days" class="w-4 h-4 inline mr-1"></i> Calendar
                 </a>
             </div>
@@ -68,13 +68,13 @@
             <div class="flex justify-between items-center mb-6">
                 <h3 class="text-xl font-bold">{{ month_name }} {{ cal_year }}</h3>
                 <div class="flex gap-2">
-                    <a href="?view=calendar&cal_year={{ cal_year if cal_month > 1 else cal_year - 1 }}&cal_month={{ cal_month - 1 if cal_month > 1 else 12 }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
+                    <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=(cal_year if cal_month > 1 else cal_year - 1), cal_month=(cal_month - 1 if cal_month > 1 else 12), start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
                         <i data-lucide="chevron-left" class="w-4 h-4"></i>
                     </a>
-                    <a href="?view=calendar&cal_year={{ now.year }}&cal_month={{ now.month }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="px-3 py-2 border border-border rounded-md hover:bg-muted text-sm font-medium text-muted-foreground">
+                    <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=now.year, cal_month=now.month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="px-3 py-2 border border-border rounded-md hover:bg-muted text-sm font-medium text-muted-foreground">
                         Today
                     </a>
-                    <a href="?view=calendar&cal_year={{ cal_year if cal_month < 12 else cal_year + 1 }}&cal_month={{ cal_month + 1 if cal_month < 12 else 1 }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
+                    <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=(cal_year if cal_month < 12 else cal_year + 1), cal_month=(cal_month + 1 if cal_month < 12 else 1), start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
                         <i data-lucide="chevron-right" class="w-4 h-4"></i>
                     </a>
                 </div>
@@ -89,7 +89,7 @@
                         {% set d_str = date.strftime('%Y-%m-%d') %}
                         {% set is_current = date.month == cal_month %}
                         {% set is_today = date == now %}
-                        <a href="?view=list&start_date={{ d_str }}&end_date={{ d_str }}&cal_month={{ cal_month }}&cal_year={{ cal_year }}&category={{ selected_category }}&account_id={{ selected_account }}&search={{ search_query }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&page={{ page }}" class="bg-background min-h-[100px] p-2 hover:bg-muted/50 transition-colors flex flex-col {% if not is_current %}opacity-40{% endif %} {% if start_date == d_str and end_date == d_str %}ring-2 ring-inset ring-primary bg-primary/5 z-10{% endif %}">
+                        <a href="{{ clean_url('transactions.transactions_list', view='list', start_date=d_str, end_date=d_str, cal_month=cal_month, cal_year=cal_year, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=1) }}" class="bg-background min-h-[100px] p-2 hover:bg-muted/50 transition-colors flex flex-col {% if not is_current %}opacity-40{% endif %} {% if start_date == d_str and end_date == d_str %}ring-2 ring-inset ring-primary bg-primary/5 z-10{% endif %}">
                             <div class="flex items-start justify-between">
                                 <span class="text-sm font-medium {% if is_today %}bg-primary text-primary-foreground rounded-full w-6 h-6 inline-flex items-center justify-center{% elif start_date == d_str and end_date == d_str %}text-primary{% endif %}">{{ date.day }}</span>
                             </div>
@@ -202,7 +202,7 @@
                                 {% set is_active = (sort_by == col_name) %}
                                 {% set new_order = 'asc' if (is_active and sort_order == 'desc') else 'desc' %}
                                 <th class="h-12 px-4 {{ classes }} align-middle font-medium text-muted-foreground">
-                                    <a href="?view={{ view }}&page={{ page }}&sort_by={{ col_name }}&sort_order={{ new_order }}&search={{ search_query }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}" class="inline-flex items-center hover:text-foreground transition-colors group">
+                                    <a href="{{ clean_url('transactions.transactions_list', view=view, page=1, sort_by=col_name, sort_order=new_order, search=search_query, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account) }}" class="inline-flex items-center hover:text-foreground transition-colors group">
                                         {{ label }}
                                         <i data-lucide="arrow-up-down" class="ml-1 h-3 w-3 opacity-50 group-hover:opacity-100 {% if is_active %}text-primary opacity-100{% endif %}"></i>
                                     </a>
@@ -273,12 +273,12 @@
                     <p class="text-sm text-muted-foreground">Page {{ page }} of {{ total_pages }}</p>
                     <div class="flex gap-2">
                         {% if page > 1 %}
-                        <a href="?view={{ view }}&page={{ page - 1 }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&search={{ search_query }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
+                        <a href="{{ clean_url('transactions.transactions_list', view=view, page=page - 1, sort_by=sort_by, sort_order=sort_order, search=search_query, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
                             <i data-lucide="chevron-left" class="w-4 h-4"></i>
                         </a>
                         {% endif %}
                         {% if page < total_pages %}
-                        <a href="?view={{ view }}&page={{ page + 1 }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}&search={{ search_query }}&start_date={{ start_date }}&end_date={{ end_date }}&category={{ selected_category }}&account_id={{ selected_account }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
+                        <a href="{{ clean_url('transactions.transactions_list', view=view, page=page + 1, sort_by=sort_by, sort_order=sort_order, search=search_query, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
                             <i data-lucide="chevron-right" class="w-4 h-4"></i>
                         </a>
                         {% endif %}

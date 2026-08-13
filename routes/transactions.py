@@ -10,6 +10,16 @@ from openpyxl.chart import BarChart, Reference
 
 transactions_bp = Blueprint('transactions', __name__)
 
+@transactions_bp.route('/calendar', strict_slashes=False, endpoint='transactions_calendar')
+@login_required
+def transactions_calendar():
+    from flask import request
+    # Pass all query args to transactions_list but override view
+    args = request.args.copy()
+    args['view'] = 'calendar'
+    request.args = args
+    return transactions_list()
+
 @transactions_bp.route('', strict_slashes=False)
 @transactions_bp.route('/', strict_slashes=False)
 @login_required

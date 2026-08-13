@@ -519,6 +519,33 @@ app.register_blueprint(stream_bp)
 app.register_blueprint(extra_bp)
 
 
+
+@app.context_processor
+def inject_clean_url():
+    def clean_url(endpoint, **kwargs):
+        from flask import url_for
+        filtered_kwargs = {}
+        for k, v in kwargs.items():
+            if v == '' or v is None:
+                continue
+            if k == 'page' and (v == 1 or v == '1'):
+                continue
+            if k == 'sort_by' and v == 'date':
+                continue
+            if k == 'sort_order' and v == 'desc':
+                continue
+            filtered_kwargs[k] = v
+            
+        if endpoint == 'transactions.transactions_list':
+            if filtered_kwargs.get('view') == 'calendar':
+                endpoint = 'transactions.transactions_calendar'
+                filtered_kwargs.pop('view')
+            elif filtered_kwargs.get('view') == 'list':
+                filtered_kwargs.pop('view', None)
+                
+        return url_for(endpoint, **filtered_kwargs)
+    return dict(clean_url=clean_url)
+
 @app.after_request
 def add_header(response):
     if 'text/html' in response.headers.get('Content-Type', ''):
