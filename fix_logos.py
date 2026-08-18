@@ -1,19 +1,22 @@
-import re
+with open('templates/macros.html', 'r', encoding='utf-8') as f:
+    m = f.read()
+m = m.replace(
+    "or 'SHOPEEPAY' in d",
+    "or 'SHOPEEPAY' in d or 'SPINJAM' in d or 'HONEST' in d"
+)
+m = m.replace(
+    "{% elif 'SHOPEEPAY' in d %}<img src=\"https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg\" class=\"w-full h-full object-contain\" alt=\"ShopeePay\" onerror=\"this.outerHTML='<i data-lucide=\\'wallet\\' class=\\'w-6 h-6 text-primary\\'></i>'; lucide.createIcons();\">",
+    "{% elif 'SHOPEEPAY' in d or 'SPINJAM' in d %}<img src=\"https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg\" class=\"w-full h-full object-contain\" alt=\"ShopeePay\" onerror=\"this.outerHTML='<i data-lucide=\\'wallet\\' class=\\'w-6 h-6 text-primary\\'></i>'; lucide.createIcons();\">\n        {% elif 'HONEST' in d %}<img src=\"https://icon.horse/icon/honest.co.id\" class=\"w-full h-full object-contain\" alt=\"Honest Card\" onerror=\"this.outerHTML='<i data-lucide=\\'wallet\\' class=\\'w-6 h-6 text-primary\\'></i>'; lucide.createIcons();\">"
+)
+with open('templates/macros.html', 'w', encoding='utf-8') as f:
+    f.write(m)
 
-def replace_logos(filepath):
-    with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
-    
-    # Add import to top if not present
-    if '{% import \\'macros.html\\' as macros %}' not in content and '{% import "macros.html" as macros %}' not in content:
-        content = content.replace('{% extends \\'base_shadcn.html\\' %}', '{% extends \\'base_shadcn.html\\' %}\n{% import \\'macros.html\\' as macros %}')
-        content = content.replace('{% extends "base_shadcn.html" %}', '{% extends "base_shadcn.html" %}\n{% import \\'macros.html\\' as macros %}')
-    
-    # Dashboard pattern 1 (with text label)
-    pattern1 = r"{% set raw_d = tx\.account_name\.upper\(\) if tx\.account_name else '' %}\s*{% set d = raw_d\.replace\(' ', ''\) %}\s*<div class=\"flex items-center gap-3\">\s*<div class=\"w-10 h-7 flex items-center justify-center\">[\s\S]*?</div>\s*<span class=\"font-medium text-sm\">{{ tx\.account_name\.split\('\] '\)\[-1\] if '\] ' in tx\.account_name else tx\.account_name }}</span>\s*</div>"
-    content = re.sub(pattern1, "{{ macros.render_account_logo(tx.account_name) }}", content)
-    
-    with open(filepath, 'w', encoding='utf-8') as f:
-        f.write(content)
-
-replace_logos('templates/dashboard.html')
+with open('templates/financial_performance.html', 'r', encoding='utf-8') as f:
+    fp = f.read()
+fp = fp.replace(
+    "{% elif 'SHOPEEPAY' in d %}<img src=\"https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg\" class=\"w-5 h-5 object-contain\" alt=\"ShopeePay\" title=\"ShopeePay\">",
+    "{% elif 'SHOPEEPAY' in d or 'SPINJAM' in d %}<img src=\"https://upload.wikimedia.org/wikipedia/commons/f/fe/Shopee.svg\" class=\"w-5 h-5 object-contain\" alt=\"ShopeePay\" title=\"ShopeePay\">\n                                            {% elif 'HONEST' in d %}<img src=\"https://icon.horse/icon/honest.co.id\" class=\"w-5 h-5 object-contain\" alt=\"Honest Card\" title=\"Honest Card\">"
+)
+with open('templates/financial_performance.html', 'w', encoding='utf-8') as f:
+    f.write(fp)
+print('Updated templates')
