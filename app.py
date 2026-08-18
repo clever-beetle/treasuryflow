@@ -46,6 +46,7 @@ app.config.update(
 swagger = Swagger(app)
 
 import utils
+from utils import logger
 
 # --- SQLAlchemy Initialization (Strangler Pattern) ---
 from models import db
@@ -132,7 +133,7 @@ utils.babel.init_app(app, locale_selector=get_locale)
 
 @app.route('/sw.js')
 def sw():
-    return app
+    return app.send_static_file('sw.js')
 
 @app.route('/test_db')
 def test_db():
@@ -145,7 +146,7 @@ def test_db():
         return "Query succeeded!"
     except Exception as e:
         import traceback
-        return f"<pre>{traceback.format_exc()}</pre>".send_static_file('sw.js')
+        return f"<pre>{traceback.format_exc()}</pre>"
 
 # Database initialization is now moved to CLI commands to prevent slow Vercel cold starts
 # ----------------------------------------------------

@@ -221,11 +221,15 @@ def dashboard():
 
     # AUTO RECURRING SYNC
     current_month_str = today.strftime('%Y-%m')
+    first_day_of_month = today.replace(day=1).strftime('%Y-%m-%d')
+    import calendar as cal_mod
+    last_day = cal_mod.monthrange(today.year, today.month)[1]
+    last_day_of_month = today.replace(day=last_day).strftime('%Y-%m-%d')
     installments_sync = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 1", (user_id,)).fetchall()
     for inst in installments_sync:
         if today.day >= inst['due_day_of_month']:
             desc = f"Auto-Sync: {inst['name']}"
-            existing = db.execute("SELECT id FROM transactions WHERE user_id = ? AND description = ? AND strftime('%Y-%m', date) = ?", (user_id, desc, current_month_str)).fetchone()
+            existing = db.execute("SELECT id FROM transactions WHERE user_id = ? AND description = ? AND date >= ? AND date <= ?", (user_id, desc, first_day_of_month, last_day_of_month)).fetchone()
             if not existing:
                 account = db.execute("SELECT id FROM accounts WHERE user_id = ? LIMIT 1", (user_id,)).fetchone()
                 if account:

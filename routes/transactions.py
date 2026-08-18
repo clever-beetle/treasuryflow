@@ -61,6 +61,14 @@ def transactions_list():
         query += ' AND t.account_id = ?'
         params.append(selected_account)
         
+    # Validate sort parameters to prevent SQL injection
+    allowed_sort_columns = {'date', 'amount', 'category', 'description', 'type'}
+    allowed_sort_orders = {'asc', 'desc'}
+    if sort_by not in allowed_sort_columns:
+        sort_by = 'date'
+    if sort_order.lower() not in allowed_sort_orders:
+        sort_order = 'desc'
+        
     query += f' ORDER BY t.{sort_by} {sort_order}'
     
     transactions = db.execute(query, params).fetchall()
