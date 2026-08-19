@@ -43,8 +43,12 @@ def api_chat():
                 
         # 2. Boros / Pengeluaran Check
         elif 'boros' in message or 'pengeluaran' in message or 'habis' in message:
-            expense = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND category != 'Transfer' AND strftime('%Y-%m', date) = ?", (user_id, current_month)).fetchone()[0] or 0
-            income = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income' AND category != 'Transfer' AND strftime('%Y-%m', date) = ?", (user_id, current_month)).fetchone()[0] or 0
+            first_day = today.replace(day=1).strftime('%Y-%m-%d')
+            import calendar as cal_mod
+            last_day_num = cal_mod.monthrange(today.year, today.month)[1]
+            last_day = today.replace(day=last_day_num).strftime('%Y-%m-%d')
+            expense = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND category != 'Transfer' AND date >= ? AND date <= ?", (user_id, first_day, last_day)).fetchone()[0] or 0
+            income = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income' AND category != 'Transfer' AND date >= ? AND date <= ?", (user_id, first_day, last_day)).fetchone()[0] or 0
             
             if expense == 0:
                 reply = "Hebat! Anda belum ada pengeluaran sama sekali di bulan ini."
@@ -88,10 +92,10 @@ def api_forecast():
         db = get_db()
         
         expenses = db.execute("""
-            SELECT strftime('%Y-%m', date) as month, SUM(amount) as total
+            SELECT SUBSTRING(date, 1, 7) as month, SUM(amount) as total
             FROM transactions 
             WHERE user_id = ? AND type = 'expense'
-            GROUP BY month
+            GROUP BY SUBSTRING(date, 1, 7)
             ORDER BY month ASC
             LIMIT 6
         """, (user_id,)).fetchall()
@@ -171,12 +175,16 @@ def api_rag_chat():
         return jsonify({'reply': 'Aduh, Vector Engine saya sedang bermasalah.'})
         
 def api_chat_fallback(message, db, user_id):
-    current_month = datetime.now().strftime('%Y-%m')
+    today = datetime.now()
+    first_day = today.replace(day=1).strftime('%Y-%m-%d')
+    import calendar as cal_mod
+    last_day_num = cal_mod.monthrange(today.year, today.month)[1]
+    last_day = today.replace(day=last_day_num).strftime('%Y-%m-%d')
     if 'saldo' in message or 'uang' in message or 'sisa' in message:
         total_balance = db.execute('SELECT SUM(current_balance) FROM accounts WHERE user_id = ?', (user_id,)).fetchone()[0] or 0
         return jsonify({'reply': f"Total saldo Anda: **Rp {total_balance:,.0f}**."})
     elif 'boros' in message or 'pengeluaran' in message:
-        expense = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND category != 'Transfer' AND strftime('%Y-%m', date) = ?", (user_id, current_month)).fetchone()[0] or 0
+        expense = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND category != 'Transfer' AND date >= ? AND date <= ?", (user_id, first_day, last_day)).fetchone()[0] or 0
         return jsonify({'reply': f"Bulan ini pengeluaran Anda sudah mencapai **Rp {expense:,.0f}**."})
     return jsonify({'reply': "Maaf, mesin AI tidak menemukan transaksi yang cocok, dan saya tidak memahami maksud Anda."})
 
