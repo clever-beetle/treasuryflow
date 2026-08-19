@@ -42,6 +42,8 @@ class Account(db.Model):
     name = db.Column(db.String(100), nullable=False)
     initial_balance = db.Column(db.Float, nullable=False, default=0.0)
     current_balance = db.Column(db.Float, nullable=False, default=0.0)
+    account_type = db.Column(db.String(20), default='asset')
+    limit_amount = db.Column(db.Float, default=0.0)
 
 class Transaction(db.Model):
     __tablename__ = 'transactions'
@@ -54,6 +56,8 @@ class Transaction(db.Model):
     description = db.Column(db.String(255))
     category = db.Column(db.String(100))
     linked_transaction_id = db.Column(db.Integer)
+    hash = db.Column(db.Text)
+    previous_hash = db.Column(db.Text)
 
 class CreditCard(db.Model):
     __tablename__ = 'credit_cards'

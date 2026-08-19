@@ -393,8 +393,15 @@ def manage_budget():
                        (user_id, category_name, limit_amount))
             db.commit()
             flash('Anggaran berhasil ditambahkan!', 'success')
-        except db.IntegrityError:
-            flash('Anggaran untuk kategori ini sudah ada.', 'warning')
+        except Exception as e:
+            try:
+                db.rollback()
+            except:
+                pass
+            if 'UNIQUE' in str(e) or 'duplicate' in str(e).lower():
+                flash('Anggaran untuk kategori ini sudah ada.', 'warning')
+            else:
+                flash(f'Gagal menambah anggaran: {e}', 'danger')
             
     elif action == 'delete':
         budget_id = request.form.get('budget_id')

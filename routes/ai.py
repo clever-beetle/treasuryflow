@@ -63,8 +63,8 @@ def api_chat():
                 
         # 3. Utang Check
         elif 'utang' in message or 'hutang' in message:
-            total_debt = db.execute("SELECT SUM(remaining_amount) FROM debts_receivables WHERE user_id = ? AND type = 'utang' AND status = 'BELUM LUNAS'", (user_id,)).fetchone()[0] or 0
-            total_piutang = db.execute("SELECT SUM(remaining_amount) FROM debts_receivables WHERE user_id = ? AND type = 'piutang' AND status = 'BELUM LUNAS'", (user_id,)).fetchone()[0] or 0
+            total_debt = db.execute("SELECT SUM(remaining_amount) FROM debts_receivables WHERE user_id = ? AND type = 'debt' AND status = 'BELUM LUNAS'", (user_id,)).fetchone()[0] or 0
+            total_piutang = db.execute("SELECT SUM(remaining_amount) FROM debts_receivables WHERE user_id = ? AND type = 'receivable' AND status = 'BELUM LUNAS'", (user_id,)).fetchone()[0] or 0
             
             if total_debt == 0 and total_piutang == 0:
                 reply = "Bagus sekali! Anda tidak memiliki utang maupun piutang aktif."

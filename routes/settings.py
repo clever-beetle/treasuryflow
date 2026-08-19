@@ -67,7 +67,10 @@ def settings():
                 error = "Password salah! Gagal menghapus akun."
             else:
                 db.execute("DELETE FROM budgets WHERE user_id = ?", (user_id,))
-                db.execute("DELETE FROM credit_cards WHERE user_id = ?", (user_id,))
+                try:
+                    db.execute("DELETE FROM credit_cards WHERE user_id = ?", (user_id,))
+                except Exception:
+                    pass
                 db.execute("DELETE FROM user_categories WHERE user_id = ?", (user_id,))
                 db.execute("DELETE FROM financial_goals WHERE user_id = ?", (user_id,))
                 db.execute("DELETE FROM debt_payments WHERE debt_id IN (SELECT id FROM debts_receivables WHERE user_id = ?)", (user_id,))
@@ -113,7 +116,10 @@ def settings():
                 error = "Password salah! Gagal mereset data."
             else:
                 db.execute("DELETE FROM budgets WHERE user_id = ?", (user_id,))
-                db.execute("DELETE FROM credit_cards WHERE user_id = ?", (user_id,))
+                try:
+                    db.execute("DELETE FROM credit_cards WHERE user_id = ?", (user_id,))
+                except Exception:
+                    pass
                 db.execute("DELETE FROM financial_goals WHERE user_id = ?", (user_id,))
                 db.execute("DELETE FROM debt_payments WHERE debt_id IN (SELECT id FROM debts_receivables WHERE user_id = ?)", (user_id,))
                 db.execute("DELETE FROM debts_receivables WHERE user_id = ?", (user_id,))
