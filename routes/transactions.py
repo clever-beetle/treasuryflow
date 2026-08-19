@@ -367,22 +367,315 @@ def export_excel():
 def export_pdf():
     db = get_db()
     user_id = session['user_id']
-    transactions = db.execute('''
+    user = db.execute('SELECT fullname, username FROM users WHERE id = ?', (user_id,)).fetchone()
+    fullname = user['fullname'] if user and user['fullname'] else (user['username'] if user else 'User')
+    
+    # Get filter params for period display
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    
+    query = '''
         SELECT t.date, t.type, t.amount, t.description, t.category, a.name as account_name 
         FROM transactions t
         JOIN accounts a ON t.account_id = a.id
-        WHERE t.user_id = ? ORDER BY t.date DESC
-    ''', (user_id,)).fetchall()
+        WHERE t.user_id = ?
+    '''
+    params = [user_id]
+    if start_date:
+        query += ' AND t.date >= ?'
+        params.append(start_date)
+    if end_date:
+        query += ' AND t.date <= ?'
+        params.append(end_date)
+    query += ' ORDER BY t.date DESC'
     
-    pdf = FPDF()
+    transactions = db.execute(query, params).fetchall()
+    
+    total_income = sum(t['amount'] for t in transactions if t['type'] == 'income')
+    total_expense = sum(t['amount'] for t in transactions if t['type'] == 'expense')
+    net_flow = total_income - total_expense
+    total_transactions = len(transactions)
+
+    # --- Period label ---
+    if start_date and end_date:
+        period_label = f"{start_date}  to  {end_date}"
+    elif start_date:
+        period_label = f"{start_date}  to  Present"
+    elif end_date:
+        period_label = f"All Time  to  {end_date}"
+    else:
+        period_label = "All Time"
+
+    # --- Custom PDF class ---
+    class TreasuryPDF(FPDF):
+        NAVY = (17, 35, 126)        # #11237E
+        DARK_NAVY = (10, 20, 80)
+        GOLD = (180, 150, 60)
+        LIGHT_GRAY = (245, 245, 248)
+        MID_GRAY = (200, 200, 210)
+        DARK_GRAY = (100, 100, 110)
+        WHITE = (255, 255, 255)
+        GREEN = (16, 150, 72)
+        RED = (200, 40, 40)
+        BLACK = (30, 30, 30)
+        ACCENT_BLUE = (60, 100, 200)
+
+        def header(self):
+            # Top accent bar
+            self.set_fill_color(*self.NAVY)
+            self.rect(0, 0, 210, 3, 'F')
+            # Gold thin line below
+            self.set_fill_color(*self.GOLD)
+            self.rect(0, 3, 210, 0.7, 'F')
+
+            # Company name
+            self.set_y(8)
+            self.set_font('Arial', 'B', 22)
+            self.set_text_color(*self.NAVY)
+            self.cell(0, 10, 'TREASURY FLOW', 0, 1, 'C')
+
+            # Subtitle
+            self.set_font('Arial', '', 9)
+            self.set_text_color(*self.DARK_GRAY)
+            self.cell(0, 5, 'Personal Wealth Management & Financial Analytics', 0, 1, 'C')
+            
+            # Contact info
+            self.set_font('Arial', '', 7.5)
+            self.set_text_color(*self.ACCENT_BLUE)
+            self.cell(0, 4, 'treasuryflow@gmail.com  |  www.treasuryflow.web.id', 0, 1, 'C')
+
+            # Header bottom border
+            self.set_y(30)
+            self.set_fill_color(*self.NAVY)
+            self.rect(10, 30, 190, 0.5, 'F')
+            self.set_fill_color(*self.GOLD)
+            self.rect(10, 30.5, 190, 0.3, 'F')
+            self.ln(6)
+
+        def footer(self):
+            self.set_y(-25)
+            # Top line
+            self.set_fill_color(*self.MID_GRAY)
+            self.rect(10, self.get_y(), 190, 0.3, 'F')
+            self.ln(3)
+
+            # Powered by
+            self.set_font('Arial', 'B', 7)
+            self.set_text_color(*self.NAVY)
+            self.cell(0, 4, 'Powered by Fernando Capital', 0, 1, 'C')
+
+            # Confidential notice
+            self.set_font('Arial', 'I', 6)
+            self.set_text_color(*self.DARK_GRAY)
+            self.cell(0, 3, 'This document is confidential and intended solely for the named recipient.', 0, 1, 'C')
+
+            # Page number
+            self.set_font('Arial', '', 7)
+            self.set_text_color(*self.ACCENT_BLUE)
+            self.cell(0, 4, f'Page {self.page_no()}/{{nb}}', 0, 0, 'C')
+
+        def section_title(self, title):
+            self.set_font('Arial', 'B', 12)
+            self.set_text_color(*self.NAVY)
+            self.cell(0, 8, title, 0, 1, 'L')
+            # Underline accent
+            self.set_fill_color(*self.GOLD)
+            self.rect(self.get_x(), self.get_y(), 40, 0.6, 'F')
+            self.ln(3)
+
+        def summary_card(self, x, label, value, color):
+            card_w = 58
+            card_h = 22
+            # Card background
+            self.set_fill_color(*self.LIGHT_GRAY)
+            self.rounded_rect(x, self.get_y(), card_w, card_h, 2, 'F')
+            # Border top accent
+            self.set_fill_color(*color)
+            self.rect(x, self.get_y(), card_w, 1.2, 'F')
+            # Label
+            self.set_xy(x + 3, self.get_y() + 3)
+            self.set_font('Arial', '', 6.5)
+            self.set_text_color(*self.DARK_GRAY)
+            self.cell(card_w - 6, 4, label, 0, 0, 'L')
+            # Value
+            self.set_xy(x + 3, self.get_y() + 5)
+            self.set_font('Arial', 'B', 11)
+            self.set_text_color(*color)
+            self.cell(card_w - 6, 6, value, 0, 0, 'L')
+
+        def rounded_rect(self, x, y, w, h, r, style=''):
+            # Simple filled rect (FPDF doesn't support rounded natively)
+            self.rect(x, y, w, h, style)
+
+    # --- Build PDF ---
+    pdf = TreasuryPDF()
+    pdf.alias_nb_pages()
+    pdf.set_auto_page_break(auto=True, margin=28)
     pdf.add_page()
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt="Transactions Report", ln=1, align='C')
-    for t in transactions:
-        pdf.cell(200, 10, txt=f"{t['date']} - {t['type']} - Rp{t['amount']} - {t['category']} - {t['description']}", ln=1)
+
+    # === DOCUMENT TITLE ===
+    pdf.set_font('Arial', 'B', 16)
+    pdf.set_text_color(*TreasuryPDF.NAVY)
+    pdf.cell(0, 10, 'FINANCIAL STATEMENT REPORT', 0, 1, 'C')
+    pdf.ln(2)
+
+    # === REPORT INFO BOX ===
+    box_y = pdf.get_y()
+    pdf.set_fill_color(*TreasuryPDF.LIGHT_GRAY)
+    pdf.rect(10, box_y, 190, 20, 'F')
+    # Left side
+    pdf.set_xy(14, box_y + 3)
+    pdf.set_font('Arial', '', 8)
+    pdf.set_text_color(*TreasuryPDF.DARK_GRAY)
+    pdf.cell(25, 5, 'Prepared For', 0, 0)
+    pdf.set_font('Arial', 'B', 9)
+    pdf.set_text_color(*TreasuryPDF.BLACK)
+    pdf.cell(60, 5, f':  {fullname}', 0, 1)
+    pdf.set_x(14)
+    pdf.set_font('Arial', '', 8)
+    pdf.set_text_color(*TreasuryPDF.DARK_GRAY)
+    pdf.cell(25, 5, 'Period', 0, 0)
+    pdf.set_font('Arial', 'B', 9)
+    pdf.set_text_color(*TreasuryPDF.BLACK)
+    pdf.cell(60, 5, f':  {period_label}', 0, 0)
+    # Right side
+    pdf.set_xy(130, box_y + 3)
+    pdf.set_font('Arial', '', 8)
+    pdf.set_text_color(*TreasuryPDF.DARK_GRAY)
+    pdf.cell(25, 5, 'Report Date', 0, 0)
+    pdf.set_font('Arial', 'B', 9)
+    pdf.set_text_color(*TreasuryPDF.BLACK)
+    report_date = datetime.now().strftime('%d %B %Y')
+    pdf.cell(40, 5, f':  {report_date}', 0, 1)
+    pdf.set_xy(130, box_y + 9)
+    pdf.set_font('Arial', '', 8)
+    pdf.set_text_color(*TreasuryPDF.DARK_GRAY)
+    pdf.cell(25, 5, 'Total Entries', 0, 0)
+    pdf.set_font('Arial', 'B', 9)
+    pdf.set_text_color(*TreasuryPDF.BLACK)
+    pdf.cell(40, 5, f':  {total_transactions}', 0, 1)
+
+    pdf.set_y(box_y + 23)
+
+    # === FINANCIAL SUMMARY ===
+    pdf.section_title('Financial Summary')
     
+    card_y = pdf.get_y()
+    pdf.summary_card(10, 'TOTAL CASH IN (INCOME)', f'+ Rp {total_income:,.0f}', TreasuryPDF.GREEN)
+    pdf.set_y(card_y)
+    pdf.summary_card(72, 'TOTAL CASH OUT (EXPENSE)', f'- Rp {total_expense:,.0f}', TreasuryPDF.RED)
+    pdf.set_y(card_y)
+    net_color = TreasuryPDF.GREEN if net_flow >= 0 else TreasuryPDF.RED
+    net_sign = '+' if net_flow >= 0 else '-'
+    pdf.summary_card(134, 'NET FLOW / SAVINGS', f'{net_sign} Rp {abs(net_flow):,.0f}', net_color)
+
+    pdf.set_y(card_y + 28)
+
+    # === TRANSACTION TABLE ===
+    pdf.section_title('Transaction Ledger')
+
+    # Table header
+    col_widths = [22, 52, 35, 38, 23, 20]
+    headers = ['DATE', 'DESCRIPTION', 'CATEGORY', 'ACCOUNT', 'AMOUNT', 'TYPE']
+    
+    pdf.set_fill_color(*TreasuryPDF.NAVY)
+    pdf.set_text_color(*TreasuryPDF.WHITE)
+    pdf.set_font('Arial', 'B', 7)
+    for i, h in enumerate(headers):
+        pdf.cell(col_widths[i], 7, h, 0, 0, 'C', fill=True)
+    pdf.ln()
+    
+    # Gold line under header
+    pdf.set_fill_color(*TreasuryPDF.GOLD)
+    pdf.rect(10, pdf.get_y(), 190, 0.4, 'F')
+
+    # Table rows
+    pdf.set_font('Arial', '', 7)
+    for idx, t in enumerate(transactions):
+        # Check for page break
+        if pdf.get_y() > 255:
+            pdf.add_page()
+            # Re-draw table header on new page
+            pdf.section_title('Transaction Ledger (Continued)')
+            pdf.set_fill_color(*TreasuryPDF.NAVY)
+            pdf.set_text_color(*TreasuryPDF.WHITE)
+            pdf.set_font('Arial', 'B', 7)
+            for i, h in enumerate(headers):
+                pdf.cell(col_widths[i], 7, h, 0, 0, 'C', fill=True)
+            pdf.ln()
+            pdf.set_fill_color(*TreasuryPDF.GOLD)
+            pdf.rect(10, pdf.get_y(), 190, 0.4, 'F')
+            pdf.set_font('Arial', '', 7)
+
+        # Alternating row colors
+        if idx % 2 == 0:
+            pdf.set_fill_color(252, 252, 255)
+        else:
+            pdf.set_fill_color(240, 242, 250)
+        
+        date_str = str(t['date'])[:10] if t['date'] else ''
+        desc = str(t['description'] or '')[:35]
+        cat = str(t['category'] or '')[:20]
+        
+        # Clean account name (remove [TYPE] prefix)
+        acc_raw = str(t['account_name'] or '')
+        acc = acc_raw.split('] ')[-1] if '] ' in acc_raw else acc_raw
+        acc = acc[:22]
+        
+        amount = t['amount'] or 0
+        is_expense = t['type'] == 'expense'
+        amount_str = f"{'- ' if is_expense else '+ '}Rp {amount:,.0f}"
+        type_str = t['type'].upper() if t['type'] else ''
+
+        # Draw row
+        row_y = pdf.get_y()
+        pdf.set_text_color(*TreasuryPDF.BLACK)
+        pdf.cell(col_widths[0], 6, date_str, 0, 0, 'C', fill=True)
+        pdf.cell(col_widths[1], 6, desc, 0, 0, 'L', fill=True)
+        pdf.cell(col_widths[2], 6, cat, 0, 0, 'C', fill=True)
+        pdf.cell(col_widths[3], 6, acc, 0, 0, 'C', fill=True)
+        
+        # Amount with color
+        if is_expense:
+            pdf.set_text_color(*TreasuryPDF.RED)
+        else:
+            pdf.set_text_color(*TreasuryPDF.GREEN)
+        pdf.cell(col_widths[4], 6, amount_str, 0, 0, 'R', fill=True)
+        
+        # Type badge
+        pdf.set_font('Arial', 'B', 6)
+        if is_expense:
+            pdf.set_fill_color(255, 230, 230)
+            pdf.set_text_color(*TreasuryPDF.RED)
+        else:
+            pdf.set_fill_color(230, 255, 235)
+            pdf.set_text_color(*TreasuryPDF.GREEN)
+        pdf.cell(col_widths[5], 6, type_str, 0, 0, 'C', fill=True)
+        pdf.ln()
+        pdf.set_font('Arial', '', 7)
+
+        # Row bottom border
+        pdf.set_draw_color(220, 220, 230)
+        pdf.line(10, pdf.get_y(), 200, pdf.get_y())
+
+    # === END NOTES ===
+    pdf.ln(6)
+    pdf.set_fill_color(*TreasuryPDF.LIGHT_GRAY)
+    note_y = pdf.get_y()
+    if note_y > 260:
+        pdf.add_page()
+        note_y = pdf.get_y()
+    pdf.rect(10, note_y, 190, 12, 'F')
+    pdf.set_xy(14, note_y + 2)
+    pdf.set_font('Arial', 'I', 7)
+    pdf.set_text_color(*TreasuryPDF.DARK_GRAY)
+    pdf.cell(0, 4, 'Note: This report was automatically generated by Treasury Flow Financial Platform.', 0, 1)
+    pdf.set_x(14)
+    pdf.cell(0, 4, 'All amounts are in Indonesian Rupiah (IDR). For questions, contact treasuryflow@gmail.com', 0, 1)
+
+    # Output
     response = make_response(pdf.output(dest='S').encode('latin-1'))
-    response.headers.set('Content-Disposition', 'attachment', filename='transactions.pdf')
+    response.headers.set('Content-Disposition', 'attachment', filename='Treasury_Flow_Financial_Report.pdf')
     response.headers.set('Content-Type', 'application/pdf')
     return response
 
@@ -401,23 +694,113 @@ def download_receipt(id):
     if not tx:
         flash('Transaction not found', 'danger')
         return redirect(url_for('transactions.transactions_list'))
-        
+
+    user = db.execute('SELECT fullname, username FROM users WHERE id = ?', (user_id,)).fetchone()
+    fullname = user['fullname'] if user and user['fullname'] else (user['username'] if user else 'User')
+
+    NAVY = (17, 35, 126)
+    GOLD = (180, 150, 60)
+    DARK_GRAY = (100, 100, 110)
+    ACCENT_BLUE = (60, 100, 200)
+    BLACK = (30, 30, 30)
+    GREEN = (16, 150, 72)
+    RED = (200, 40, 40)
+    LIGHT_GRAY = (245, 245, 248)
+
     pdf = FPDF()
+    pdf.alias_nb_pages()
     pdf.add_page()
-    pdf.set_font("Arial", size=15)
-    pdf.cell(200, 10, txt="TREASURY FLOW - TRANSACTION RECEIPT", ln=1, align='C')
-    pdf.cell(200, 10, txt="--------------------------------------------------", ln=1, align='C')
-    pdf.set_font("Arial", size=12)
-    pdf.cell(200, 10, txt=f"Date: {tx['date']}", ln=1)
-    pdf.cell(200, 10, txt=f"Account: {tx['account_name']}", ln=1)
-    pdf.cell(200, 10, txt=f"Type: {tx['type'].upper()}", ln=1)
-    pdf.cell(200, 10, txt=f"Category: {tx['category']}", ln=1)
-    pdf.cell(200, 10, txt=f"Description: {tx['description']}", ln=1)
-    pdf.cell(200, 10, txt=f"Amount: Rp {tx['amount']:,.0f}", ln=1)
-    pdf.cell(200, 10, txt="--------------------------------------------------", ln=1, align='C')
-    pdf.cell(200, 10, txt="Generated automatically by Treasury Flow", ln=1, align='C')
-    
+
+    # Top accent bar
+    pdf.set_fill_color(*NAVY)
+    pdf.rect(0, 0, 210, 3, 'F')
+    pdf.set_fill_color(*GOLD)
+    pdf.rect(0, 3, 210, 0.7, 'F')
+
+    # Header
+    pdf.set_y(10)
+    pdf.set_font('Arial', 'B', 22)
+    pdf.set_text_color(*NAVY)
+    pdf.cell(0, 10, 'TREASURY FLOW', 0, 1, 'C')
+    pdf.set_font('Arial', '', 9)
+    pdf.set_text_color(*DARK_GRAY)
+    pdf.cell(0, 5, 'Personal Wealth Management & Financial Analytics', 0, 1, 'C')
+    pdf.set_font('Arial', '', 7.5)
+    pdf.set_text_color(*ACCENT_BLUE)
+    pdf.cell(0, 4, 'treasuryflow@gmail.com  |  www.treasuryflow.web.id', 0, 1, 'C')
+    pdf.set_fill_color(*NAVY)
+    pdf.rect(10, 32, 190, 0.5, 'F')
+    pdf.set_fill_color(*GOLD)
+    pdf.rect(10, 32.5, 190, 0.3, 'F')
+
+    # Title
+    pdf.set_y(38)
+    pdf.set_font('Arial', 'B', 16)
+    pdf.set_text_color(*NAVY)
+    pdf.cell(0, 10, 'TRANSACTION RECEIPT', 0, 1, 'C')
+    pdf.ln(4)
+
+    # Receipt info box
+    is_expense = tx['type'] == 'expense'
+    amount = tx['amount'] or 0
+    acc_raw = str(tx['account_name'] or '')
+    acc = acc_raw.split('] ')[-1] if '] ' in acc_raw else acc_raw
+
+    box_y = pdf.get_y()
+    pdf.set_fill_color(*LIGHT_GRAY)
+    pdf.rect(20, box_y, 170, 60, 'F')
+
+    fields = [
+        ('Receipt No', f'#TF-{id:06d}'),
+        ('Date', str(tx['date'])[:10]),
+        ('Prepared For', fullname),
+        ('Account', acc),
+        ('Type', tx['type'].upper()),
+        ('Category', str(tx['category'] or '-')),
+        ('Description', str(tx['description'] or '-')[:50]),
+    ]
+
+    y_pos = box_y + 4
+    for label, value in fields:
+        pdf.set_xy(26, y_pos)
+        pdf.set_font('Arial', '', 9)
+        pdf.set_text_color(*DARK_GRAY)
+        pdf.cell(35, 6, label, 0, 0, 'L')
+        pdf.set_font('Arial', 'B', 9)
+        pdf.set_text_color(*BLACK)
+        pdf.cell(120, 6, f':  {value}', 0, 0, 'L')
+        y_pos += 7
+
+    # Amount highlight
+    pdf.set_y(box_y + 65)
+    pdf.set_fill_color(*NAVY)
+    pdf.rect(20, pdf.get_y(), 170, 18, 'F')
+    pdf.set_xy(26, pdf.get_y() + 2)
+    pdf.set_font('Arial', '', 9)
+    pdf.set_text_color(255, 255, 255)
+    pdf.cell(40, 6, 'AMOUNT', 0, 0, 'L')
+    pdf.set_font('Arial', 'B', 18)
+    color = RED if is_expense else GREEN
+    pdf.set_text_color(*color)
+    sign = '- ' if is_expense else '+ '
+    pdf.cell(120, 12, f'{sign}Rp {amount:,.0f}', 0, 0, 'R')
+
+    # Footer
+    pdf.set_y(-40)
+    pdf.set_fill_color(200, 200, 210)
+    pdf.rect(10, pdf.get_y(), 190, 0.3, 'F')
+    pdf.ln(4)
+    pdf.set_font('Arial', 'I', 7)
+    pdf.set_text_color(*DARK_GRAY)
+    pdf.cell(0, 4, 'This receipt was automatically generated by Treasury Flow. No signature required.', 0, 1, 'C')
+    pdf.set_font('Arial', 'B', 7)
+    pdf.set_text_color(*NAVY)
+    pdf.cell(0, 4, 'Powered by Fernando Capital', 0, 1, 'C')
+    pdf.set_font('Arial', '', 7)
+    pdf.set_text_color(*ACCENT_BLUE)
+    pdf.cell(0, 4, f'Page {pdf.page_no()}/{{nb}}', 0, 0, 'C')
+
     response = make_response(pdf.output(dest='S').encode('latin-1'))
-    response.headers.set('Content-Disposition', 'attachment', filename=f'receipt_{id}.pdf')
+    response.headers.set('Content-Disposition', 'attachment', filename=f'Treasury_Flow_Receipt_{id}.pdf')
     response.headers.set('Content-Type', 'application/pdf')
     return response
