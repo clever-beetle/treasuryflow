@@ -537,15 +537,18 @@ def export_pdf():
     box_y = pdf.get_y()
     pdf.set_fill_color(*TreasuryPDF.LIGHT_GRAY)
     pdf.rect(10, box_y, 190, 20, 'F')
+    # Left accent
+    pdf.set_fill_color(*TreasuryPDF.NAVY)
+    pdf.rect(10, box_y, 1.5, 20, 'F')
     # Left side
-    pdf.set_xy(14, box_y + 3)
+    pdf.set_xy(16, box_y + 3)
     pdf.set_font('Arial', '', 8)
     pdf.set_text_color(*TreasuryPDF.DARK_GRAY)
     pdf.cell(25, 5, 'Prepared For', 0, 0)
     pdf.set_font('Arial', 'B', 9)
     pdf.set_text_color(*TreasuryPDF.BLACK)
     pdf.cell(60, 5, f':  {fullname}', 0, 1)
-    pdf.set_x(14)
+    pdf.set_x(16)
     pdf.set_font('Arial', '', 8)
     pdf.set_text_color(*TreasuryPDF.DARK_GRAY)
     pdf.cell(25, 5, 'Period', 0, 0)
@@ -583,42 +586,109 @@ def export_pdf():
     net_sign = '+' if net_flow >= 0 else '-'
     pdf.summary_card(134, 'NET FLOW / SAVINGS', f'{net_sign} Rp {abs(net_flow):,.0f}', net_color)
 
-    pdf.set_y(card_y + 28)
+    pdf.set_y(card_y + 27)
+
+    # === EXECUTIVE SUMMARY ===
+    pdf.set_fill_color(235, 240, 255)
+    exec_y = pdf.get_y()
+    pdf.rect(10, exec_y, 190, 16, 'F')
+    pdf.set_fill_color(*TreasuryPDF.ACCENT_BLUE)
+    pdf.rect(10, exec_y, 1.5, 16, 'F')
+    pdf.set_xy(16, exec_y + 2)
+    pdf.set_font('Arial', 'B', 8)
+    pdf.set_text_color(*TreasuryPDF.NAVY)
+    pdf.cell(0, 4, 'Executive Summary', 0, 1)
+    pdf.set_x(16)
+    pdf.set_font('Arial', '', 7.5)
+    pdf.set_text_color(*TreasuryPDF.BLACK)
+    if total_income > 0:
+        savings_pct = (net_flow / total_income) * 100
+        if net_flow >= 0:
+            summary_text = f'During this period, you earned Rp {total_income:,.0f} and spent Rp {total_expense:,.0f}, resulting in a surplus of Rp {net_flow:,.0f} ({savings_pct:.1f}% savings rate). Keep it up!'
+        else:
+            summary_text = f'During this period, you earned Rp {total_income:,.0f} and spent Rp {total_expense:,.0f}, resulting in a deficit of Rp {abs(net_flow):,.0f}. Consider reducing expenses.'
+    elif total_expense > 0:
+        summary_text = f'During this period, you recorded Rp {total_expense:,.0f} in expenses with no income recorded. Please ensure all income transactions are logged.'
+    else:
+        summary_text = 'No transactions recorded for this period.'
+    pdf.multi_cell(180, 3.5, summary_text, 0, 'L')
+
+    pdf.set_y(exec_y + 19)
+
+    # === TOP EXPENSE CATEGORIES ===
+    cat_map = {}
+    for t in transactions:
+        if t['type'] == 'expense' and t['category'] and t['category'] != 'Transfer':
+            cat_map[t['category']] = cat_map.get(t['category'], 0) + (t['amount'] or 0)
+    
+    if cat_map:
+        pdf.section_title('Top Expense Categories')
+        sorted_cats = sorted(cat_map.items(), key=lambda x: x[1], reverse=True)[:5]
+        
+        # Category bar chart
+        bar_colors = [
+            (17, 35, 126),    # Navy
+            (60, 100, 200),   # Blue
+            (180, 150, 60),   # Gold
+            (200, 40, 40),    # Red
+            (100, 100, 110),  # Gray
+        ]
+        max_val = sorted_cats[0][1] if sorted_cats else 1
+        
+        for ci, (cat_name, cat_total) in enumerate(sorted_cats):
+            row_y = pdf.get_y()
+            pct = (cat_total / total_expense * 100) if total_expense > 0 else 0
+            bar_width = (cat_total / max_val) * 100
+            
+            # Category name
+            pdf.set_font('Arial', '', 7)
+            pdf.set_text_color(*TreasuryPDF.BLACK)
+            pdf.cell(38, 5, f'{ci+1}. {cat_name[:20]}', 0, 0, 'L')
+            
+            # Bar background
+            pdf.set_fill_color(235, 235, 240)
+            pdf.rect(pdf.get_x(), row_y + 0.5, 100, 4, 'F')
+            # Bar fill
+            color = bar_colors[ci % len(bar_colors)]
+            pdf.set_fill_color(*color)
+            pdf.rect(pdf.get_x(), row_y + 0.5, bar_width, 4, 'F')
+            pdf.cell(102, 5, '', 0, 0)
+            
+            # Amount & percentage
+            pdf.set_font('Arial', 'B', 7)
+            pdf.set_text_color(*TreasuryPDF.DARK_GRAY)
+            pdf.cell(50, 5, f'Rp {cat_total:,.0f}  ({pct:.1f}%)', 0, 1, 'R')
+        
+        pdf.ln(3)
 
     # === TRANSACTION TABLE ===
     pdf.section_title('Transaction Ledger')
 
     # Table header
-    col_widths = [22, 52, 35, 38, 23, 20]
-    headers = ['DATE', 'DESCRIPTION', 'CATEGORY', 'ACCOUNT', 'AMOUNT', 'TYPE']
+    col_widths = [10, 20, 48, 32, 35, 25, 20]
+    headers = ['NO.', 'DATE', 'DESCRIPTION', 'CATEGORY', 'ACCOUNT', 'AMOUNT', 'TYPE']
     
-    pdf.set_fill_color(*TreasuryPDF.NAVY)
-    pdf.set_text_color(*TreasuryPDF.WHITE)
-    pdf.set_font('Arial', 'B', 7)
-    for i, h in enumerate(headers):
-        pdf.cell(col_widths[i], 7, h, 0, 0, 'C', fill=True)
-    pdf.ln()
+    def draw_table_header():
+        pdf.set_fill_color(*TreasuryPDF.NAVY)
+        pdf.set_text_color(*TreasuryPDF.WHITE)
+        pdf.set_font('Arial', 'B', 6.5)
+        for i, h in enumerate(headers):
+            pdf.cell(col_widths[i], 7, h, 0, 0, 'C', fill=True)
+        pdf.ln()
+        # Gold line under header
+        pdf.set_fill_color(*TreasuryPDF.GOLD)
+        pdf.rect(10, pdf.get_y(), 190, 0.4, 'F')
     
-    # Gold line under header
-    pdf.set_fill_color(*TreasuryPDF.GOLD)
-    pdf.rect(10, pdf.get_y(), 190, 0.4, 'F')
+    draw_table_header()
 
     # Table rows
     pdf.set_font('Arial', '', 7)
     for idx, t in enumerate(transactions):
         # Check for page break
-        if pdf.get_y() > 255:
+        if pdf.get_y() > 252:
             pdf.add_page()
-            # Re-draw table header on new page
             pdf.section_title('Transaction Ledger (Continued)')
-            pdf.set_fill_color(*TreasuryPDF.NAVY)
-            pdf.set_text_color(*TreasuryPDF.WHITE)
-            pdf.set_font('Arial', 'B', 7)
-            for i, h in enumerate(headers):
-                pdf.cell(col_widths[i], 7, h, 0, 0, 'C', fill=True)
-            pdf.ln()
-            pdf.set_fill_color(*TreasuryPDF.GOLD)
-            pdf.rect(10, pdf.get_y(), 190, 0.4, 'F')
+            draw_table_header()
             pdf.set_font('Arial', '', 7)
 
         # Alternating row colors
@@ -628,13 +698,13 @@ def export_pdf():
             pdf.set_fill_color(240, 242, 250)
         
         date_str = str(t['date'])[:10] if t['date'] else ''
-        desc = str(t['description'] or '')[:35]
-        cat = str(t['category'] or '')[:20]
+        desc = str(t['description'] or '')[:32]
+        cat = str(t['category'] or '')[:18]
         
-        # Clean account name (remove [TYPE] prefix)
+        # Clean account name
         acc_raw = str(t['account_name'] or '')
         acc = acc_raw.split('] ')[-1] if '] ' in acc_raw else acc_raw
-        acc = acc[:22]
+        acc = acc[:20]
         
         amount = t['amount'] or 0
         is_expense = t['type'] == 'expense'
@@ -642,19 +712,23 @@ def export_pdf():
         type_str = t['type'].upper() if t['type'] else ''
 
         # Draw row
-        row_y = pdf.get_y()
+        pdf.set_text_color(*TreasuryPDF.DARK_GRAY)
+        pdf.set_font('Arial', '', 6.5)
+        pdf.cell(col_widths[0], 6, str(idx + 1), 0, 0, 'C', fill=True)
         pdf.set_text_color(*TreasuryPDF.BLACK)
-        pdf.cell(col_widths[0], 6, date_str, 0, 0, 'C', fill=True)
-        pdf.cell(col_widths[1], 6, desc, 0, 0, 'L', fill=True)
-        pdf.cell(col_widths[2], 6, cat, 0, 0, 'C', fill=True)
-        pdf.cell(col_widths[3], 6, acc, 0, 0, 'C', fill=True)
+        pdf.set_font('Arial', '', 7)
+        pdf.cell(col_widths[1], 6, date_str, 0, 0, 'C', fill=True)
+        pdf.cell(col_widths[2], 6, desc, 0, 0, 'L', fill=True)
+        pdf.cell(col_widths[3], 6, cat, 0, 0, 'C', fill=True)
+        pdf.cell(col_widths[4], 6, acc, 0, 0, 'C', fill=True)
         
         # Amount with color
         if is_expense:
             pdf.set_text_color(*TreasuryPDF.RED)
         else:
             pdf.set_text_color(*TreasuryPDF.GREEN)
-        pdf.cell(col_widths[4], 6, amount_str, 0, 0, 'R', fill=True)
+        pdf.set_font('Arial', 'B', 7)
+        pdf.cell(col_widths[5], 6, amount_str, 0, 0, 'R', fill=True)
         
         # Type badge
         pdf.set_font('Arial', 'B', 6)
@@ -664,7 +738,7 @@ def export_pdf():
         else:
             pdf.set_fill_color(230, 255, 235)
             pdf.set_text_color(*TreasuryPDF.GREEN)
-        pdf.cell(col_widths[5], 6, type_str, 0, 0, 'C', fill=True)
+        pdf.cell(col_widths[5 + 1] if len(col_widths) > 6 else 20, 6, type_str, 0, 0, 'C', fill=True)
         pdf.ln()
         pdf.set_font('Arial', '', 7)
 
@@ -672,20 +746,34 @@ def export_pdf():
         pdf.set_draw_color(220, 220, 230)
         pdf.line(10, pdf.get_y(), 200, pdf.get_y())
 
+    # === TOTAL ROW ===
+    pdf.set_fill_color(*TreasuryPDF.NAVY)
+    pdf.set_text_color(*TreasuryPDF.WHITE)
+    pdf.set_font('Arial', 'B', 7)
+    total_w = col_widths[0] + col_widths[1] + col_widths[2] + col_widths[3] + col_widths[4]
+    pdf.cell(total_w, 7, f'TOTAL  ({total_transactions} transactions)', 0, 0, 'R', fill=True)
+    pdf.set_text_color(*TreasuryPDF.WHITE)
+    net_display = f"Net: {'+ ' if net_flow >= 0 else '- '}Rp {abs(net_flow):,.0f}"
+    pdf.cell(col_widths[5], 7, net_display, 0, 0, 'R', fill=True)
+    pdf.cell(col_widths[6], 7, '', 0, 0, 'C', fill=True)
+    pdf.ln()
+
     # === END NOTES ===
-    pdf.ln(6)
+    pdf.ln(5)
     pdf.set_fill_color(*TreasuryPDF.LIGHT_GRAY)
     note_y = pdf.get_y()
-    if note_y > 260:
+    if note_y > 255:
         pdf.add_page()
         note_y = pdf.get_y()
-    pdf.rect(10, note_y, 190, 12, 'F')
-    pdf.set_xy(14, note_y + 2)
+    pdf.rect(10, note_y, 190, 16, 'F')
+    pdf.set_fill_color(*TreasuryPDF.GOLD)
+    pdf.rect(10, note_y, 190, 0.5, 'F')
+    pdf.set_xy(14, note_y + 3)
     pdf.set_font('Arial', 'I', 7)
     pdf.set_text_color(*TreasuryPDF.DARK_GRAY)
-    pdf.cell(0, 4, 'Note: This report was automatically generated by Treasury Flow Financial Platform.', 0, 1)
+    pdf.cell(0, 4, 'DISCLAIMER: This report was automatically generated by Treasury Flow Financial Platform.', 0, 1)
     pdf.set_x(14)
-    pdf.cell(0, 4, 'All amounts are in Indonesian Rupiah (IDR). For questions, contact treasuryflow@gmail.com', 0, 1)
+    pdf.cell(0, 4, 'All amounts are in Indonesian Rupiah (IDR). For questions or support, contact treasuryflow@gmail.com', 0, 1)
 
     # Output
     response = make_response(pdf.output(dest='S').encode('latin-1'))
