@@ -419,6 +419,7 @@ def export_pdf():
         RED = (200, 40, 40)
         BLACK = (30, 30, 30)
         ACCENT_BLUE = (60, 100, 200)
+        logo_path = None
 
         def header(self):
             # Top accent bar
@@ -428,8 +429,15 @@ def export_pdf():
             self.set_fill_color(*self.GOLD)
             self.rect(0, 3, 210, 0.7, 'F')
 
-            # Company name
-            self.set_y(8)
+            # Logo on the left
+            if self.logo_path:
+                try:
+                    self.image(self.logo_path, 14, 6, 22)
+                except Exception:
+                    pass
+
+            # Company name (shifted right to balance with logo)
+            self.set_y(7)
             self.set_font('Arial', 'B', 22)
             self.set_text_color(*self.NAVY)
             self.cell(0, 10, 'TREASURY FLOW', 0, 1, 'C')
@@ -509,6 +517,12 @@ def export_pdf():
 
     # --- Build PDF ---
     pdf = TreasuryPDF()
+    # Set logo path
+    import os
+    from flask import current_app
+    logo_file = os.path.join(current_app.static_folder, 'img', 'logo_v4.png')
+    if os.path.exists(logo_file):
+        pdf.logo_path = logo_file
     pdf.alias_nb_pages()
     pdf.set_auto_page_break(auto=True, margin=28)
     pdf.add_page()
@@ -711,14 +725,26 @@ def download_receipt(id):
     pdf.alias_nb_pages()
     pdf.add_page()
 
+    # Logo
+    import os
+    from flask import current_app
+    logo_file = os.path.join(current_app.static_folder, 'img', 'logo_v4.png')
+
     # Top accent bar
     pdf.set_fill_color(*NAVY)
     pdf.rect(0, 0, 210, 3, 'F')
     pdf.set_fill_color(*GOLD)
     pdf.rect(0, 3, 210, 0.7, 'F')
 
+    # Logo on the left
+    if os.path.exists(logo_file):
+        try:
+            pdf.image(logo_file, 14, 6, 22)
+        except Exception:
+            pass
+
     # Header
-    pdf.set_y(10)
+    pdf.set_y(7)
     pdf.set_font('Arial', 'B', 22)
     pdf.set_text_color(*NAVY)
     pdf.cell(0, 10, 'TREASURY FLOW', 0, 1, 'C')
