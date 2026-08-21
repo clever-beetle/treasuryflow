@@ -135,6 +135,42 @@ utils.babel.init_app(app, locale_selector=get_locale)
 def sw():
     return app.send_static_file('sw.js')
 
+@app.route('/robots.txt')
+def robots():
+    content = "User-agent: *\nAllow: /\nDisallow: /settings/\nSitemap: https://www.treasuryflow.web.id/sitemap.xml"
+    response = make_response(content)
+    response.headers['Content-Type'] = 'text/plain'
+    return response
+
+@app.route('/sitemap.xml')
+def sitemap():
+    import datetime
+    today = datetime.datetime.now().strftime('%Y-%m-%d')
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>https://www.treasuryflow.web.id/</loc>
+        <lastmod>{today}</lastmod>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>https://www.treasuryflow.web.id/login</loc>
+        <lastmod>{today}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+    <url>
+        <loc>https://www.treasuryflow.web.id/register</loc>
+        <lastmod>{today}</lastmod>
+        <changefreq>monthly</changefreq>
+        <priority>0.8</priority>
+    </url>
+</urlset>"""
+    response = make_response(xml)
+    response.headers['Content-Type'] = 'application/xml'
+    return response
+
 @app.route('/test_db')
 def test_db():
     try:
@@ -639,6 +675,10 @@ def debug_logs():
         return f"<pre>{out}</pre>"
     except Exception as e:
         return f"Error: {e}"
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 @app.errorhandler(Exception)
 def handle_500(e):
