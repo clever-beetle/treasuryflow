@@ -67,6 +67,34 @@ def financial_performance():
                 db.execute("UPDATE accounts SET current_balance = current_balance + ? WHERE id = ? AND user_id = ?", (adjustment, target_account_id, user_id))
                 db.commit()
 
+        elif action == 'edit_debt':
+            debt_id = int(request.form.get('debt_id'))
+            person_name = request.form.get('person_name')
+            type_record = request.form.get('type')
+            raw_amount = request.form.get('total_amount', '0').replace('.', '').replace(',', '.')
+            total_amount = float(raw_amount)
+            due_date = request.form.get('due_date')
+            notes = request.form.get('notes')
+            
+            # Get current debt to recalculate remaining proportionally
+            debt = db.execute("SELECT * FROM debts_receivables WHERE id = ? AND user_id = ?", (debt_id, user_id)).fetchone()
+            if debt:
+                old_total = float(debt['total_amount']) or 1
+                old_remaining = float(debt['remaining_amount'])
+                # Proportional: if total changes, adjust remaining by same ratio
+                if old_total > 0:
+                    ratio = old_remaining / old_total
+                    new_remaining = total_amount * ratio
+                else:
+                    new_remaining = total_amount
+                
+                db.execute('''
+                    UPDATE debts_receivables 
+                    SET person_name = ?, type = ?, total_amount = ?, remaining_amount = ?, due_date = ?, notes = ?
+                    WHERE id = ? AND user_id = ?
+                ''', (person_name, type_record, total_amount, new_remaining, due_date, notes, debt_id, user_id))
+                db.commit()
+
         elif action == 'delete_debt':
             debt_id = int(request.form.get('debt_id'))
             db.execute("DELETE FROM debts_receivables WHERE id = ? AND user_id = ?", (debt_id, user_id))
@@ -109,6 +137,45 @@ def financial_performance():
             inst_id = int(request.form.get('inst_id'))
             db.execute("DELETE FROM recurring_installments WHERE id = ? AND user_id = ?", (inst_id, user_id))
             db.commit()
+
+        elif action == 'pay_installment':
+            inst_id = int(request.form.get('inst_id'))
+            target_account_id = int(request.form.get('account_name'))
+            raw_paid = request.form.get('amount_paid', '0').replace('.', '').replace(',', '.')
+            amount_paid = float(raw_paid)
+            notes = request.form.get('notes', '')
+            
+            inst = db.execute("SELECT * FROM recurring_installments WHERE id = ? AND user_id = ?", (inst_id, user_id)).fetchone()
+            acc_row = db.execute("SELECT name FROM accounts WHERE id = ?", (target_account_id,)).fetchone()
+            
+            if inst and acc_row:
+                # Record transaction
+                clean_acc = acc_row['name'].split('] ')[1] if '] ' in acc_row['name'] else acc_row['name']
+                tx_desc = f"Pembayaran {inst['name']} via {clean_acc}"
+                if notes:
+                    tx_desc += f": {notes}"
+                tx_date = datetime.now().strftime('%Y-%m-%d')
+                
+                db.execute('''
+                    INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
+                    VALUES (?, ?, ?, 'expense', ?, ?, 'Langganan & Cicilan')
+                ''', (user_id, tx_date, target_account_id, amount_paid, tx_desc))
+                
+                # Reduce account balance
+                db.execute("UPDATE accounts SET current_balance = current_balance - ? WHERE id = ? AND user_id = ?", (amount_paid, target_account_id, user_id))
+                
+                # Advance tenor if applicable
+                if inst['is_temporary_tenor']:
+                    new_tenor = (inst['current_tenor'] or 1) + 1
+                    total = inst['total_tenor'] or 999
+                    if new_tenor > total:
+                        # Installment completed
+                        db.execute("UPDATE recurring_installments SET current_tenor = ?, is_active = 0 WHERE id = ?", (new_tenor, inst_id))
+                        flash(f"Cicilan {inst['name']} sudah LUNAS! 🎉", 'success')
+                    else:
+                        db.execute("UPDATE recurring_installments SET current_tenor = ? WHERE id = ?", (new_tenor, inst_id))
+                
+                db.commit()
 
         elif action == 'add_asset':
             asset_name = request.form.get('asset_name')
@@ -227,7 +294,18 @@ def financial_performance():
         clean_label = acc['name'].split('] ')[1] if '] ' in acc['name'] else acc['name']
         clean_accounts.append({'raw': acc['id'], 'clean': clean_label})
 
-    installments = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 1 ORDER BY due_day_of_month ASC", (user_id,)).fetchall()
+    installments_raw = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 1 ORDER BY due_day_of_month ASC", (user_id,)).fetchall()
+    # Compute remaining_tenor for template
+    installments = []
+    for inst in installments_raw:
+        inst_dict = dict(inst)
+        if inst['is_temporary_tenor'] and inst['total_tenor']:
+            inst_dict['remaining_tenor'] = max(0, (inst['total_tenor'] or 0) - (inst['current_tenor'] or 1) + 1)
+        else:
+            inst_dict['remaining_tenor'] = None
+        installments.append(inst_dict)
+    
+    installments_completed = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 0 ORDER BY name ASC", (user_id,)).fetchall()
 
     assets_list = db.execute("SELECT * FROM assets WHERE user_id = ? ORDER BY purchase_date DESC", (user_id,)).fetchall()
     total_asset_value = sum((asset['purchase_price'] or 0) for asset in assets_list)
@@ -365,7 +443,7 @@ def financial_performance():
                            proyeksi_seminggu_out=proyeksi_seminggu_out, proyeksi_sebulan_out=proyeksi_sebulan_out,
                            max_expense=max_expense, min_expense=min_expense, days_range=days_range,
                            distribution_list=distribution_list, records_active=records_active, records_history=records_history, 
-                           accounts=clean_accounts, installments=installments,
+                           accounts=clean_accounts, installments=installments, installments_completed=installments_completed,
                            assets_list=assets_list, total_asset_value=total_asset_value, goals_list=goals_list,
                            savings_rate=savings_rate, smart_insight=smart_insight, insight_type=insight_type,
                            credit_cards=credit_cards, net_worth=net_worth, total_saldo=total_saldo,

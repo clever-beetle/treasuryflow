@@ -285,14 +285,44 @@
                     <h3 class="font-semibold leading-none tracking-tight">Account Balances</h3>
                 </div>
                 {% if accounts %}
-                <div class="space-y-4">
+                <div class="space-y-3">
                     {% for acc in accounts %}
+                    {% if acc.account_type == 'liability' %}
+                    {# --- LIABILITY ACCOUNT (Credit Card, Paylater, Pinjol) --- #}
+                    {% set usage = (acc.current_balance|abs) %}
+                    {% set limit = acc.limit_amount or 0 %}
+                    {% set usage_pct = (usage / limit * 100) if limit > 0 else 0 %}
+                    <div class="p-3 rounded-lg border border-red-200 dark:border-red-800/30 bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-3">
+                                {{ macros.render_account_logo(acc.name) }}
+                            </div>
+                            <div class="text-right">
+                                <div class="text-xs text-red-500 dark:text-red-400 font-medium">Terpakai</div>
+                                <span class="font-bold text-sm text-red-600 dark:text-red-400">Rp {{ "{:,.0f}".format(usage).replace(',', '.') }}</span>
+                            </div>
+                        </div>
+                        {% if limit > 0 %}
+                        <div class="mt-2">
+                            <div class="flex justify-between text-xs text-muted-foreground mb-1">
+                                <span>Limit: Rp {{ "{:,.0f}".format(limit).replace(',', '.') }}</span>
+                                <span>{{ "{:.0f}".format(usage_pct) }}%</span>
+                            </div>
+                            <div class="w-full bg-muted rounded-full h-1.5">
+                                <div class="h-1.5 rounded-full transition-all {% if usage_pct > 80 %}bg-red-500{% elif usage_pct > 50 %}bg-amber-500{% else %}bg-blue-500{% endif %}" style="width: {{ [usage_pct, 100]|min }}%"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    {# --- ASSET ACCOUNT (Bank, Cash, E-Wallet) --- #}
                     <div class="flex items-center justify-between p-3 rounded-lg border border-border bg-muted/20 hover:bg-muted/40 transition-colors">
                         <div class="flex items-center gap-3">
                             {{ macros.render_account_logo(acc.name) }}
                         </div>
-                        <span class="font-bold text-sm">Rp {{ "{:,.0f}".format(acc.current_balance).replace(',', '.') }}</span>
+                        <span class="font-bold text-sm text-emerald-600 dark:text-emerald-400">Rp {{ "{:,.0f}".format(acc.current_balance).replace(',', '.') }}</span>
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
                 {% else %}
