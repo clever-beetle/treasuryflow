@@ -461,22 +461,38 @@ def init_db():
             except Exception:
                 db.rollback()
 
+            try:
+                cursor.execute("ALTER TABLE accounts ADD COLUMN billing_due_day INTEGER")
+                db.commit()
+            except Exception:
+                db.rollback()
+
             # Fix PostgreSQL sequences - reset to MAX(id) to prevent duplicate key errors
             seq_tables = [
                 'users', 'accounts', 'transactions', 'debts_receivables', 'debt_payments',
                 'recurring_installments', 'assets', 'financial_goals', 'credit_cards',
                 'user_categories', 'deleted_transactions', 'notifications', 'user_achievements',
-                'webauthn_credentials', 'budgets', 'feature_flags'
+                'webauthn_credentials', 'budgets', 'feature_flags', 'error_logs'
             ]
             for tbl in seq_tables:
                 try:
-                    cursor.execute(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE((SELECT MAX(id) FROM {tbl}), 1), true)")
+                    # Try standard naming convention first: {table}_id_seq
+                    cursor.execute(f"SELECT setval('{tbl}_id_seq', COALESCE((SELECT MAX(id) FROM {tbl}), 1), true)")
                     db.commit()
                 except Exception:
                     try:
                         db.rollback()
                     except:
                         pass
+                    # Fallback: try pg_get_serial_sequence
+                    try:
+                        cursor.execute(f"SELECT setval(pg_get_serial_sequence('{tbl}', 'id'), COALESCE((SELECT MAX(id) FROM {tbl}), 1), true)")
+                        db.commit()
+                    except Exception:
+                        try:
+                            db.rollback()
+                        except:
+                            pass
             
         if not is_pg:
             cursor.execute("PRAGMA table_info(users)")

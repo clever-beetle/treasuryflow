@@ -177,7 +177,7 @@ def setup_account():
         return redirect(url_for('settings.setup_account', message=message, error=error))
 
     if edit_id:
-        account_to_edit = db.execute('SELECT id, name, initial_balance, limit_amount FROM accounts WHERE id = ? AND user_id = ?', (edit_id, user_id)).fetchone()
+        account_to_edit = db.execute('SELECT id, name, initial_balance, limit_amount, billing_due_day FROM accounts WHERE id = ? AND user_id = ?', (edit_id, user_id)).fetchone()
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -189,13 +189,16 @@ def setup_account():
             if action == 'edit':
                 edit_account_id = request.form['edit_account_id']
                 
+                billing_due_day = request.form.get('billing_due_day', '')
+                billing_due_day = int(billing_due_day) if billing_due_day else None
+                
                 limit_raw = request.form.get('limit_amount', '')
                 if limit_raw != '':
                     limit_raw = limit_raw.replace('.', '').replace(',', '.')
                     limit_amount = float(limit_raw)
-                    db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, edit_account_id, user_id))
+                    db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ?, billing_due_day = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, billing_due_day, edit_account_id, user_id))
                 else:
-                    db.execute('UPDATE accounts SET initial_balance = ? WHERE id = ? AND user_id = ?', (balance, edit_account_id, user_id))
+                    db.execute('UPDATE accounts SET initial_balance = ?, billing_due_day = ? WHERE id = ? AND user_id = ?', (balance, billing_due_day, edit_account_id, user_id))
                     
                 db.commit()
                 from routes.dashboard import recalculate_account_balances
@@ -224,17 +227,18 @@ def setup_account():
                 if is_liability:
                     limit_raw = request.form.get('limit_amount', '0').replace('.', '').replace(',', '.')
                     limit_amount = float(limit_raw) if limit_raw else 0.0
-                    # Initial balance for liability could be 0, or if they input negative, we keep it.
-                    # Usually, user input is 0.
+                    billing_due_day_raw = request.form.get('billing_due_day', '')
+                    billing_due_day = int(billing_due_day_raw) if billing_due_day_raw else None
                 else:
                     limit_amount = 0.0
+                    billing_due_day = None
                 
                 existing_account = db.execute('SELECT id FROM accounts WHERE user_id = ? AND name = ?', (user_id, final_name)).fetchone()
                 if existing_account:
                      error = f"Account '{final_name}' is already registered."
                 else:
-                    db.execute('INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount) VALUES (?, ?, ?, ?, ?, ?)', 
-                               (user_id, final_name, balance, balance, account_type, limit_amount))
+                    db.execute('INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount, billing_due_day) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+                               (user_id, final_name, balance, balance, account_type, limit_amount, billing_due_day))
                     db.commit()
                     from routes.dashboard import recalculate_account_balances
                     recalculate_account_balances(db, user_id)
@@ -252,6 +256,6 @@ def setup_account():
             else:
                 error = f"An error occurred: {e}"
 
-    accounts = db.execute('SELECT id, name, initial_balance, current_balance, account_type, limit_amount FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
+    accounts = db.execute('SELECT id, name, initial_balance, current_balance, account_type, limit_amount, billing_due_day FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     return render_template('setup_account.html', accounts=accounts, message=message, error=error, categories=ACCOUNT_TYPES, account_to_edit=account_to_edit)
 

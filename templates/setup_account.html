@@ -30,7 +30,7 @@
                         {% endif %}
                     </div>
                     <div class="flex gap-1">
-                        <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ account.initial_balance }}', limit: '{{ account.limit_amount if account.account_type == 'liability' else '' }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Edit Initial Balance">
+                        <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ account.initial_balance }}', limit: '{{ account.limit_amount if account.account_type == 'liability' else '' }}', billingDueDay: '{{ account.billing_due_day or '' }}', isLiability: '{{ account.account_type }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Edit">
                             <i data-lucide="edit-2" class="w-4 h-4"></i>
                         </button>
                         <form action="{{ url_for('settings.setup_account', delete_id=account.id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this account? All associated transactions will be deleted.');">
@@ -44,15 +44,28 @@
               <div class="p-6 pt-4 bg-muted/20">
                   <div class="flex justify-between items-end">
                       <div>
+                          {% if account.account_type == 'liability' %}
+                          <p class="text-sm text-muted-foreground mb-1">Terpakai (Utang)</p>
+                          <p class="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400">Rp {{ "{:,.0f}".format(account.current_balance|abs).replace(',', '.') }}</p>
+                          {% else %}
                           <p class="text-sm text-muted-foreground mb-1">Current Balance</p>
                           <p class="text-2xl font-bold tracking-tight">Rp {{ "{:,.0f}".format(account.current_balance).replace(',', '.') }}</p>
+                          {% endif %}
                       </div>
-                      {% if account.limit_amount %}
-                      <div class="text-right">
-                          <p class="text-xs text-muted-foreground mb-1">Credit Limit</p>
-                          <p class="text-sm font-semibold text-muted-foreground">Rp {{ "{:,.0f}".format(account.limit_amount).replace(',', '.') }}</p>
+                      <div class="text-right space-y-1">
+                          {% if account.limit_amount %}
+                          <div>
+                              <p class="text-xs text-muted-foreground">Credit Limit</p>
+                              <p class="text-sm font-semibold text-muted-foreground">Rp {{ "{:,.0f}".format(account.limit_amount).replace(',', '.') }}</p>
+                          </div>
+                          {% endif %}
+                          {% if account.billing_due_day %}
+                          <div>
+                              <p class="text-xs text-muted-foreground">Jatuh Tempo</p>
+                              <p class="text-sm font-semibold text-amber-600 dark:text-amber-400"><i data-lucide="calendar" class="w-3 h-3 inline"></i> Tgl {{ account.billing_due_day }}</p>
+                          </div>
+                          {% endif %}
                       </div>
-                      {% endif %}
                   </div>
               </div>
         </div>
