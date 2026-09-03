@@ -716,7 +716,7 @@
 
         <!-- ADD DEBT MODAL -->
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'formAddDebtModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'formAddDebtModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Catat Kewajiban/Piutang</h3>
@@ -758,7 +758,7 @@
 
         <!-- ADD INSTALLMENT MODAL -->
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'formAddInstModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'formAddInstModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Catat Layanan Berlangganan</h3>
@@ -800,7 +800,7 @@
         
         <!-- ASSET & GOAL ADD MODALS -->
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'formAddAssetModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'formAddAssetModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Tambah Portofolio Aset</h3>
@@ -845,7 +845,7 @@
             </div>
         </template>
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'formAddGoalModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'formAddGoalModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Buat Target Finansial</h3>
@@ -881,7 +881,7 @@
         <!-- DYNAMIC LOOPS FOR MODALS -->
         {% for row in records_active %}
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'payModal{{ row.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'payModal{{ row.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Bayar Utang/Piutang</h3>
@@ -915,9 +915,9 @@
             </div>
         </template>
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'deleteModal{{ row.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'deleteModal{{ row.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-destructive/20 w-full max-w-sm overflow-hidden relative">
-                    <div class="p-6 text-center space-y-4">
+                    <div class="p-6 text-center space-y-4"><button @click="$dispatch('close-modal')" class="absolute top-3 right-3 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
                         <h3 class="font-bold text-lg">Hapus Utang/Piutang?</h3>
                         <p class="text-sm text-muted-foreground">Yakin ingin menghapus catatan dari {{ row.person_name }} secara permanen?</p>
                         <div class="flex gap-2 w-full pt-4">
@@ -935,7 +935,7 @@
         </template>
         <!-- Edit Debt Modal -->
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'editDebtModal{{ row.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'editDebtModal{{ row.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Edit Utang/Piutang</h3>
@@ -980,7 +980,7 @@
 
         {% for inst in installments %}
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'editInstModal{{ inst.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'editInstModal{{ inst.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Edit Layanan Berlangganan</h3>
@@ -1022,9 +1022,9 @@
             </div>
         </template>
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'deleteInstModal{{ inst.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'deleteInstModal{{ inst.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-destructive/20 w-full max-w-sm overflow-hidden relative">
-                    <div class="p-6 text-center space-y-4">
+                    <div class="p-6 text-center space-y-4"><button @click="$dispatch('close-modal')" class="absolute top-3 right-3 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
                         <h3 class="font-bold text-lg">Hapus Layanan?</h3>
                         <p class="text-sm text-muted-foreground">Yakin ingin menghapus layanan {{ inst.name }}?</p>
                         <div class="flex gap-2 w-full pt-4">
@@ -1042,7 +1042,7 @@
         </template>
         <!-- Pay Installment Modal -->
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'payInstModal{{ inst.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'payInstModal{{ inst.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Bayar {{ inst.name }}</h3>
@@ -1088,7 +1088,7 @@
 
         {% for asset in assets_list %}
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'editAssetModal{{ asset.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'editAssetModal{{ asset.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Edit Aset</h3>
@@ -1135,9 +1135,9 @@
             </div>
         </template>
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'deleteAssetModal{{ asset.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'deleteAssetModal{{ asset.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-destructive/20 w-full max-w-sm overflow-hidden relative">
-                    <div class="p-6 text-center space-y-4">
+                    <div class="p-6 text-center space-y-4"><button @click="$dispatch('close-modal')" class="absolute top-3 right-3 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
                         <h3 class="font-bold text-lg">Hapus Aset?</h3>
                         <p class="text-sm text-muted-foreground">Yakin ingin menghapus aset {{ asset.asset_name }} dari portofolio?</p>
                         <div class="flex gap-2 w-full pt-4">
@@ -1157,7 +1157,7 @@
 
         {% for g in goals_list %}
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'savingModal{{ g.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'savingModal{{ g.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Tambah Dana ({{ g.name }})</h3>
@@ -1181,9 +1181,9 @@
             </div>
         </template>
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'deleteGoalModal{{ g.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'deleteGoalModal{{ g.id }}'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-destructive/20 w-full max-w-sm overflow-hidden relative">
-                    <div class="p-6 text-center space-y-4">
+                    <div class="p-6 text-center space-y-4"><button @click="$dispatch('close-modal')" class="absolute top-3 right-3 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
                         <h3 class="font-bold text-lg">Hapus Target?</h3>
                         <p class="text-sm text-muted-foreground">Yakin ingin menghapus target {{ g.name }}? Aksi ini tidak dapat dibatalkan.</p>
                         <div class="flex gap-2 w-full pt-4">
@@ -1204,9 +1204,9 @@
         <!-- Add other simple deletes via a generic script or duplicate structure -->
 
         <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'logoutModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <div x-show="modalOpen && modalId === 'logoutModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-destructive/20 w-full max-w-sm overflow-hidden relative">
-                    <div class="p-6 text-center space-y-4">
+                    <div class="p-6 text-center space-y-4"><button @click="$dispatch('close-modal')" class="absolute top-3 right-3 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
                         <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto">
                             <i data-lucide="log-out" class="w-6 h-6 text-red-600 dark:text-red-500"></i>
                         </div>

@@ -482,7 +482,7 @@
 
 <!-- MANAGE BUDGET MODAL -->
 <template x-teleport="body">
-    <div x-show="modalOpen && modalId === 'manageBudgetModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div x-show="modalOpen && modalId === 'manageBudgetModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
         <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
             <div class="flex items-center justify-between p-4 border-b border-border">
                 <h3 class="font-semibold text-lg">Tambah Limit Anggaran</h3>
