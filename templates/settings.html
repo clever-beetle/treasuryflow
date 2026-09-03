@@ -253,7 +253,8 @@
 <div x-data="{ open: false }" @open-modal.window="if ($event.detail === 'addCategoryModal') open = true" @keydown.escape.window="open = false" x-show="open" class="relative z-50" x-cloak>
     <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl relative">
+            <button @click="open = false" class="absolute top-4 right-4 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
             <div class="flex flex-col space-y-1.5 text-center sm:text-left">
                 <h2 class="text-lg font-semibold leading-none tracking-tight">Add Custom Category</h2>
                 <p class="text-sm text-muted-foreground">Create a new category for your transactions.</p>

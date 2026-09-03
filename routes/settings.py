@@ -189,6 +189,11 @@ def setup_account():
             if action == 'edit':
                 edit_account_id = request.form['edit_account_id']
                 
+                # Check if liability account — negate balance (debt)
+                acc_row = db.execute('SELECT account_type FROM accounts WHERE id = ? AND user_id = ?', (edit_account_id, user_id)).fetchone()
+                if acc_row and acc_row['account_type'] == 'liability':
+                    balance = -abs(balance) if balance != 0 else 0
+                
                 billing_due_day = request.form.get('billing_due_day', '')
                 billing_due_day = int(billing_due_day) if billing_due_day else None
                 
@@ -222,9 +227,9 @@ def setup_account():
                 is_liability = category_key in ['KARTU KREDIT', 'PAYLATER', 'PINJOL']
                 account_type = 'liability' if is_liability else 'asset'
                 
-                # If liability, balance is always 0 initially.
-                # If they already owe money, they can input a negative initial balance, but usually it's 0.
+                # For liability accounts, negate balance (debt stored as negative)
                 if is_liability:
+                    balance = -abs(balance) if balance != 0 else 0
                     limit_raw = request.form.get('limit_amount', '0').replace('.', '').replace(',', '.')
                     limit_amount = float(limit_raw) if limit_raw else 0.0
                     billing_due_day_raw = request.form.get('billing_due_day', '')

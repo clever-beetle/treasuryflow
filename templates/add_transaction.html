@@ -82,12 +82,24 @@
 
                 <div class="space-y-2">
                     <label class="text-sm font-medium leading-none">Account</label>
-                    <select name="account_id" required class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                    <select name="account_id" id="accountSelect" required class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                         <option value="">Select an account</option>
                         {% for account in accounts %}
-                            <option value="{{ account.id }}">{{ account.name.split('] ')[-1] if '] ' in account.name else account.name }}</option>
+                            {% if account.account_type == 'liability' %}
+                            <option value="{{ account.id }}" data-type="liability">💳 {{ account.name.split('] ')[-1] if '] ' in account.name else account.name }} (Terpakai: Rp {{ "{:,.0f}".format(account.current_balance|abs).replace(',', '.') }}{% if account.limit_amount %} / Limit: Rp {{ "{:,.0f}".format(account.limit_amount).replace(',', '.') }}{% endif %})</option>
+                            {% else %}
+                            <option value="{{ account.id }}" data-type="asset">{{ account.name.split('] ')[-1] if '] ' in account.name else account.name }} (Rp {{ "{:,.0f}".format(account.current_balance).replace(',', '.') }})</option>
+                            {% endif %}
                         {% endfor %}
                     </select>
+                    <div id="liabilityHint" class="hidden p-2.5 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 text-xs text-amber-700 dark:text-amber-400">
+                        <p class="font-medium">💡 Tips:</p>
+                        <ul class="mt-1 space-y-0.5 list-disc list-inside">
+                            <li><b>Belanja via CC/PayLater</b> → Pilih Expense, tagihan akan otomatis bertambah</li>
+                            <li><b>Bayar tagihan</b> → Pilih Transfer dari Bank ke CC/PayLater</li>
+                            <li><b>Pencairan pinjol</b> → Pilih Transfer dari Pinjol ke rekening Bank</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <div class="space-y-2" id="toAccountContainer" style="display: none;">
@@ -95,7 +107,11 @@
                     <select name="to_account_id" id="toAccountSelect" class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                         <option value="">Select destination account</option>
                         {% for account in accounts %}
+                            {% if account.account_type == 'liability' %}
+                            <option value="{{ account.id }}">💳 {{ account.name.split('] ')[-1] if '] ' in account.name else account.name }}</option>
+                            {% else %}
                             <option value="{{ account.id }}">{{ account.name.split('] ')[-1] if '] ' in account.name else account.name }}</option>
+                            {% endif %}
                         {% endfor %}
                     </select>
                 </div>
@@ -254,5 +270,19 @@
     
     // Initial call
     document.addEventListener('DOMContentLoaded', updateCategories);
+
+    // Show liability hint when a liability account is selected
+    const accountSelect = document.getElementById('accountSelect');
+    const liabilityHint = document.getElementById('liabilityHint');
+    if (accountSelect && liabilityHint) {
+        accountSelect.addEventListener('change', function() {
+            const selected = this.options[this.selectedIndex];
+            if (selected && selected.dataset.type === 'liability') {
+                liabilityHint.classList.remove('hidden');
+            } else {
+                liabilityHint.classList.add('hidden');
+            }
+        });
+    }
 </script>
 {% endblock %}

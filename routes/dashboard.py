@@ -284,6 +284,42 @@ def dashboard():
         db.commit()
         ach = {'xp': 0, 'level': 1, 'badges': '[]'}
         
+    # Process liability accounts for dashboard display
+    asset_accounts = []
+    for acc in accounts:
+        if acc.get('account_type') != 'liability':
+            a = dict(acc)
+            clean_name = a['name'].split('] ')[1] if '] ' in a['name'] else a['name']
+            a['clean_name'] = clean_name
+            asset_accounts.append(a)
+
+    liability_accounts_info = []
+    for acc in accounts:
+        if acc.get('account_type') == 'liability':
+            a = dict(acc)
+            a['usage'] = abs(a.get('current_balance', 0))
+            a['limit'] = a.get('limit_amount', 0) or 0
+            a['available'] = max(0, a['limit'] - a['usage']) if a['limit'] > 0 else 0
+            a['usage_pct'] = (a['usage'] / a['limit'] * 100) if a['limit'] > 0 else 0
+            
+            # Compute days until due
+            due_day = a.get('billing_due_day')
+            if due_day:
+                next_due = today.replace(day=min(due_day, 28))
+                if next_due <= today:
+                    # Move to next month
+                    if today.month == 12:
+                        next_due = next_due.replace(year=today.year + 1, month=1)
+                    else:
+                        next_due = next_due.replace(month=today.month + 1)
+                a['days_until_due'] = (next_due - today).days
+            else:
+                a['days_until_due'] = None
+            
+            clean_name = a['name'].split('] ')[1] if '] ' in a['name'] else a['name']
+            a['clean_name'] = clean_name
+            liability_accounts_info.append(a)
+
     return render_template('dashboard.html', ach=ach,
                            total_balance=total_balance, 
                            total_income=total_income,
@@ -295,6 +331,8 @@ def dashboard():
                            total_budget=total_budget,
                            budget_usage=budget_usage,
                            accounts=accounts, 
+                           asset_accounts=asset_accounts,
+                           liability_accounts_info=liability_accounts_info,
                            latest_transactions=filtered_transactions, 
                            filter_account_id=filter_account_id,
                            filter_type=filter_type,

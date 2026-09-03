@@ -164,11 +164,12 @@
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-sm font-medium leading-none" x-text="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? 'Current Outstanding Debt (Negative)' : 'Initial Balance'">Initial Balance</label>
+                    <label class="text-sm font-medium leading-none" x-text="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? 'Tagihan Saat Ini (jika sudah ada utang)' : 'Initial Balance'">Initial Balance</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
                         <input type="text" name="initial_balance" id="balanceInput" required class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0" :value="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? '0' : ''">
                     </div>
+                    <p class="text-xs text-muted-foreground" x-show="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL'">Isi 0 jika belum ada tagihan. Nanti akan bertambah otomatis saat dipakai.</p>
                 </div>
 
                 <div class="space-y-2" x-show="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL'" x-transition>
@@ -177,6 +178,17 @@
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
                         <input type="text" name="limit_amount" id="limitInput" class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0">
                     </div>
+                </div>
+
+                <div class="space-y-2" x-show="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL'" x-transition>
+                    <label class="text-sm font-medium leading-none">Tanggal Jatuh Tempo (Bulanan)</label>
+                    <select name="billing_due_day" class="flex h-11 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm">
+                        <option value="">-- Belum diatur --</option>
+                        <template x-for="d in Array.from({length: 28}, (_, i) => i + 1)">
+                            <option :value="d" x-text="'Tanggal ' + d"></option>
+                        </template>
+                    </select>
+                    <p class="text-xs text-muted-foreground">Tanggal bayar tagihan setiap bulan (1-28).</p>
                 </div>
 
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 pt-4">
@@ -190,45 +202,56 @@
 
 <!-- Edit Account Modal -->
 <template x-teleport="body">
-    <div x-data="{ open: false, edit_id: '', edit_balance: '', edit_limit: '' }" 
-         @open-edit-modal.window="open = true; edit_id = $event.detail.id; edit_balance = $event.detail.balance; edit_limit = $event.detail.limit;" 
+    <div x-data="{ open: false, edit_id: '', edit_balance: '', edit_limit: '', edit_due_day: '', is_liability: false }" 
+         @open-edit-modal.window="open = true; edit_id = $event.detail.id; edit_balance = $event.detail.balance; edit_limit = $event.detail.limit; edit_due_day = $event.detail.billingDueDay || ''; is_liability = $event.detail.isLiability === 'liability';" 
          @close-modal.window="open = false" 
          x-show="open" 
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" 
-         x-cloak>
-        <div @click.outside="open = false" class="bg-background w-full max-w-md p-6 rounded-2xl shadow-2xl border border-border mx-4">
+         x-cloak
+         @click.self="open = false">
+        <div @click.stop class="bg-background w-full max-w-md p-6 rounded-2xl shadow-2xl border border-border mx-4">
             <div class="flex justify-between items-center mb-6">
                 <div>
-                    <h3 class="text-xl font-bold tracking-tight">Edit Initial Balance</h3>
-                    <p class="text-sm text-muted-foreground">Update the starting balance for this account.</p>
+                    <h3 class="text-xl font-bold tracking-tight">Edit Akun</h3>
+                    <p class="text-sm text-muted-foreground">Update saldo awal dan pengaturan akun.</p>
                 </div>
                 <button @click="open = false" class="text-muted-foreground hover:bg-muted p-2 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
 
-            <form action="{{ url_for('settings.setup_account') }}" method="POST" class="space-y-6">
+            <form action="{{ url_for('settings.setup_account') }}" method="POST" class="space-y-5">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="action" value="edit"/>
                 <input type="hidden" name="edit_account_id" :value="edit_id"/>
 
                 <div class="space-y-2">
-                    <label class="text-sm font-semibold">New Initial Balance</label>
+                    <label class="text-sm font-semibold" x-text="is_liability ? 'Saldo Awal (Tagihan Existing)' : 'Saldo Awal'">Saldo Awal</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">Rp</span>
                         <input type="text" name="initial_balance" :value="edit_balance" required class="auto-ribuan w-full rounded-lg border border-input bg-background pl-10 pr-4 py-2.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="0">
                     </div>
                 </div>
                 
-                <div class="space-y-2" x-show="edit_limit !== null && edit_limit !== undefined" x-transition>
-                    <label class="text-sm font-semibold">New Credit Limit</label>
+                <div class="space-y-2" x-show="is_liability" x-transition>
+                    <label class="text-sm font-semibold">Credit Limit</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">Rp</span>
                         <input type="text" name="limit_amount" :value="edit_limit" class="auto-ribuan w-full rounded-lg border border-input bg-background pl-10 pr-4 py-2.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="0">
                     </div>
                 </div>
 
+                <div class="space-y-2" x-show="is_liability" x-transition>
+                    <label class="text-sm font-semibold">Tanggal Jatuh Tempo</label>
+                    <select name="billing_due_day" class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm" x-model="edit_due_day">
+                        <option value="">-- Belum diatur --</option>
+                        <template x-for="d in Array.from({length: 28}, (_, i) => i + 1)">
+                            <option :value="d" x-text="'Tanggal ' + d" :selected="edit_due_day == d"></option>
+                        </template>
+                    </select>
+                </div>
+
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 pt-4">
-                    <button type="button" @click="open = false" class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-5">Cancel</button>
-                    <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-md shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11 px-5">Update Balance</button>
+                    <button type="button" @click="open = false" class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-5">Batal</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-md shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11 px-5">Simpan</button>
                 </div>
             </form>
         </div>

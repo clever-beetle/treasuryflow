@@ -338,14 +338,17 @@
 x-cloak>
     
     <div x-show="editOpen" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div x-show="editOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"></div>
+        <div x-show="editOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity" @click="editOpen = false"></div>
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                 <div x-show="editOpen" x-transition.scale.origin.bottom.duration.300 class="relative transform overflow-hidden rounded-xl bg-background text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-border">
                     <form :action="'/edit_transaction/' + tx.id" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="px-6 py-6 pb-4">
-                            <h3 class="text-lg font-semibold leading-6 mb-4">Edit Transaction</h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold leading-6">Edit Transaction</h3>
+                                <button type="button" @click="editOpen = false" class="text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
+                            </div>
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Amount</label>
@@ -395,7 +398,7 @@ x-cloak>
 <!-- Bulk Edit Modal -->
 <div x-data="{ bulkEditOpen: false }" @open-bulk-edit-modal.window="bulkEditOpen = true" x-cloak>
     <div x-show="bulkEditOpen" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-        <div x-show="bulkEditOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity"></div>
+        <div x-show="bulkEditOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity" @click="bulkEditOpen = false"></div>
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                 <div x-show="bulkEditOpen" x-transition.scale.origin.bottom.duration.300 class="relative transform overflow-hidden rounded-xl bg-background text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-border">
@@ -403,7 +406,10 @@ x-cloak>
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" name="transaction_ids" :value="selectedRows.join(',')"/>
                         <div class="px-6 py-6 pb-4">
-                            <h3 class="text-lg font-semibold leading-6 mb-4">Bulk Edit Category</h3>
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-lg font-semibold leading-6">Bulk Edit Category</h3>
+                                <button type="button" @click="bulkEditOpen = false" class="text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
+                            </div>
                             <p class="text-sm text-muted-foreground mb-4">You are about to change the category for <span class="font-bold text-foreground" x-text="selectedRows.length"></span> selected transaction(s).</p>
                             <div class="space-y-4">
                                 <div>
