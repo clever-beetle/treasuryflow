@@ -2,6 +2,7 @@ import os
 import sqlite3
 import psycopg2
 import psycopg2.extras
+import psycopg2.errors
 import locale
 from functools import wraps
 from flask import session, flash, redirect, url_for, g
@@ -68,7 +69,29 @@ class DBWrapper:
     def execute(self, query, params=()):
         cursor = self.primary_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         pg_query = query.replace('?', '%s')
-        cursor.execute(pg_query, params)
+        
+        try:
+            cursor.execute(pg_query, params)
+        except psycopg2.errors.UniqueViolation as e:
+            # Auto-fix sequence on duplicate key for INSERT statements
+            if query.strip().upper().startswith('INSERT'):
+                self.primary_conn.rollback()
+                err_str = str(e)
+                # Extract table name from query: INSERT INTO tablename
+                try:
+                    tbl = query.strip().split()[2].strip('(')
+                    fix_cursor = self.primary_conn.cursor()
+                    fix_cursor.execute(f"SELECT setval('{tbl}_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM {tbl}), false)")
+                    self.primary_conn.commit()
+                    logger.info(f"Auto-fixed sequence for {tbl}")
+                    # Retry the original query
+                    cursor = self.primary_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+                    cursor.execute(pg_query, params)
+                except Exception as retry_err:
+                    logger.error(f"Sequence fix retry failed: {retry_err}")
+                    raise e
+            else:
+                raise
         
         if self.replica_conn:
             is_write = query.strip().upper().startswith(('INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP', 'PRAGMA'))

@@ -177,7 +177,7 @@ def setup_account():
         return redirect(url_for('settings.setup_account', message=message, error=error))
 
     if edit_id:
-        account_to_edit = db.execute('SELECT id, name, initial_balance, limit_amount, billing_due_day FROM accounts WHERE id = ? AND user_id = ?', (edit_id, user_id)).fetchone()
+        account_to_edit = db.execute('SELECT * FROM accounts WHERE id = ? AND user_id = ?', (edit_id, user_id)).fetchone()
 
     if request.method == 'POST':
         action = request.form.get('action')
@@ -237,8 +237,13 @@ def setup_account():
                 if existing_account:
                      error = f"Account '{final_name}' is already registered."
                 else:
-                    db.execute('INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount, billing_due_day) VALUES (?, ?, ?, ?, ?, ?, ?)', 
-                               (user_id, final_name, balance, balance, account_type, limit_amount, billing_due_day))
+                    try:
+                        db.execute('INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount, billing_due_day) VALUES (?, ?, ?, ?, ?, ?, ?)', 
+                                   (user_id, final_name, balance, balance, account_type, limit_amount, billing_due_day))
+                    except Exception:
+                        db.rollback()
+                        db.execute('INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount) VALUES (?, ?, ?, ?, ?, ?)', 
+                                   (user_id, final_name, balance, balance, account_type, limit_amount))
                     db.commit()
                     from routes.dashboard import recalculate_account_balances
                     recalculate_account_balances(db, user_id)
@@ -256,6 +261,6 @@ def setup_account():
             else:
                 error = f"An error occurred: {e}"
 
-    accounts = db.execute('SELECT id, name, initial_balance, current_balance, account_type, limit_amount, billing_due_day FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
+    accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     return render_template('setup_account.html', accounts=accounts, message=message, error=error, categories=ACCOUNT_TYPES, account_to_edit=account_to_edit)
 
