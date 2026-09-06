@@ -201,9 +201,17 @@ def setup_account():
                 if limit_raw != '':
                     limit_raw = limit_raw.replace('.', '').replace(',', '.')
                     limit_amount = float(limit_raw)
-                    db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ?, billing_due_day = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, billing_due_day, edit_account_id, user_id))
+                    try:
+                        db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ?, billing_due_day = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, billing_due_day, edit_account_id, user_id))
+                    except Exception:
+                        db.rollback()
+                        db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, edit_account_id, user_id))
                 else:
-                    db.execute('UPDATE accounts SET initial_balance = ?, billing_due_day = ? WHERE id = ? AND user_id = ?', (balance, billing_due_day, edit_account_id, user_id))
+                    try:
+                        db.execute('UPDATE accounts SET initial_balance = ?, billing_due_day = ? WHERE id = ? AND user_id = ?', (balance, billing_due_day, edit_account_id, user_id))
+                    except Exception:
+                        db.rollback()
+                        db.execute('UPDATE accounts SET initial_balance = ? WHERE id = ? AND user_id = ?', (balance, edit_account_id, user_id))
                     
                 db.commit()
                 from routes.dashboard import recalculate_account_balances
