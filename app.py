@@ -239,6 +239,7 @@ def init_db():
                 current_balance REAL NOT NULL DEFAULT 0.0,
                 account_type TEXT DEFAULT 'asset',
                 limit_amount REAL DEFAULT 0.0,
+                billing_due_day INTEGER,
                 FOREIGN KEY (user_id) REFERENCES users (id),
                 UNIQUE (user_id, name)
             )
