@@ -333,7 +333,7 @@
                                 {% if acc.days_until_due is not none %}
                                 <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium {% if acc.days_until_due <= 3 %}bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400{% elif acc.days_until_due <= 7 %}bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400{% else %}bg-muted text-muted-foreground{% endif %}">
                                     <i data-lucide="calendar" class="w-3 h-3"></i>
-                                    {% if acc.days_until_due == 0 %}HARI INI!{% elif acc.days_until_due <= 7 %}{{ acc.days_until_due }} hari lagi{% else %}Tgl {{ acc.billing_due_day }}{% endif %}
+                                    {% if acc.days_until_due == 0 %}HARI INI!{% elif acc.days_until_due <= 7 %}{{ acc.days_until_due }} hari lagi{% else %}Tanggal {{ acc.billing_due_day }}{% endif %}
                                 </span>
                                 {% else %}
                                 <span></span>
