@@ -573,6 +573,9 @@ def init_db_command():
     init_db()
     print("Initialized the database.")
 
+# Run init_db on module load (Vercel cold start)
+init_db()
+
 from routes.auth import auth_bp
 from routes.dashboard import dashboard_bp
 from routes.transactions import transactions_bp
