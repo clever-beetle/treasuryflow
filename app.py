@@ -468,6 +468,12 @@ def init_db():
             except Exception:
                 db.rollback()
 
+            try:
+                cursor.execute("ALTER TABLE recurring_installments ADD COLUMN linked_account_id INTEGER")
+                db.commit()
+            except Exception:
+                db.rollback()
+
             # Fix PostgreSQL sequences - query system catalog for actual sequence names
             try:
                 cursor.execute("""

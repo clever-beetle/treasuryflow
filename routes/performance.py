@@ -109,11 +109,20 @@ def financial_performance():
             is_tenor = int(request.form.get('is_temporary_tenor', 0))
             total_tenor = request.form.get('total_tenor')
             total_tenor = int(total_tenor) if total_tenor else None
+            linked_account_id = request.form.get('linked_account_id', '')
+            linked_account_id = int(linked_account_id) if linked_account_id else None
             
-            db.execute('''
-                INSERT INTO recurring_installments (user_id, name, amount_per_cycle, due_day_of_month, is_temporary_tenor, total_tenor, current_tenor)
-                VALUES (?, ?, ?, ?, ?, ?, 1)
-            ''', (user_id, name, amount_per_cycle, due_day, is_tenor, total_tenor))
+            try:
+                db.execute('''
+                    INSERT INTO recurring_installments (user_id, name, amount_per_cycle, due_day_of_month, is_temporary_tenor, total_tenor, current_tenor, linked_account_id)
+                    VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+                ''', (user_id, name, amount_per_cycle, due_day, is_tenor, total_tenor, linked_account_id))
+            except Exception:
+                db.rollback()
+                db.execute('''
+                    INSERT INTO recurring_installments (user_id, name, amount_per_cycle, due_day_of_month, is_temporary_tenor, total_tenor, current_tenor)
+                    VALUES (?, ?, ?, ?, ?, ?, 1)
+                ''', (user_id, name, amount_per_cycle, due_day, is_tenor, total_tenor))
             db.commit()
 
         elif action == 'edit_installment':
@@ -125,12 +134,22 @@ def financial_performance():
             is_tenor = int(request.form.get('is_temporary_tenor', 0))
             total_tenor = request.form.get('total_tenor')
             total_tenor = int(total_tenor) if total_tenor else None
+            linked_account_id = request.form.get('linked_account_id', '')
+            linked_account_id = int(linked_account_id) if linked_account_id else None
             
-            db.execute('''
-                UPDATE recurring_installments 
-                SET name = ?, amount_per_cycle = ?, due_day_of_month = ?, is_temporary_tenor = ?, total_tenor = ?
-                WHERE id = ? AND user_id = ?
-            ''', (name, amount_per_cycle, due_day, is_tenor, total_tenor, inst_id, user_id))
+            try:
+                db.execute('''
+                    UPDATE recurring_installments 
+                    SET name = ?, amount_per_cycle = ?, due_day_of_month = ?, is_temporary_tenor = ?, total_tenor = ?, linked_account_id = ?
+                    WHERE id = ? AND user_id = ?
+                ''', (name, amount_per_cycle, due_day, is_tenor, total_tenor, linked_account_id, inst_id, user_id))
+            except Exception:
+                db.rollback()
+                db.execute('''
+                    UPDATE recurring_installments 
+                    SET name = ?, amount_per_cycle = ?, due_day_of_month = ?, is_temporary_tenor = ?, total_tenor = ?
+                    WHERE id = ? AND user_id = ?
+                ''', (name, amount_per_cycle, due_day, is_tenor, total_tenor, inst_id, user_id))
             db.commit()
 
         elif action == 'delete_installment':
@@ -140,36 +159,79 @@ def financial_performance():
 
         elif action == 'pay_installment':
             inst_id = int(request.form.get('inst_id'))
-            target_account_id = int(request.form.get('account_name'))
+            source_account_id = int(request.form.get('account_name'))
             raw_paid = request.form.get('amount_paid', '0').replace('.', '').replace(',', '.')
             amount_paid = float(raw_paid)
             notes = request.form.get('notes', '')
             
             inst = db.execute("SELECT * FROM recurring_installments WHERE id = ? AND user_id = ?", (inst_id, user_id)).fetchone()
-            acc_row = db.execute("SELECT name FROM accounts WHERE id = ?", (target_account_id,)).fetchone()
+            source_acc = db.execute("SELECT * FROM accounts WHERE id = ?", (source_account_id,)).fetchone()
             
-            if inst and acc_row:
-                # Record transaction
-                clean_acc = acc_row['name'].split('] ')[1] if '] ' in acc_row['name'] else acc_row['name']
-                tx_desc = f"Pembayaran {inst['name']} via {clean_acc}"
-                if notes:
-                    tx_desc += f": {notes}"
+            if inst and source_acc:
+                clean_src = source_acc['name'].split('] ')[1] if '] ' in source_acc['name'] else source_acc['name']
                 tx_date = datetime.now().strftime('%Y-%m-%d')
                 
-                db.execute('''
-                    INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
-                    VALUES (?, ?, ?, 'expense', ?, ?, 'Langganan & Cicilan')
-                ''', (user_id, tx_date, target_account_id, amount_paid, tx_desc))
+                # Check if cicilan is linked to a liability account
+                linked_id = None
+                try:
+                    linked_id = inst.get('linked_account_id') if hasattr(inst, 'get') else inst['linked_account_id']
+                except (KeyError, TypeError):
+                    linked_id = None
                 
-                # Reduce account balance
-                db.execute("UPDATE accounts SET current_balance = current_balance - ? WHERE id = ? AND user_id = ?", (amount_paid, target_account_id, user_id))
+                if linked_id:
+                    # LINKED: Create transfer (bank → liability)
+                    linked_acc = db.execute("SELECT * FROM accounts WHERE id = ? AND user_id = ?", (linked_id, user_id)).fetchone()
+                    if linked_acc:
+                        clean_linked = linked_acc['name'].split('] ')[1] if '] ' in linked_acc['name'] else linked_acc['name']
+                        tx_desc = f"Pembayaran {inst['name']}"
+                        if notes:
+                            tx_desc += f": {notes}"
+                        
+                        # Transaction 1: Expense on source bank (Transfer category)
+                        db.execute('''
+                            INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
+                            VALUES (?, ?, ?, 'expense', ?, ?, 'Transfer')
+                        ''', (user_id, tx_date, source_account_id, amount_paid, f"{tx_desc} ({clean_src} → {clean_linked})"))
+                        
+                        # Transaction 2: Income on liability account (Transfer category) — reduces debt
+                        db.execute('''
+                            INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
+                            VALUES (?, ?, ?, 'income', ?, ?, 'Transfer')
+                        ''', (user_id, tx_date, linked_id, amount_paid, f"{tx_desc} ({clean_src} → {clean_linked})"))
+                        
+                        # Update both account balances
+                        db.execute("UPDATE accounts SET current_balance = current_balance - ? WHERE id = ? AND user_id = ?", 
+                                   (amount_paid, source_account_id, user_id))
+                        db.execute("UPDATE accounts SET current_balance = current_balance + ? WHERE id = ? AND user_id = ?", 
+                                   (amount_paid, linked_id, user_id))
+                    else:
+                        # Linked account not found, fallback to expense only
+                        tx_desc = f"Pembayaran {inst['name']} via {clean_src}"
+                        if notes:
+                            tx_desc += f": {notes}"
+                        db.execute('''
+                            INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
+                            VALUES (?, ?, ?, 'expense', ?, ?, 'Langganan & Cicilan')
+                        ''', (user_id, tx_date, source_account_id, amount_paid, tx_desc))
+                        db.execute("UPDATE accounts SET current_balance = current_balance - ? WHERE id = ? AND user_id = ?", 
+                                   (amount_paid, source_account_id, user_id))
+                else:
+                    # NOT LINKED: Regular expense (subscriptions like Netflix, Spotify)
+                    tx_desc = f"Pembayaran {inst['name']} via {clean_src}"
+                    if notes:
+                        tx_desc += f": {notes}"
+                    db.execute('''
+                        INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
+                        VALUES (?, ?, ?, 'expense', ?, ?, 'Langganan & Cicilan')
+                    ''', (user_id, tx_date, source_account_id, amount_paid, tx_desc))
+                    db.execute("UPDATE accounts SET current_balance = current_balance - ? WHERE id = ? AND user_id = ?", 
+                               (amount_paid, source_account_id, user_id))
                 
                 # Advance tenor if applicable
                 if inst['is_temporary_tenor']:
                     new_tenor = (inst['current_tenor'] or 1) + 1
                     total = inst['total_tenor'] or 999
                     if new_tenor > total:
-                        # Installment completed
                         db.execute("UPDATE recurring_installments SET current_tenor = ?, is_active = 0 WHERE id = ?", (new_tenor, inst_id))
                         flash(f"Cicilan {inst['name']} sudah LUNAS! 🎉", 'success')
                     else:
@@ -288,21 +350,29 @@ def financial_performance():
     records_active = db.execute("SELECT * FROM debts_receivables WHERE user_id = ? AND status = 'BELUM LUNAS' ORDER BY due_date ASC", (user_id,)).fetchall()
     records_history = db.execute("SELECT * FROM debts_receivables WHERE user_id = ? AND status = 'LUNAS' ORDER BY due_date DESC", (user_id,)).fetchall()
     
-    raw_accounts = db.execute("SELECT id, name FROM accounts WHERE user_id = ?", (user_id,)).fetchall()
+    raw_accounts = db.execute("SELECT * FROM accounts WHERE user_id = ?", (user_id,)).fetchall()
     clean_accounts = []
+    liability_accounts = []
     for acc in raw_accounts:
         clean_label = acc['name'].split('] ')[1] if '] ' in acc['name'] else acc['name']
         clean_accounts.append({'raw': acc['id'], 'clean': clean_label})
+        if acc.get('account_type') == 'liability':
+            liability_accounts.append({'id': acc['id'], 'name': clean_label})
 
     installments_raw = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 1 ORDER BY due_day_of_month ASC", (user_id,)).fetchall()
     # Compute remaining_tenor for template
     installments = []
+    # Build lookup for liability account names
+    liability_lookup = {la['id']: la['name'] for la in liability_accounts}
     for inst in installments_raw:
         inst_dict = dict(inst)
         if inst['is_temporary_tenor'] and inst['total_tenor']:
             inst_dict['remaining_tenor'] = max(0, (inst['total_tenor'] or 0) - (inst['current_tenor'] or 1) + 1)
         else:
             inst_dict['remaining_tenor'] = None
+        # Add linked account name for display
+        linked_id = inst_dict.get('linked_account_id')
+        inst_dict['linked_account_name'] = liability_lookup.get(linked_id, '') if linked_id else ''
         installments.append(inst_dict)
     
     installments_completed = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 0 ORDER BY name ASC", (user_id,)).fetchall()
@@ -443,7 +513,7 @@ def financial_performance():
                            proyeksi_seminggu_out=proyeksi_seminggu_out, proyeksi_sebulan_out=proyeksi_sebulan_out,
                            max_expense=max_expense, min_expense=min_expense, days_range=days_range,
                            distribution_list=distribution_list, records_active=records_active, records_history=records_history, 
-                           accounts=clean_accounts, installments=installments, installments_completed=installments_completed,
+                           accounts=clean_accounts, liability_accounts=liability_accounts, installments=installments, installments_completed=installments_completed,
                            assets_list=assets_list, total_asset_value=total_asset_value, goals_list=goals_list,
                            savings_rate=savings_rate, smart_insight=smart_insight, insight_type=insight_type,
                            credit_cards=credit_cards, net_worth=net_worth, total_saldo=total_saldo,

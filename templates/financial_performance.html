@@ -509,6 +509,9 @@
                                                     {% else %}
                                                     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">Berkelanjutan</span>
                                                     {% endif %}
+                                                    {% if inst.linked_account_name %}
+                                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">🔗 {{ inst.linked_account_name }}</span>
+                                                    {% endif %}
                                                 </div>
                                             </td>
                                             <td class="p-4 font-bold">{{ inst.amount_per_cycle | rupiah }}</td>
@@ -790,6 +793,16 @@
                             <label class="text-sm font-medium mb-1 block">Total Durasi Bulan</label>
                             <input type="number" name="total_tenor" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                         </div>
+                        <div>
+                            <label class="text-sm font-medium mb-1 block">Hubungkan ke Akun Kewajiban <span class="text-muted-foreground font-normal">(Opsional)</span></label>
+                            <select name="linked_account_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                <option value="">-- Tidak dihubungkan (Langganan biasa) --</option>
+                                {% for la in liability_accounts %}
+                                <option value="{{ la.id }}">💳 {{ la.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-xs text-muted-foreground mt-1">Jika dihubungkan, saat bayar cicilan maka utang di akun tersebut juga ikut berkurang.</p>
+                        </div>
                         <div class="pt-2">
                             <button type="submit" class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">Simpan</button>
                         </div>
@@ -1012,6 +1025,15 @@
                         <div x-show="isTenor === '1'">
                             <label class="text-sm font-medium mb-1 block">Total Durasi Bulan</label>
                             <input type="number" name="total_tenor" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ inst.total_tenor or '' }}">
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium mb-1 block">Hubungkan ke Akun Kewajiban</label>
+                            <select name="linked_account_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                <option value="">-- Tidak dihubungkan --</option>
+                                {% for la in liability_accounts %}
+                                <option value="{{ la.id }}" {% if inst.linked_account_id == la.id %}selected{% endif %}>💳 {{ la.name }}</option>
+                                {% endfor %}
+                            </select>
                         </div>
                         <div class="pt-2 flex gap-2">
                             <button type="button" @click="$dispatch('close-modal')" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-10">Batal</button>
