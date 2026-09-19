@@ -219,33 +219,42 @@ def dashboard():
 
     health_status = 'Excellent' if health_score >= 80 else 'Good' if health_score >= 50 else 'Warning'
 
-    # AUTO RECURRING SYNC
-    current_month_str = today.strftime('%Y-%m')
-    first_day_of_month = today.replace(day=1).strftime('%Y-%m-%d')
-    import calendar as cal_mod
-    last_day = cal_mod.monthrange(today.year, today.month)[1]
-    last_day_of_month = today.replace(day=last_day).strftime('%Y-%m-%d')
-    installments_sync = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 1", (user_id,)).fetchall()
-    for inst in installments_sync:
-        if today.day >= inst['due_day_of_month']:
-            desc = f"Auto-Sync: {inst['name']}"
-            existing = db.execute("SELECT id FROM transactions WHERE user_id = ? AND description = ? AND date >= ? AND date <= ?", (user_id, desc, first_day_of_month, last_day_of_month)).fetchone()
-            if not existing:
-                account = db.execute("SELECT id FROM accounts WHERE user_id = ? LIMIT 1", (user_id,)).fetchone()
-                if account:
-                    try:
-                        date_str = f"{current_month_str}-{inst['due_day_of_month']:02d}"
-                        db.execute('''INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
-                                      VALUES (?, ?, ?, 'expense', ?, ?, 'Bills')''', 
-                                   (user_id, date_str, account['id'], inst['amount_per_cycle'], desc))
-                        db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (inst['amount_per_cycle'], account['id']))
-                        db.commit()
-                    except Exception as e:
+    # AUTO RECURRING SYNC — only if enabled in feature_flags
+    auto_sync_enabled = False
+    try:
+        flag = db.execute("SELECT is_active FROM feature_flags WHERE name = 'auto_sync'").fetchone()
+        if flag:
+            auto_sync_enabled = flag['is_active']
+    except Exception:
+        pass
+
+    if auto_sync_enabled:
+        current_month_str = today.strftime('%Y-%m')
+        first_day_of_month = today.replace(day=1).strftime('%Y-%m-%d')
+        import calendar as cal_mod
+        last_day = cal_mod.monthrange(today.year, today.month)[1]
+        last_day_of_month = today.replace(day=last_day).strftime('%Y-%m-%d')
+        installments_sync = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 1", (user_id,)).fetchall()
+        for inst in installments_sync:
+            if today.day >= inst['due_day_of_month']:
+                desc = f"Auto-Sync: {inst['name']}"
+                existing = db.execute("SELECT id FROM transactions WHERE user_id = ? AND description = ? AND date >= ? AND date <= ?", (user_id, desc, first_day_of_month, last_day_of_month)).fetchone()
+                if not existing:
+                    account = db.execute("SELECT id FROM accounts WHERE user_id = ? LIMIT 1", (user_id,)).fetchone()
+                    if account:
                         try:
-                            db.rollback()
-                        except:
-                            pass
-                        logger.error(f"Error sync recurring: {e}")
+                            date_str = f"{current_month_str}-{inst['due_day_of_month']:02d}"
+                            db.execute('''INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
+                                          VALUES (?, ?, ?, 'expense', ?, ?, 'Bills')''', 
+                                       (user_id, date_str, account['id'], inst['amount_per_cycle'], desc))
+                            db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (inst['amount_per_cycle'], account['id']))
+                            db.commit()
+                        except Exception as e:
+                            try:
+                                db.rollback()
+                            except:
+                                pass
+                            logger.error(f"Error sync recurring: {e}")
 
 
     # Fetch heatmap data

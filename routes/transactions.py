@@ -251,7 +251,8 @@ def delete_transaction(transaction_id):
 def bulk_delete_transactions():
     db = get_db()
     user_id = session['user_id']
-    tx_ids = request.form.getlist('transaction_ids')
+    raw_ids = request.form.get('transaction_ids', '')
+    tx_ids = [tid.strip() for tid in raw_ids.split(',') if tid.strip()]
     for tid in tx_ids:
         tx = db.execute('SELECT * FROM transactions WHERE id = ? AND user_id = ?', (tid, user_id)).fetchone()
         if tx:
@@ -261,7 +262,22 @@ def bulk_delete_transactions():
                 db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', (tx['amount'], tx['account_id']))
             db.execute('DELETE FROM transactions WHERE id = ?', (tid,))
     db.commit()
-    flash('Selected transactions deleted', 'success')
+    flash(f'{len(tx_ids)} transaksi berhasil dihapus.', 'success')
+    return redirect(url_for('transactions.transactions_list'))
+
+@transactions_bp.route('/delete_all', methods=['POST'])
+@login_required
+def delete_all_transactions():
+    db = get_db()
+    user_id = session['user_id']
+    # Reset all account balances to initial_balance
+    accounts = db.execute('SELECT id, initial_balance FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
+    for acc in accounts:
+        db.execute('UPDATE accounts SET current_balance = ? WHERE id = ?', (acc['initial_balance'], acc['id']))
+    # Delete all transactions
+    db.execute('DELETE FROM transactions WHERE user_id = ?', (user_id,))
+    db.commit()
+    flash('Semua transaksi berhasil dihapus. Saldo akun direset ke saldo awal.', 'success')
     return redirect(url_for('transactions.transactions_list'))
 
 @transactions_bp.route('/bulk_edit', methods=['POST'])

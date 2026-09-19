@@ -131,10 +131,33 @@ def settings():
                 
                 message = "Seluruh data finansial Anda telah berhasil direset. Akun Anda tetap aman."
 
+        elif action == 'toggle_auto_sync':
+            try:
+                existing = db.execute("SELECT * FROM feature_flags WHERE name = 'auto_sync'").fetchone()
+                if existing:
+                    new_val = not existing['is_active']
+                    db.execute("UPDATE feature_flags SET is_active = ? WHERE name = 'auto_sync'", (new_val,))
+                else:
+                    db.execute("INSERT INTO feature_flags (name, is_active) VALUES ('auto_sync', FALSE)")
+                db.commit()
+                message = "Auto Sync berhasil diperbarui."
+            except Exception:
+                db.rollback()
+
         user = db.execute('SELECT fullname, username, email, password FROM users WHERE id = ?', (user_id,)).fetchone()
 
     user_categories = db.execute("SELECT * FROM user_categories WHERE user_id = ?", (user_id,)).fetchall()
-    return render_template('settings.html', user=user, error=error, message=message, user_categories=user_categories)
+    
+    # Get auto_sync status
+    auto_sync_enabled = False
+    try:
+        flag = db.execute("SELECT is_active FROM feature_flags WHERE name = 'auto_sync'").fetchone()
+        if flag:
+            auto_sync_enabled = flag['is_active']
+    except Exception:
+        pass
+    
+    return render_template('settings.html', user=user, error=error, message=message, user_categories=user_categories, auto_sync_enabled=auto_sync_enabled)
 
 @settings_bp.route('/setup/accounts', methods=['GET', 'POST'])
 @login_required

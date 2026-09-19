@@ -60,6 +60,32 @@
                     <i data-lucide="calendar-days" class="w-4 h-4 inline mr-1"></i> Calendar
                 </a>
             </div>
+            <div x-data="{ showDeleteAll: false }">
+                <button @click="showDeleteAll = true" class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium bg-destructive/10 text-destructive hover:bg-destructive/20 border border-destructive/20 h-8 px-3 transition-colors">
+                    <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus Semua
+                </button>
+                <template x-teleport="body">
+                    <div x-show="showDeleteAll" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm" @click.self="showDeleteAll = false">
+                        <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-destructive/20 w-full max-w-sm overflow-hidden relative">
+                            <div class="p-6 text-center space-y-4">
+                                <button @click="showDeleteAll = false" class="absolute top-3 right-3 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
+                                <div class="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center">
+                                    <i data-lucide="alert-triangle" class="w-6 h-6 text-destructive"></i>
+                                </div>
+                                <h3 class="font-bold text-lg">Hapus Semua Transaksi?</h3>
+                                <p class="text-sm text-muted-foreground">Semua transaksi akan dihapus secara permanen dan saldo akun akan direset ke saldo awal. Tindakan ini tidak bisa dibatalkan.</p>
+                                <div class="flex gap-2 w-full pt-2">
+                                    <button type="button" @click="showDeleteAll = false" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-10">Batal</button>
+                                    <form method="POST" action="{{ url_for('transactions.delete_all_transactions') }}" class="flex-1">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                        <button type="submit" class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10">Hapus Semua</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </div>
         </div>
 
         {% if view == 'calendar' %}
