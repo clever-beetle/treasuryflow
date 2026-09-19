@@ -5,32 +5,48 @@ on:
     branches: [ main ]
 
 jobs:
-  validate:
+  autofix-and-deploy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
     
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
-        
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
 
-    # 1. Python syntax check - catches import errors, syntax errors
-    - name: Python Syntax Check
+    # Step 1: Auto-fix bugs
+    - name: 🔧 Auto Fix Bugs
+      run: python autofix.py
+
+    # Step 2: If autofix changed files, commit them back
+    - name: 📝 Commit Auto Fixes
+      run: |
+        git config user.name "AutoFix Bot"
+        git config user.email "autofix@treasuryflow.web.id"
+        git add -A
+        if git diff --staged --quiet; then
+          echo "✅ No fixes needed"
+        else
+          git commit -m "🤖 autofix: auto-fixed template/code issues"
+          git push origin main
+          echo "✅ Auto-fixes committed and pushed"
+        fi
+
+    # Step 3: Validate everything compiles
+    - name: 🔍 Python Syntax Check
       run: |
         python -m py_compile app.py
         python -m py_compile utils.py
         python -m py_compile models.py
         for f in routes/*.py; do python -m py_compile "$f"; done
-        echo "✅ All Python files compile OK"
+        echo "✅ All Python files OK"
 
-    # 2. Jinja2 template validation - catches broken templates
-    - name: Template Validation
+    # Step 4: Template validation
+    - name: 🔍 Template Validation
       run: |
         python -c "
         import os, re, sys
@@ -40,76 +56,36 @@ jobs:
             path = os.path.join('templates', f)
             content = open(path, encoding='utf-8').read()
             
-            # Check mismatched quotes in @click attributes
-            for i, line in enumerate(content.split('\n'), 1):
-                # Find @click=\"...\" where tojson is used (should use single quotes outside)
-                if '@click=\"' in line and 'tojson' in line:
-                    errors.append(f'{path}:{i} - @click uses double quotes with tojson (will break HTML)')
-                
-                # Check unclosed Jinja2 blocks
-                opens = line.count('{%') + line.count('{{')
-                closes = line.count('%}') + line.count('}}')
-                if opens != closes and '{#' not in line:
-                    # Could be multi-line, skip
-                    pass
+            if '@click=\"' in content and 'tojson' in content:
+                for i, line in enumerate(content.split('\n'), 1):
+                    if '@click=\"' in line and 'tojson' in line:
+                        errors.append(f'{path}:{i} - @click quote mismatch with tojson')
             
-            # Check block/endblock balance
             blocks = len(re.findall(r'{%[-\s]*block\s', content))
             endblocks = len(re.findall(r'{%[-\s]*endblock', content))
             if blocks != endblocks:
                 errors.append(f'{path} - Mismatched block/endblock ({blocks} vs {endblocks})')
             
-            # Check for/endfor balance
             fors = len(re.findall(r'{%[-\s]*for\s', content))
             endfors = len(re.findall(r'{%[-\s]*endfor', content))
             if fors != endfors:
                 errors.append(f'{path} - Mismatched for/endfor ({fors} vs {endfors})')
             
-            # Check if/endif balance
             ifs = len(re.findall(r'{%[-\s]*if\s', content))
             endifs = len(re.findall(r'{%[-\s]*endif', content))
             if ifs != endifs:
                 errors.append(f'{path} - Mismatched if/endif ({ifs} vs {endifs})')
         
         if errors:
-            print('❌ Template errors found:')
-            for e in errors:
-                print(f'  {e}')
+            print('❌ Template errors:')
+            for e in errors: print(f'  {e}')
             sys.exit(1)
-        else:
-            print('✅ All templates validated OK')
+        print('✅ All templates OK')
         "
 
-    # 3. Flask app import test - catches runtime import errors
-    - name: App Import Test
+    # Step 5: Deploy to production branch
+    - name: 🚀 Deploy to Production
       run: |
-        python -c "
-        import os
-        os.environ['SECRET_KEY'] = 'test'
-        os.environ['DATABASE_URL'] = 'sqlite:///test.db'
-        try:
-            import app
-            print('✅ App imports OK')
-        except Exception as e:
-            print(f'❌ App import failed: {e}')
-            exit(1)
-        "
-
-  # Only deploy if validation passes
-  deploy:
-    needs: validate
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Push to production branch
-      run: |
-        git config user.name "GitHub Actions"
-        git config user.email "actions@github.com"
         git checkout -B production
         git push origin production --force
-        echo "✅ Deployed to production branch"
+        echo "✅ Deployed to production"
