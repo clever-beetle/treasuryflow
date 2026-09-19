@@ -234,9 +234,6 @@
                                     </a>
                                 </th>
                             {% endmacro %}
-                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground w-12">
-                                <input type="checkbox" x-model="selectAll" @change="toggleAll" class="rounded border-input text-primary focus:ring-ring w-4 h-4">
-                            </th>
                             {{ sort_link('date', 'Date', 'text-left') }}
                             {{ sort_link('category', 'Category', 'text-left') }}
                             {{ sort_link('account_name', 'Account', 'text-left') }}
@@ -248,9 +245,6 @@
                     <tbody class="[&_tr:last-child]:border-0">
                         {% for tx in transactions %}
                         <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted group">
-                            <td class="p-4 align-middle text-center w-12">
-                                <input type="checkbox" value="{{ tx.id }}" x-model.number="selectedRows" class="rounded border-input text-primary focus:ring-ring w-4 h-4">
-                            </td>
                             <td class="p-4 align-middle whitespace-nowrap">{{ tx.date }}</td>
                             <td class="p-4 align-middle">
                                 <div class="flex flex-col">
@@ -283,12 +277,9 @@
                                 <button type="button" @click='$dispatch("open-edit-modal", { id: {{ tx.id }}, amount: {{ tx.amount }}, description: {{ (tx.description or "")|tojson }}, date: "{{ tx.date }}", category: "{{ tx.category }}", account_id: {{ tx.account_id }}, type: "{{ tx.type }}" })' class="text-muted-foreground hover:text-blue-500 p-2 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Edit">
                                     <i data-lucide="edit-2" class="w-4 h-4"></i>
                                 </button>
-                                <form action="{{ url_for('transactions.delete_transaction', transaction_id=tx.id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this transaction?');">
-                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                    <button type="submit" class="text-muted-foreground hover:text-destructive p-2 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Delete">
-                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                    </button>
-                                </form>
+                                <button type="button" @click="$dispatch('open-delete-modal', { id: {{ tx.id }}, desc: {{ (tx.description or tx.category)|tojson }} })" class="text-muted-foreground hover:text-destructive p-2 rounded-md hover:bg-muted transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100" title="Hapus">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
                             </td>
                         </tr>
                         {% endfor %}
@@ -333,25 +324,7 @@
             {% endif %}
         </div>
     </div>
-    
-    <!-- Floating Bulk Actions -->
-    <div x-show="selectedRows.length > 0" x-transition.translate.y x-cloak class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-popover border border-border shadow-lg rounded-full px-6 py-3 flex items-center gap-4 z-50">
-        <span class="text-sm font-medium">
-            <span x-text="selectedRows.length"></span> dipilih
-        </span>
-        <div class="flex items-center gap-2 border-l border-border pl-4">
-            <button type="button" @click="$dispatch('open-bulk-edit-modal')" class="inline-flex items-center justify-center rounded-full text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-4 shadow-sm">
-                <i data-lucide="tag" class="w-3 h-3 mr-2"></i> Edit Kategori
-            </button>
-            <form action="{{ url_for('transactions.bulk_delete_transactions') }}" method="POST" class="m-0" onsubmit="return confirm('Yakin ingin menghapus transaksi yang dipilih?');">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <input type="hidden" name="transaction_ids" :value="selectedRows.join(',')"/>
-                <button type="submit" class="inline-flex items-center justify-center rounded-full text-xs font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-4 shadow-sm">
-                    <i data-lucide="trash-2" class="w-3 h-3 mr-2"></i> Hapus
-                </button>
-            </form>
-        </div>
-    </div>
+
 </div>
 
 <!-- Edit Modal -->
@@ -464,6 +437,31 @@ x-cloak>
 </div>
 {% endif %}
 </div>
+</div>
+
+<!-- Delete Transaction Modal -->
+<div x-data="{ deleteOpen: false, delId: null, delDesc: '' }" @open-delete-modal.window="delId = $event.detail.id; delDesc = $event.detail.desc; deleteOpen = true;" x-cloak>
+    <div x-show="deleteOpen" class="relative z-50">
+        <div x-show="deleteOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity" @click="deleteOpen = false"></div>
+        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div x-show="deleteOpen" x-transition.scale.origin.bottom.duration.300 class="relative transform overflow-hidden rounded-xl bg-background text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-border">
+                    <div class="p-6 text-center space-y-4">
+                        <button @click="deleteOpen = false" class="absolute top-3 right-3 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
+                        <h3 class="font-bold text-lg">Hapus Transaksi?</h3>
+                        <p class="text-sm text-muted-foreground">Transaksi "<span x-text="delDesc" class="font-medium text-foreground"></span>" akan dihapus permanen dan saldo akun akan disesuaikan.</p>
+                        <div class="flex gap-2 w-full pt-2">
+                            <button type="button" @click="deleteOpen = false" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-10">Batal</button>
+                            <form method="POST" :action="'/transactions/delete/' + delId" class="flex-1">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                <button type="submit" class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10">Hapus</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
