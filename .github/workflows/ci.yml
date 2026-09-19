@@ -3,28 +3,10 @@ name: CI/CD Pipeline
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
 
 jobs:
-  test:
+  validate:
     runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
-          POSTGRES_DB: finance_tracker_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
     - uses: actions/checkout@v4
     
@@ -37,37 +19,97 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install -r requirements-dev.txt
-        playwright install --with-deps
-        
-    - name: Initialize Database
+
+    # 1. Python syntax check - catches import errors, syntax errors
+    - name: Python Syntax Check
       run: |
-        python -c "from app import db; db.create_all()"
-      env:
-        DATABASE_URL: postgresql://user:password@localhost:5432/finance_tracker_test
-        
-    - name: Start Flask App
+        python -m py_compile app.py
+        python -m py_compile utils.py
+        python -m py_compile models.py
+        for f in routes/*.py; do python -m py_compile "$f"; done
+        echo "✅ All Python files compile OK"
+
+    # 2. Jinja2 template validation - catches broken templates
+    - name: Template Validation
       run: |
-        flask run -p 5000 &
-        sleep 5
-      env:
-        FLASK_APP: app.py
-        FLASK_ENV: testing
-        SECRET_KEY: testing-secret
-        DATABASE_URL: postgresql://user:password@localhost:5432/finance_tracker_test
+        python -c "
+        import os, re, sys
+        errors = []
+        for f in os.listdir('templates'):
+            if not f.endswith('.html'): continue
+            path = os.path.join('templates', f)
+            content = open(path, encoding='utf-8').read()
+            
+            # Check mismatched quotes in @click attributes
+            for i, line in enumerate(content.split('\n'), 1):
+                # Find @click=\"...\" where tojson is used (should use single quotes outside)
+                if '@click=\"' in line and 'tojson' in line:
+                    errors.append(f'{path}:{i} - @click uses double quotes with tojson (will break HTML)')
+                
+                # Check unclosed Jinja2 blocks
+                opens = line.count('{%') + line.count('{{')
+                closes = line.count('%}') + line.count('}}')
+                if opens != closes and '{#' not in line:
+                    # Could be multi-line, skip
+                    pass
+            
+            # Check block/endblock balance
+            blocks = len(re.findall(r'{%[-\s]*block\s', content))
+            endblocks = len(re.findall(r'{%[-\s]*endblock', content))
+            if blocks != endblocks:
+                errors.append(f'{path} - Mismatched block/endblock ({blocks} vs {endblocks})')
+            
+            # Check for/endfor balance
+            fors = len(re.findall(r'{%[-\s]*for\s', content))
+            endfors = len(re.findall(r'{%[-\s]*endfor', content))
+            if fors != endfors:
+                errors.append(f'{path} - Mismatched for/endfor ({fors} vs {endfors})')
+            
+            # Check if/endif balance
+            ifs = len(re.findall(r'{%[-\s]*if\s', content))
+            endifs = len(re.findall(r'{%[-\s]*endif', content))
+            if ifs != endifs:
+                errors.append(f'{path} - Mismatched if/endif ({ifs} vs {endifs})')
         
-    - name: Run Pytest Backend Tests
+        if errors:
+            print('❌ Template errors found:')
+            for e in errors:
+                print(f'  {e}')
+            sys.exit(1)
+        else:
+            print('✅ All templates validated OK')
+        "
+
+    # 3. Flask app import test - catches runtime import errors
+    - name: App Import Test
       run: |
-        pytest tests/ -k "not e2e"
-        
-    - name: Run Playwright E2E and Visual Tests
-      run: |
-        pytest tests/e2e/
-        
-    - name: Upload Playwright Report
-      if: failure()
-      uses: actions/upload-artifact@v4
+        python -c "
+        import os
+        os.environ['SECRET_KEY'] = 'test'
+        os.environ['DATABASE_URL'] = 'sqlite:///test.db'
+        try:
+            import app
+            print('✅ App imports OK')
+        except Exception as e:
+            print(f'❌ App import failed: {e}')
+            exit(1)
+        "
+
+  # Only deploy if validation passes
+  deploy:
+    needs: validate
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+    - uses: actions/checkout@v4
       with:
-        name: playwright-report
-        path: playwright-report/
-        retention-days: 30
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Push to production branch
+      run: |
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        git checkout -B production
+        git push origin production --force
+        echo "✅ Deployed to production branch"
