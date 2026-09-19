@@ -277,7 +277,7 @@
                                 <button type="button" @click='$dispatch("open-edit-modal", { id: {{ tx.id }}, amount: {{ tx.amount }}, description: {{ (tx.description or "")|tojson }}, date: "{{ tx.date }}", category: "{{ tx.category }}", account_id: {{ tx.account_id }}, type: "{{ tx.type }}" })' class="text-muted-foreground hover:text-blue-500 p-2 rounded-md hover:bg-muted transition-colors" title="Edit">
                                     <i data-lucide="edit-2" class="w-4 h-4"></i>
                                 </button>
-                                <button type="button" @click="$dispatch('open-delete-modal', { id: {{ tx.id }}, desc: {{ (tx.description or tx.category)|tojson }} })" class="text-muted-foreground hover:text-destructive p-2 rounded-md hover:bg-muted transition-colors" title="Hapus">
+                                <button type="button" @click='$dispatch("open-delete-modal", { id: {{ tx.id }}, desc: {{ (tx.description or tx.category)|tojson }} })' class="text-muted-foreground hover:text-destructive p-2 rounded-md hover:bg-muted transition-colors" title="Hapus">
                                     <i data-lucide="trash-2" class="w-4 h-4"></i>
                                 </button>
                             </td>
