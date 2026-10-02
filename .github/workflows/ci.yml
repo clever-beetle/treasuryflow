@@ -4,6 +4,9 @@ on:
   push:
     branches: [ main ]
 
+permissions:
+  contents: write
+
 jobs:
   autofix-and-deploy:
     runs-on: ubuntu-latest
@@ -17,6 +20,10 @@ jobs:
       uses: actions/setup-python@v4
       with:
         python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt 2>/dev/null || true
 
     # Step 1: Auto-fix bugs
     - name: 🔧 Auto Fix Bugs
@@ -36,7 +43,7 @@ jobs:
           echo "✅ Auto-fixes committed and pushed"
         fi
 
-    # Step 3: Validate everything compiles
+    # Step 3: Validate Python syntax
     - name: 🔍 Python Syntax Check
       run: |
         python -m py_compile app.py
@@ -83,9 +90,11 @@ jobs:
         print('✅ All templates OK')
         "
 
-    # Step 5: Deploy to production branch
-    - name: 🚀 Deploy to Production
+    # Step 5: Auto deploy to production branch
+    - name: 🚀 Auto Push to Production
       run: |
+        git config user.name "Deploy Bot"
+        git config user.email "deploy@treasuryflow.web.id"
         git checkout -B production
         git push origin production --force
-        echo "✅ Deployed to production"
+        echo "✅ Auto-pushed to production → Vercel will deploy"
