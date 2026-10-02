@@ -8,7 +8,7 @@ permissions:
   contents: write
 
 jobs:
-  autofix-and-deploy:
+  validate-and-deploy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -21,29 +21,7 @@ jobs:
       with:
         python-version: '3.12'
 
-    - name: Install dependencies
-      run: |
-        pip install -r requirements.txt 2>/dev/null || true
-
-    # Step 1: Auto-fix bugs
-    - name: 🔧 Auto Fix Bugs
-      run: python autofix.py
-
-    # Step 2: If autofix changed files, commit them back
-    - name: 📝 Commit Auto Fixes
-      run: |
-        git config user.name "AutoFix Bot"
-        git config user.email "autofix@treasuryflow.web.id"
-        git add -A
-        if git diff --staged --quiet; then
-          echo "✅ No fixes needed"
-        else
-          git commit -m "🤖 autofix: auto-fixed template/code issues"
-          git push origin main
-          echo "✅ Auto-fixes committed and pushed"
-        fi
-
-    # Step 3: Validate Python syntax
+    # Step 1: Validate Python syntax
     - name: 🔍 Python Syntax Check
       run: |
         python -m py_compile app.py
@@ -52,49 +30,15 @@ jobs:
         for f in routes/*.py; do python -m py_compile "$f"; done
         echo "✅ All Python files OK"
 
-    # Step 4: Template validation
+    # Step 2: Template validation
     - name: 🔍 Template Validation
-      run: |
-        python -c "
-        import os, re, sys
-        errors = []
-        for f in os.listdir('templates'):
-            if not f.endswith('.html'): continue
-            path = os.path.join('templates', f)
-            content = open(path, encoding='utf-8').read()
-            
-            if '@click=\"' in content and 'tojson' in content:
-                for i, line in enumerate(content.split('\n'), 1):
-                    if '@click=\"' in line and 'tojson' in line:
-                        errors.append(f'{path}:{i} - @click quote mismatch with tojson')
-            
-            blocks = len(re.findall(r'{%[-\s]*block\s', content))
-            endblocks = len(re.findall(r'{%[-\s]*endblock', content))
-            if blocks != endblocks:
-                errors.append(f'{path} - Mismatched block/endblock ({blocks} vs {endblocks})')
-            
-            fors = len(re.findall(r'{%[-\s]*for\s', content))
-            endfors = len(re.findall(r'{%[-\s]*endfor', content))
-            if fors != endfors:
-                errors.append(f'{path} - Mismatched for/endfor ({fors} vs {endfors})')
-            
-            ifs = len(re.findall(r'{%[-\s]*if\s', content))
-            endifs = len(re.findall(r'{%[-\s]*endif', content))
-            if ifs != endifs:
-                errors.append(f'{path} - Mismatched if/endif ({ifs} vs {endifs})')
-        
-        if errors:
-            print('❌ Template errors:')
-            for e in errors: print(f'  {e}')
-            sys.exit(1)
-        print('✅ All templates OK')
-        "
+      run: python autofix.py
 
-    # Step 5: Auto deploy to production branch
+    # Step 3: Auto deploy to production branch
     - name: 🚀 Auto Push to Production
       run: |
         git config user.name "Deploy Bot"
         git config user.email "deploy@treasuryflow.web.id"
         git checkout -B production
         git push origin production --force
-        echo "✅ Auto-pushed to production → Vercel will deploy"
+        echo "✅ Deployed to production"
