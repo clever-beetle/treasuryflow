@@ -55,7 +55,7 @@ def register_verify():
     except Exception as e:
         try:
             db.rollback()
-        except:
+        except Exception:
             pass
         return jsonify({"status": "error", "message": str(e)}), 400
 

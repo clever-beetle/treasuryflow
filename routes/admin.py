@@ -66,7 +66,7 @@ def dev_console():
                     except Exception as e:
                         try:
                             db.rollback()
-                        except:
+                        except Exception:
                             pass
                         error = f"Failed to delete: {str(e)}"
             else:
@@ -82,7 +82,7 @@ def dev_console():
                     except Exception as e:
                         try:
                             db.rollback()
-                        except:
+                        except Exception:
                             pass
                         error = str(e)
         elif selected_table in tables:
@@ -93,7 +93,7 @@ def dev_console():
             except Exception as e:
                 try:
                     db.rollback()
-                except:
+                except Exception:
                     pass
                 error = str(e)
 
@@ -110,7 +110,7 @@ def dev_console():
     except Exception as e:
         try:
             db.rollback()
-        except:
+        except Exception:
             pass
         import traceback
         err_msg = str(e) + "\\n" + traceback.format_exc()

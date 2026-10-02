@@ -290,7 +290,7 @@ def setup_account():
         except Exception as e:
             try:
                 db.rollback()
-            except:
+            except Exception:
                 pass
             if 'UNIQUE' in str(e) or 'IntegrityError' in str(type(e).__name__):
                 error = "Data integrity error occurred."
