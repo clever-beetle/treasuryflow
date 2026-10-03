@@ -43,7 +43,7 @@
         selectAll: false,
         toggleAll() {
             if (this.selectAll) {
-                this.selectedRows = [{% for tx in transactions %}{{ tx.id }}{% if not loop.last %}, {% endif %}{% endfor %}];
+                this.selectedRows = [{% for tx in transactions %}'{{ tx.id }}'{% if not loop.last %}, {% endif %}{% endfor %}];
             } else {
                 this.selectedRows = [];
             }
@@ -247,9 +247,9 @@
                     </thead>
                     <tbody class="[&_tr:last-child]:border-0">
                         {% for tx in transactions %}
-                        <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted group" :class="{ 'bg-muted/50': selectedRows.includes({{ tx.id }}) }">
+                        <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted group" :class="{ 'bg-muted/50': selectedRows.includes('{{ tx.id }}') }">
                             <td class="p-4 align-middle">
-                                <input type="checkbox" :value="{{ tx.id }}" x-model="selectedRows" class="w-4 h-4 rounded border-input text-primary focus:ring-primary bg-background cursor-pointer">
+                                <input type="checkbox" value="{{ tx.id }}" x-model="selectedRows" class="w-4 h-4 rounded border-input text-primary focus:ring-primary bg-background cursor-pointer">
                             </td>
                             <td class="p-4 align-middle whitespace-nowrap">{{ tx.date }}</td>
                             <td class="p-4 align-middle">
@@ -442,7 +442,7 @@ x-cloak>
     </div>
 </div>
 <!-- Floating Bulk Actions -->
-<div x-show="selectedRows.length > 0" x-transition.opacity.duration.300ms class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[40] bg-background text-foreground rounded-full shadow-2xl border border-border px-6 py-3 flex items-center gap-4" x-cloak>
+<div x-show="selectedRows.length > 0" x-transition.opacity.duration.300ms class="fixed bottom-28 left-1/2 -translate-x-1/2 z-[60] bg-background text-foreground rounded-full shadow-2xl border border-border px-6 py-3 flex items-center gap-4" x-cloak>
     <span class="text-sm font-medium"><span x-text="selectedRows.length"></span> terpilih</span>
     <div class="h-4 w-px bg-border"></div>
     <form action="{{ url_for('transactions.bulk_delete_transactions') }}" method="POST" class="inline m-0 p-0">
