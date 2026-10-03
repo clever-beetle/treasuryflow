@@ -60,7 +60,19 @@
                     <i data-lucide="calendar-days" class="w-4 h-4 inline mr-1"></i> Calendar
                 </a>
             </div>
-            <div x-data="{ showDeleteAll: false }">
+            <div class="flex items-center gap-2">
+                <!-- Bulk Delete Selected Button -->
+                <div x-show="selectedRows.length > 0" x-transition x-cloak>
+                    <form action="{{ url_for('transactions.bulk_delete_transactions') }}" method="POST" class="inline m-0 p-0">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="transaction_ids" :value="selectedRows.join(',')"/>
+                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium border border-destructive bg-destructive/10 hover:bg-destructive text-destructive hover:text-destructive-foreground h-8 px-3 transition-colors" onclick="return confirm('Yakin ingin menghapus transaksi terpilih secara permanen?')">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Hapus</span> <span x-text="selectedRows.length"></span> Terpilih
+                        </button>
+                    </form>
+                </div>
+
+                <div x-data="{ showDeleteAll: false }">
                 <button @click="showDeleteAll = true" class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 transition-colors">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus Semua
                 </button>
@@ -85,6 +97,7 @@
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
         </div>
 
@@ -440,18 +453,6 @@ x-cloak>
             </div>
         </div>
     </div>
-</div>
-<!-- Floating Bulk Actions -->
-<div x-show="selectedRows.length > 0" x-transition.opacity.duration.300ms class="fixed bottom-28 left-1/2 -translate-x-1/2 z-[60] bg-background text-foreground rounded-full shadow-2xl border border-border px-6 py-3 flex items-center gap-4" x-cloak>
-    <span class="text-sm font-medium"><span x-text="selectedRows.length"></span> terpilih</span>
-    <div class="h-4 w-px bg-border"></div>
-    <form action="{{ url_for('transactions.bulk_delete_transactions') }}" method="POST" class="inline m-0 p-0">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-        <input type="hidden" name="transaction_ids" :value="selectedRows.join(',')"/>
-        <button type="submit" class="text-sm font-semibold text-destructive hover:text-destructive/80 transition-colors flex items-center" onclick="return confirm('Yakin ingin menghapus transaksi terpilih secara permanen?')">
-            <i data-lucide="trash-2" class="w-4 h-4 inline-block mr-1"></i>Hapus
-        </button>
-    </form>
 </div>
 {% endif %}
 </div>
