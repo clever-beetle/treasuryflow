@@ -62,12 +62,18 @@
             </div>
             <div class="flex items-center gap-2">
                 <!-- Bulk Delete Selected Button -->
-                <div x-show="selectedRows.length > 0" x-transition x-cloak>
-                    <form action="{{ url_for('transactions.bulk_delete_transactions') }}" method="POST" class="inline m-0 p-0">
+                <div>
+                    <form action="{{ url_for('transactions.bulk_delete_transactions') }}" method="POST" class="inline m-0 p-0" x-ref="bulkForm">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" name="transaction_ids" :value="selectedRows.join(',')"/>
-                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium border border-destructive bg-destructive/10 hover:bg-destructive text-destructive hover:text-destructive-foreground h-8 px-3 transition-colors" onclick="return confirm('Yakin ingin menghapus transaksi terpilih secara permanen?')">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> <span class="hidden sm:inline">Hapus</span> <span x-text="selectedRows.length"></span> Terpilih
+                        <button type="button" 
+                                :disabled="selectedRows.length === 0"
+                                :class="selectedRows.length === 0 ? 'opacity-50 cursor-not-allowed border-border text-muted-foreground bg-muted' : 'border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90'"
+                                @click="if(selectedRows.length > 0 && confirm('Yakin ingin menghapus ' + selectedRows.length + ' transaksi terpilih secara permanen?')) { $refs.bulkForm.submit() }"
+                                class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium border h-8 px-3 transition-colors">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 
+                            <span class="inline">Hapus</span>
+                            <span x-show="selectedRows.length > 0" x-text="selectedRows.length" class="ml-1"></span>
                         </button>
                     </form>
                 </div>
