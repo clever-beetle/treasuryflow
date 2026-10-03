@@ -39,15 +39,7 @@
 
     <div x-data="{ 
         view: '{{ view }}', 
-        selectedRows: [], 
-        selectAll: false,
-        toggleAll() {
-            if (this.selectAll) {
-                this.selectedRows = [{% for tx in transactions %}'{{ tx.id }}'{% if not loop.last %}, {% endif %}{% endfor %}];
-            } else {
-                this.selectedRows = [];
-            }
-        }
+        selectedRows: []
     }">
 
         <div class="flex justify-between items-center mb-4">
@@ -278,7 +270,7 @@
                                 </th>
                             {% endmacro %}
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[40px]">
-                                <input type="checkbox" x-model="selectAll" @change="toggleAll()" class="w-4 h-4 rounded border-input text-primary focus:ring-primary bg-background cursor-pointer">
+                                <!-- Empty header for checkbox column -->
                             </th>
                             {{ sort_link('date', 'Date', 'text-left') }}
                             {{ sort_link('category', 'Category', 'text-left') }}
