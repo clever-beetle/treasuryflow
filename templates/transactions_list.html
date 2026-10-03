@@ -234,6 +234,9 @@
                                     </a>
                                 </th>
                             {% endmacro %}
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[40px]">
+                                <input type="checkbox" x-model="selectAll" @change="toggleAll()" class="w-4 h-4 rounded border-input text-primary focus:ring-primary bg-background cursor-pointer">
+                            </th>
                             {{ sort_link('date', 'Date', 'text-left') }}
                             {{ sort_link('category', 'Category', 'text-left') }}
                             {{ sort_link('account_name', 'Account', 'text-left') }}
@@ -244,7 +247,10 @@
                     </thead>
                     <tbody class="[&_tr:last-child]:border-0">
                         {% for tx in transactions %}
-                        <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted group">
+                        <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted group" :class="{ 'bg-muted/50': selectedRows.includes({{ tx.id }}) }">
+                            <td class="p-4 align-middle">
+                                <input type="checkbox" :value="{{ tx.id }}" x-model="selectedRows" class="w-4 h-4 rounded border-input text-primary focus:ring-primary bg-background cursor-pointer">
+                            </td>
                             <td class="p-4 align-middle whitespace-nowrap">{{ tx.date }}</td>
                             <td class="p-4 align-middle">
                                 <div class="flex flex-col">
@@ -437,6 +443,19 @@ x-cloak>
 </div>
 {% endif %}
 </div>
+</div>
+
+<!-- Floating Bulk Actions -->
+<div x-show="selectedRows.length > 0" x-transition.opacity.duration.300ms class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[40] bg-background text-foreground rounded-full shadow-2xl border border-border px-6 py-3 flex items-center gap-4" x-cloak>
+    <span class="text-sm font-medium"><span x-text="selectedRows.length"></span> terpilih</span>
+    <div class="h-4 w-px bg-border"></div>
+    <form action="{{ url_for('transactions.bulk_delete_transactions') }}" method="POST" class="inline m-0 p-0">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="transaction_ids" :value="selectedRows.join(',')"/>
+        <button type="submit" class="text-sm font-semibold text-destructive hover:text-destructive/80 transition-colors flex items-center" onclick="return confirm('Yakin ingin menghapus transaksi terpilih secara permanen?')">
+            <i data-lucide="trash-2" class="w-4 h-4 inline-block mr-1"></i>Hapus
+        </button>
+    </form>
 </div>
 
 <!-- Delete Transaction Modal -->
