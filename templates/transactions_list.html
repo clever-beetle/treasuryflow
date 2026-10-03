@@ -62,23 +62,44 @@
             </div>
             <div class="flex items-center gap-2">
                 <!-- Bulk Delete Selected Button -->
-                <div>
-                    <form action="{{ url_for('transactions.bulk_delete_transactions') }}" method="POST" class="inline m-0 p-0" onsubmit="
+                <div x-data="{ bulkDeleteOpen: false, bulkDeleteCount: 0, bulkDeleteIds: '' }">
+                    <button type="button" @click="
                         const checkedBoxes = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
                         if(checkedBoxes.length === 0) { 
                             alert('Silakan centang kotak di tabel terlebih dahulu.'); 
-                            return false; 
+                            return; 
                         }
-                        this.querySelector('input[name=transaction_ids]').value = checkedBoxes.join(',');
-                        return confirm('Yakin ingin menghapus ' + checkedBoxes.length + ' transaksi terpilih secara permanen?');
-                    ">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <input type="hidden" name="transaction_ids" value=""/>
-                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium border border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-3 transition-colors">
-                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 
-                            <span class="inline">Hapus Terpilih</span>
-                        </button>
-                    </form>
+                        bulkDeleteCount = checkedBoxes.length;
+                        bulkDeleteIds = checkedBoxes.join(',');
+                        bulkDeleteOpen = true;
+                    " class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium border border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-3 transition-colors">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 
+                        <span class="inline">Hapus Terpilih</span>
+                    </button>
+
+                    <!-- Bulk Delete Modal -->
+                    <div x-show="bulkDeleteOpen" x-cloak class="relative z-50">
+                        <div x-show="bulkDeleteOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity" @click="bulkDeleteOpen = false"></div>
+                        <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                                <div x-show="bulkDeleteOpen" x-transition.scale.origin.bottom.duration.300 class="relative transform overflow-hidden rounded-xl bg-background text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-border">
+                                    <div class="p-6 text-center space-y-4">
+                                        <button @click="bulkDeleteOpen = false" class="absolute top-3 right-3 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
+                                        <h3 class="font-bold text-lg">Hapus <span x-text="bulkDeleteCount"></span> Transaksi?</h3>
+                                        <p class="text-sm text-muted-foreground">Transaksi yang dipilih akan dihapus permanen dan saldo akun akan disesuaikan. Tindakan ini tidak bisa dibatalkan.</p>
+                                        <div class="flex gap-2 w-full pt-2">
+                                            <button type="button" @click="bulkDeleteOpen = false" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-10">Batal</button>
+                                            <form method="POST" action="{{ url_for('transactions.bulk_delete_transactions') }}" class="flex-1">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                                <input type="hidden" name="transaction_ids" :value="bulkDeleteIds"/>
+                                                <button type="submit" class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10">Hapus</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div x-data="{ showDeleteAll: false }">
