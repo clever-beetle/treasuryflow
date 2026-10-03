@@ -63,17 +63,20 @@
             <div class="flex items-center gap-2">
                 <!-- Bulk Delete Selected Button -->
                 <div>
-                    <form action="{{ url_for('transactions.bulk_delete_transactions') }}" method="POST" class="inline m-0 p-0" x-ref="bulkForm">
+                    <form action="{{ url_for('transactions.bulk_delete_transactions') }}" method="POST" class="inline m-0 p-0" onsubmit="
+                        const checkedBoxes = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+                        if(checkedBoxes.length === 0) { 
+                            alert('Silakan centang kotak di tabel terlebih dahulu.'); 
+                            return false; 
+                        }
+                        this.querySelector('input[name=transaction_ids]').value = checkedBoxes.join(',');
+                        return confirm('Yakin ingin menghapus ' + checkedBoxes.length + ' transaksi terpilih secara permanen?');
+                    ">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <input type="hidden" name="transaction_ids" :value="selectedRows.join(',')"/>
-                        <button type="button" 
-                                :disabled="selectedRows.length === 0"
-                                :class="selectedRows.length === 0 ? 'opacity-50 cursor-not-allowed border-border text-muted-foreground bg-muted' : 'border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90'"
-                                @click="if(selectedRows.length > 0 && confirm('Yakin ingin menghapus ' + selectedRows.length + ' transaksi terpilih secara permanen?')) { $refs.bulkForm.submit() }"
-                                class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium border h-8 px-3 transition-colors">
+                        <input type="hidden" name="transaction_ids" value=""/>
+                        <button type="submit" class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium border border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-3 transition-colors">
                             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 
-                            <span class="inline">Hapus</span>
-                            <span x-show="selectedRows.length > 0" x-text="selectedRows.length" class="ml-1"></span>
+                            <span class="inline">Hapus Terpilih</span>
                         </button>
                     </form>
                 </div>
@@ -270,9 +273,8 @@
                             <td class="p-4 align-middle">
                                 <input type="checkbox" 
                                        value="{{ tx.id }}" 
-                                       :checked="selectedRows.includes('{{ tx.id }}')"
-                                       @change="if ($event.target.checked && !selectedRows.includes('{{ tx.id }}')) { selectedRows.push('{{ tx.id }}'); } else if (!$event.target.checked) { selectedRows = selectedRows.filter(id => id !== '{{ tx.id }}'); }"
-                                       class="w-4 h-4 rounded border-input text-primary focus:ring-primary bg-background cursor-pointer">
+                                       x-model="selectedRows"
+                                       class="row-checkbox w-4 h-4 rounded border-input text-primary focus:ring-primary bg-background cursor-pointer">
                             </td>
                             <td class="p-4 align-middle whitespace-nowrap">{{ tx.date }}</td>
                             <td class="p-4 align-middle">
