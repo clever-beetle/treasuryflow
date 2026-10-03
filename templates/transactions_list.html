@@ -441,10 +441,6 @@ x-cloak>
         </div>
     </div>
 </div>
-{% endif %}
-</div>
-</div>
-
 <!-- Floating Bulk Actions -->
 <div x-show="selectedRows.length > 0" x-transition.opacity.duration.300ms class="fixed bottom-24 left-1/2 -translate-x-1/2 z-[40] bg-background text-foreground rounded-full shadow-2xl border border-border px-6 py-3 flex items-center gap-4" x-cloak>
     <span class="text-sm font-medium"><span x-text="selectedRows.length"></span> terpilih</span>
@@ -456,6 +452,9 @@ x-cloak>
             <i data-lucide="trash-2" class="w-4 h-4 inline-block mr-1"></i>Hapus
         </button>
     </form>
+</div>
+{% endif %}
+</div>
 </div>
 
 <!-- Delete Transaction Modal -->
