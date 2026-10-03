@@ -112,7 +112,7 @@ class DBWrapper:
         if self.replica_conn:
             try:
                 self.replica_conn.commit()
-            except Exception:
+            except:
                 pass
 
     def rollback(self):
@@ -120,7 +120,7 @@ class DBWrapper:
         if self.replica_conn:
             try:
                 self.replica_conn.rollback()
-            except Exception:
+            except:
                 pass
 
     def close(self):
@@ -128,7 +128,7 @@ class DBWrapper:
         if self.replica_conn:
             try:
                 self.replica_conn.close()
-            except Exception:
+            except:
                 pass
 
 def get_db():
@@ -180,7 +180,7 @@ def is_feature_enabled(feature_name):
         if flag and flag['is_active']:
             return True
         return False
-    except Exception:
+    except:
         return False
 
 def _send_reset_email_task(email_input, fullname, reset_url):

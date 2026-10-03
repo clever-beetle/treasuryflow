@@ -252,7 +252,7 @@ def dashboard():
                         except Exception as e:
                             try:
                                 db.rollback()
-                            except Exception:
+                            except:
                                 pass
                             logger.error(f"Error sync recurring: {e}")
 

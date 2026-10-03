@@ -211,7 +211,7 @@ def init_db():
         
         try:
             db.conn.autocommit = True
-        except Exception:
+        except:
             pass
             
         is_pg = bool(utils.DATABASE_URL)
@@ -495,12 +495,12 @@ def init_db():
                     except Exception:
                         try:
                             db.rollback()
-                        except Exception:
+                        except:
                             pass
             except Exception:
                 try:
                     db.rollback()
-                except Exception:
+                except:
                     pass
             
         if not is_pg:
@@ -747,7 +747,7 @@ def handle_500(e):
     # Instead of full crashing, return a friendly flash or 500
     try:
         return f"Internal Server Error: {str(e)[:200]}... Please check logs.", 500
-    except Exception:
+    except:
         return "Internal Server Error. Please contact admin.", 500
 @app.context_processor
 def inject_notifications():

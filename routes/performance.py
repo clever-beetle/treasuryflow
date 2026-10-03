@@ -544,7 +544,7 @@ def manage_budget():
         except Exception as e:
             try:
                 db.rollback()
-            except Exception:
+            except:
                 pass
             if 'UNIQUE' in str(e) or 'duplicate' in str(e).lower():
                 flash('Anggaran untuk kategori ini sudah ada.', 'warning')
