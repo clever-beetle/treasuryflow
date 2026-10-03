@@ -5,17 +5,17 @@
     "id": "/?app=1",
     "start_url": "/?app=1",
     "display": "standalone",
-    "background_color": "#ffffff",
+    "background_color": "#FEFEFE",
     "theme_color": "#ffffff",
     "icons": [
         {
-            "src": "/static/img/logo_192.png",
+            "src": "/static/img/logo_v5_192.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/static/img/logo_v4.png",
+            "src": "/static/img/logo_v5_512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"

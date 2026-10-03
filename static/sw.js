@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'treasuryflow-v9';
+const CACHE_VERSION = 'treasuryflow-v10';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -6,8 +6,8 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_VERSION).then((cache) => {
       return cache.addAll([
         '/',
-        '/static/img/logo_192.png',
-        '/static/img/logo_v4.png',
+        '/static/img/logo_v5_192.png',
+        '/static/img/logo_v5_512.png',
       ]);
     })
   );
