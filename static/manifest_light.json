@@ -2,6 +2,7 @@
     "name": "Treasury Flow",
     "short_name": "Treasury Flow",
     "description": "Enterprise Personal Finance Tracker",
+    "id": "/",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
@@ -11,13 +12,13 @@
             "src": "/static/img/logo_192.png",
             "sizes": "192x192",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "any"
         },
         {
             "src": "/static/img/logo_v4.png",
             "sizes": "512x512",
             "type": "image/png",
-            "purpose": "any maskable"
+            "purpose": "maskable"
         }
     ]
 }
