@@ -11,7 +11,7 @@ from functools import wraps
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from flask import Flask, render_template, request, url_for, redirect, session, g, flash, Response, jsonify, current_app
+from flask import Flask, render_template, request, url_for, redirect, session, g, flash, Response, jsonify, current_app, make_response
 from fpdf import FPDF
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_wtf.csrf import CSRFProtect
