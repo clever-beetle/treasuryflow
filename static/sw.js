@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'treasuryflow-v7';
+const CACHE_VERSION = 'treasuryflow-v8';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
