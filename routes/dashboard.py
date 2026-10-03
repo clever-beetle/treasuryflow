@@ -136,7 +136,7 @@ def dashboard():
             })
 
     query = '''
-        SELECT t.id, t.date, t.description, t.type, t.amount, a.name as account_name
+        SELECT t.id, t.date, t.description, t.category, t.type, t.amount, a.name as account_name
         FROM transactions t
         JOIN accounts a ON t.account_id = a.id
         WHERE t.user_id = ?
@@ -342,7 +342,7 @@ def dashboard():
                            accounts=accounts, 
                            asset_accounts=asset_accounts,
                            liability_accounts_info=liability_accounts_info,
-                           latest_transactions=filtered_transactions, 
+                           transactions=filtered_transactions, 
                            filter_account_id=filter_account_id,
                            filter_type=filter_type,
                            upcoming_alerts=upcoming_alerts,
