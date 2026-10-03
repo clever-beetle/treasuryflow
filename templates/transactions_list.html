@@ -268,7 +268,11 @@
                         {% for tx in transactions %}
                         <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted group" :class="{ 'bg-muted/50': selectedRows.includes('{{ tx.id }}') }">
                             <td class="p-4 align-middle">
-                                <input type="checkbox" value="{{ tx.id }}" x-model="selectedRows" class="w-4 h-4 rounded border-input text-primary focus:ring-primary bg-background cursor-pointer">
+                                <input type="checkbox" 
+                                       value="{{ tx.id }}" 
+                                       :checked="selectedRows.includes('{{ tx.id }}')"
+                                       @change="if ($event.target.checked && !selectedRows.includes('{{ tx.id }}')) { selectedRows.push('{{ tx.id }}'); } else if (!$event.target.checked) { selectedRows = selectedRows.filter(id => id !== '{{ tx.id }}'); }"
+                                       class="w-4 h-4 rounded border-input text-primary focus:ring-primary bg-background cursor-pointer">
                             </td>
                             <td class="p-4 align-middle whitespace-nowrap">{{ tx.date }}</td>
                             <td class="p-4 align-middle">
