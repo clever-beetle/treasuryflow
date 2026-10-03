@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'treasuryflow-v6';
+const CACHE_VERSION = 'treasuryflow-v7';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -26,7 +26,9 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(event.request);
+        return caches.match(event.request).then((response) => {
+          return response || caches.match('/');
+        });
       })
   );
 });
