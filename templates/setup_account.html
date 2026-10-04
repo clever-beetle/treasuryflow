@@ -13,6 +13,30 @@
         </button>
     </div>
 
+    {% if message %}
+    <div class="rounded-md border border-emerald-200 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-900 p-4 relative">
+        <div class="flex items-center">
+            <i data-lucide="check-circle" class="h-4 w-4 text-emerald-600 dark:text-emerald-400 mr-2"></i>
+            <p class="text-sm font-medium text-emerald-800 dark:text-emerald-300">{{ message }}</p>
+        </div>
+        <button class="absolute top-4 right-4 text-emerald-600 hover:text-emerald-800" onclick="this.parentElement.style.display='none'">
+            <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="rounded-md border border-destructive/20 bg-destructive/10 p-4 relative">
+        <div class="flex items-center">
+            <i data-lucide="alert-circle" class="h-4 w-4 text-destructive mr-2"></i>
+            <p class="text-sm font-medium text-destructive">{{ error }}</p>
+        </div>
+        <button class="absolute top-4 right-4 text-destructive hover:text-destructive/80" onclick="this.parentElement.style.display='none'">
+            <i data-lucide="x" class="h-4 w-4"></i>
+        </button>
+    </div>
+    {% endif %}
+
     <div class="grid gap-6 md:grid-cols-2">
         {% for account in accounts %}
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm transition-all hover:shadow-md group">
