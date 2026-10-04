@@ -536,7 +536,7 @@ def export_pdf():
     # Set logo path
     import os
     from flask import current_app
-    logo_file = os.path.join(current_app.static_folder, 'img', 'logo_v4.png')
+    logo_file = os.path.join(current_app.static_folder, 'img', 'brand', 'logo_pdf.png')
     if os.path.exists(logo_file):
         pdf.logo_path = logo_file
     pdf.alias_nb_pages()
@@ -832,7 +832,7 @@ def download_receipt(id):
     # Logo
     import os
     from flask import current_app
-    logo_file = os.path.join(current_app.static_folder, 'img', 'logo_v4.png')
+    logo_file = os.path.join(current_app.static_folder, 'img', 'brand', 'logo_pdf.png')
 
     # Top accent bar
     pdf.set_fill_color(*NAVY)

@@ -135,6 +135,10 @@ utils.babel.init_app(app, locale_selector=get_locale)
 def sw():
     return app.send_static_file('sw.js')
 
+@app.route('/favicon.ico')
+def favicon():
+    return app.send_static_file('favicon.ico')
+
 @app.route('/robots.txt')
 def robots():
     content = "User-agent: *\nAllow: /\nDisallow: /settings/\nSitemap: https://www.treasuryflow.web.id/sitemap.xml"
