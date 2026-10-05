@@ -42,17 +42,17 @@
         selectedRows: []
     }">
 
-        <div class="flex justify-between items-center mb-4">
+        <div class="flex flex-col gap-3 mb-4 sm:flex-row sm:justify-between sm:items-center">
             <!-- View Toggle -->
-            <div class="flex items-center p-1 border border-border rounded-md bg-muted/50">
-                <a href="{{ clean_url('transactions.transactions_list', view='list', cal_year=cal_year, cal_month=cal_month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'list' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
-                    <i data-lucide="list" class="w-4 h-4 inline mr-1"></i> List
+            <div class="flex w-full sm:w-auto items-center p-1 border border-border rounded-md bg-muted/50">
+                <a href="{{ clean_url('transactions.transactions_list', view='list', cal_year=cal_year, cal_month=cal_month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="flex-1 sm:flex-none inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'list' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
+                    <i data-lucide="list" class="w-4 h-4 mr-1.5"></i> List
                 </a>
-                <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=cal_year, cal_month=cal_month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'calendar' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
-                    <i data-lucide="calendar-days" class="w-4 h-4 inline mr-1"></i> Calendar
+                <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=cal_year, cal_month=cal_month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="flex-1 sm:flex-none inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'calendar' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
+                    <i data-lucide="calendar-days" class="w-4 h-4 mr-1.5"></i> Calendar
                 </a>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:w-auto">
                 <!-- Bulk Delete Selected Button -->
                 <div x-data="{ bulkDeleteOpen: false, bulkDeleteCount: 0, bulkDeleteIds: '' }">
                     <button type="button" @click="
@@ -64,7 +64,7 @@
                         bulkDeleteCount = checkedBoxes.length;
                         bulkDeleteIds = checkedBoxes.join(',');
                         bulkDeleteOpen = true;
-                    " class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium border border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90 h-8 px-3 transition-colors">
+                    " class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-xs font-medium border border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90 h-9 sm:h-8 px-3 transition-colors">
                         <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> 
                         <span class="inline">Hapus Terpilih</span>
                     </button>
@@ -95,7 +95,7 @@
                 </div>
 
                 <div x-data="{ showDeleteAll: false }">
-                <button @click="showDeleteAll = true" class="inline-flex items-center gap-1.5 rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 px-3 transition-colors">
+                <button @click="showDeleteAll = true" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 sm:h-8 px-3 transition-colors">
                     <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus Semua
                 </button>
                 <div x-show="showDeleteAll" x-cloak class="relative z-50">
