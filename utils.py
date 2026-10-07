@@ -16,7 +16,7 @@ import sys
 
 # Configure loguru (optional but good practice)
 logger.remove()
-logger.add(sys.stderr, level="INFO")
+logger.add(sys.__stderr__ if sys.__stderr__ else sys.stderr, level="INFO", catch=True)
 
 cache = Cache(config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 60})
 limiter = Limiter(key_func=get_remote_address, default_limits=["2000 per day", "500 per hour"])
@@ -217,7 +217,10 @@ Treasury Flow"""
         server.quit()
         logger.info(f"Password reset email sent to {email_input}")
     except Exception as e:
-        logger.error(f"Failed to send email to {email_input}: {e}")
+        try:
+            logger.error(f"Failed to send email to {email_input}: {e}")
+        except Exception:
+            pass
 
 def send_reset_email(email_input, fullname, reset_url):
     bg_executor.submit(_send_reset_email_task, email_input, fullname, reset_url)

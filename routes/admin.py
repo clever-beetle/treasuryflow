@@ -1,5 +1,6 @@
 import os
 from flask import Blueprint, render_template, request, session, abort
+from werkzeug.exceptions import HTTPException
 from utils import get_db, admin_required
 
 admin_bp = Blueprint('admin', __name__)
@@ -20,13 +21,14 @@ def admin_dashboard():
 
 @admin_bp.route('/dev-console', methods=['GET', 'POST'])
 def dev_console():
+    db = None
     try:
         # Secret Key Authentication
         provided_key = request.args.get('key')
         dev_secret_key = os.environ.get('DEV_SECRET_KEY', '1')
         
-        # Require DEV_SECRET_KEY to be set in environment and match provided key, or allow '1' temporarily
-        if provided_key != dev_secret_key and provided_key != '1':
+        # Require DEV_SECRET_KEY to be set in environment and match provided key
+        if not provided_key or provided_key != dev_secret_key:
             abort(403)
             
         db = get_db()
@@ -107,11 +109,14 @@ def dev_console():
             error=error,
             success=success
         )
+    except HTTPException:
+        raise
     except Exception as e:
-        try:
-            db.rollback()
-        except:
-            pass
+        if db:
+            try:
+                db.rollback()
+            except Exception:
+                pass
         import traceback
         err_msg = str(e) + "\\n" + traceback.format_exc()
         return render_template(

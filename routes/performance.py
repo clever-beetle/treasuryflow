@@ -42,8 +42,8 @@ def financial_performance():
             amount_paid = float(raw_paid)
             notes = request.form.get('notes')
             
-            debt = db.execute("SELECT * FROM debts_receivables WHERE id = ?", (debt_id,)).fetchone()
-            acc_row = db.execute("SELECT name FROM accounts WHERE id = ?", (target_account_id,)).fetchone()
+            debt = db.execute("SELECT * FROM debts_receivables WHERE id = ? AND user_id = ?", (debt_id, user_id)).fetchone()
+            acc_row = db.execute("SELECT name FROM accounts WHERE id = ? AND user_id = ?", (target_account_id, user_id)).fetchone()
             
             if debt and acc_row:
                 new_remaining = float(debt['remaining_amount']) - amount_paid
@@ -97,9 +97,11 @@ def financial_performance():
 
         elif action == 'delete_debt':
             debt_id = int(request.form.get('debt_id'))
-            db.execute("DELETE FROM debts_receivables WHERE id = ? AND user_id = ?", (debt_id, user_id))
-            db.execute("DELETE FROM debt_payments WHERE debt_id = ?", (debt_id,))
-            db.commit()
+            debt = db.execute("SELECT id FROM debts_receivables WHERE id = ? AND user_id = ?", (debt_id, user_id)).fetchone()
+            if debt:
+                db.execute("DELETE FROM debts_receivables WHERE id = ?", (debt_id,))
+                db.execute("DELETE FROM debt_payments WHERE debt_id = ?", (debt_id,))
+                db.commit()
                 
         elif action == 'add_installment':
             name = request.form.get('name')
@@ -165,7 +167,7 @@ def financial_performance():
             notes = request.form.get('notes', '')
             
             inst = db.execute("SELECT * FROM recurring_installments WHERE id = ? AND user_id = ?", (inst_id, user_id)).fetchone()
-            source_acc = db.execute("SELECT * FROM accounts WHERE id = ?", (source_account_id,)).fetchone()
+            source_acc = db.execute("SELECT * FROM accounts WHERE id = ? AND user_id = ?", (source_account_id, user_id)).fetchone()
             
             if inst and source_acc:
                 clean_src = source_acc['name'].split('] ')[1] if '] ' in source_acc['name'] else source_acc['name']
@@ -299,9 +301,9 @@ def financial_performance():
                 WHERE id = ? AND user_id = ?
             ''', (amount, goal_id, user_id))
             
-            goal = db.execute('SELECT target_amount, current_amount FROM financial_goals WHERE id = ?', (goal_id,)).fetchone()
+            goal = db.execute('SELECT target_amount, current_amount FROM financial_goals WHERE id = ? AND user_id = ?', (goal_id, user_id)).fetchone()
             if goal['current_amount'] >= goal['target_amount']:
-                db.execute("UPDATE financial_goals SET status = 'Achieved' WHERE id = ?", (goal_id,))
+                db.execute("UPDATE financial_goals SET status = 'Achieved' WHERE id = ? AND user_id = ?", (goal_id, user_id))
                 
             db.commit()
 

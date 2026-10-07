@@ -35,20 +35,23 @@
     <div class="flex flex-col space-y-8 lg:flex-row lg:space-x-12 lg:space-y-0">
         <!-- Sidebar Navigation -->
         <aside class="w-full lg:w-1/5">
-            <nav class="flex flex-col space-y-1">
-                <button @click="activeTab = 'profile'" :class="activeTab === 'profile' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-full text-left">
+            <nav class="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+                <button @click="activeTab = 'profile'" :class="activeTab === 'profile' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
                     <i data-lucide="user" class="w-4 h-4 mr-2"></i> Profile
                 </button>
-                <button @click="activeTab = 'security'" :class="activeTab === 'security' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-full text-left">
+                <button @click="activeTab = 'security'" :class="activeTab === 'security' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
                     <i data-lucide="shield" class="w-4 h-4 mr-2"></i> Security
                 </button>
-                <button @click="activeTab = 'categories'" :class="activeTab === 'categories' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-full text-left">
+                <button @click="activeTab = 'categories'" :class="activeTab === 'categories' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
                     <i data-lucide="tags" class="w-4 h-4 mr-2"></i> Categories
                 </button>
-                <button @click="activeTab = 'appearance'" :class="activeTab === 'appearance' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-full text-left">
+                <button @click="activeTab = 'appearance'" :class="activeTab === 'appearance' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
                     <i data-lucide="palette" class="w-4 h-4 mr-2"></i> Appearance
                 </button>
-                <button @click="activeTab = 'danger'" :class="activeTab === 'danger' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-full text-left">
+                <button @click="activeTab = 'integrations'" :class="activeTab === 'integrations' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
+                    <i data-lucide="blocks" class="w-4 h-4 mr-2"></i> Integrations
+                </button>
+                <button @click="activeTab = 'danger'" :class="activeTab === 'danger' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
                     <i data-lucide="alert-triangle" class="w-4 h-4 mr-2 text-destructive"></i> Danger Zone
                 </button>
             </nav>
@@ -300,7 +303,8 @@
 <div x-data="{ open: false }" @open-modal.window="if ($event.detail === 'resetDataModal') open = true" @keydown.escape.window="open = false" x-show="open" class="relative z-50" x-cloak>
     <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl relative">
+            <button @click="open = false" class="absolute top-4 right-4 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
             <div class="flex flex-col space-y-1.5 text-center sm:text-left">
                 <h2 class="text-lg font-semibold leading-none tracking-tight text-destructive">Reset Financial Data</h2>
                 <p class="text-sm text-muted-foreground">Are you absolutely sure? This will wipe all transactions and accounts.</p>
@@ -325,7 +329,8 @@
 <div x-data="{ open: false }" @open-modal.window="if ($event.detail === 'deleteAccountModal') open = true" @keydown.escape.window="open = false" x-show="open" class="relative z-50" x-cloak>
     <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl relative">
+            <button @click="open = false" class="absolute top-4 right-4 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
             <div class="flex flex-col space-y-1.5 text-center sm:text-left">
                 <h2 class="text-lg font-semibold leading-none tracking-tight text-destructive">Permanently Delete Account</h2>
                 <p class="text-sm text-muted-foreground">This action is irreversible and will delete your entire account.</p>

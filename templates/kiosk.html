@@ -78,7 +78,7 @@
         fetch('/api/predict_future')
             .then(res => res.json())
             .then(data => {
-                if(data.status === 'success') {
+                if(data.status === 'success' && data.predictions && data.predictions.length > 0) {
                     const ctx = document.getElementById('kioskChart').getContext('2d');
                     new Chart(ctx, {
                         type: 'line',
@@ -106,6 +106,27 @@
                             }
                         }
                     });
+                } else {
+                    const chartCanvas = document.getElementById('kioskChart');
+                    if (chartCanvas && chartCanvas.parentElement) {
+                        chartCanvas.parentElement.innerHTML = `
+                            <div class="flex flex-col items-center justify-center h-full text-slate-500 py-16">
+                                <i class="fa-solid fa-chart-line text-4xl mb-3 text-slate-600"></i>
+                                <p class="text-sm font-medium text-slate-400 text-center px-4">${data.message || 'Data transaksi belum mencukupi untuk prediksi AI.'}</p>
+                            </div>
+                        `;
+                    }
+                }
+            })
+            .catch(err => {
+                const chartCanvas = document.getElementById('kioskChart');
+                if (chartCanvas && chartCanvas.parentElement) {
+                    chartCanvas.parentElement.innerHTML = `
+                        <div class="flex flex-col items-center justify-center h-full text-slate-500 py-16">
+                            <i class="fa-solid fa-triangle-exclamation text-4xl mb-3 text-amber-500"></i>
+                            <p class="text-sm text-slate-400">Gagal memuat modul prediksi.</p>
+                        </div>
+                    `;
                 }
             });
     </script>

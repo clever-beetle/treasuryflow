@@ -58,7 +58,7 @@
                     <button type="button" @click="
                         const checkedBoxes = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
                         if(checkedBoxes.length === 0) { 
-                            alert('Silakan centang kotak di tabel terlebih dahulu.'); 
+                            $dispatch('toast', { type: 'error', message: 'Silakan centang kotak di tabel terlebih dahulu.' }); 
                             return; 
                         }
                         bulkDeleteCount = checkedBoxes.length;
@@ -227,11 +227,13 @@
                         <a href="{{ url_for('transactions.export_pdf') }}?{{ query_params }}" class="flex items-center w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground">
                             <i data-lucide="file-text" class="h-4 w-4 mr-2 text-destructive"></i> PDF
                         </a>
+                        <a href="{{ url_for('transactions.export_excel') }}?{{ query_params }}" class="flex items-center w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground">
+                            <i data-lucide="sheet" class="h-4 w-4 mr-2 text-emerald-600"></i> Excel
+                        </a>
                         <a href="{{ url_for('transactions.export_csv') }}?{{ query_params }}" class="flex items-center w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground">
-                            <i data-lucide="file-spreadsheet" class="h-4 w-4 mr-2 text-emerald-600"></i> CSV
+                            <i data-lucide="file-spreadsheet" class="h-4 w-4 mr-2 text-blue-600"></i> CSV
                         </a>
                     </div>
-                </div>
                 </div>
             </form>
             <div class="w-full flex flex-wrap gap-2 pt-4 mt-4 border-t border-border">

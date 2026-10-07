@@ -122,65 +122,7 @@
             </button>
         </form>
 
-        <div id="biometricLoginContainer" class="hidden mt-4">
-            <div class="relative">
-                <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-border"></span></div>
-                <div class="relative flex justify-center text-xs uppercase"><span class="bg-card px-2 text-muted-foreground">Atau masuk dengan</span></div>
-            </div>
-            <button id="btnBiometricLogin" type="button" class="mt-4 flex w-full items-center justify-center gap-2 rounded-md border border-input bg-background px-4 py-2 text-sm font-medium shadow-sm hover:bg-accent hover:text-accent-foreground transition-colors">
-                <i data-lucide="fingerprint" class="h-5 w-5 text-[#11237e]"></i>
-                Gunakan Sidik Jari / FaceID
-            </button>
-            <p id="bioError" class="text-red-500 text-xs text-center mt-2 hidden"></p>
-        </div>
-
-        <script>
-            document.addEventListener('DOMContentLoaded', () => {
-                const bioEnabled = localStorage.getItem('biometricsEnabled');
-                const bioUsername = localStorage.getItem('biometricsUsername');
-                
-                if (bioEnabled === 'true' && bioUsername) {
-                    document.getElementById('biometricLoginContainer').classList.remove('hidden');
-                    
-                    document.getElementById('btnBiometricLogin').addEventListener('click', async () => {
-                        try {
-                            const challenge = new Uint8Array(32);
-                            window.crypto.getRandomValues(challenge);
-                            
-                            const credential = await navigator.credentials.get({
-                                publicKey: {
-                                    challenge: challenge,
-                                    timeout: 60000,
-                                    userVerification: "required"
-                                }
-                            });
-                            
-                            if (credential) {
-                                // Success! Send to backend
-                                const response = await fetch('/api/biometric_login', {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ username: bioUsername })
-                                });
-                                
-                                const result = await response.json();
-                                if (result.success) {
-                                    window.location.href = '/dashboard';
-                                } else {
-                                    document.getElementById('bioError').innerText = 'Server menolak kredensial.';
-                                    document.getElementById('bioError').classList.remove('hidden');
-                                }
-                            }
-                        } catch (error) {
-                            document.getElementById('bioError').innerText = 'Otentikasi dibatalkan atau gagal.';
-                            document.getElementById('bioError').classList.remove('hidden');
-                        }
-                    });
-                }
-            });
-        </script>
-
-        <div class="mt-6 text-center text-sm">
+                <div class="mt-6 text-center text-sm">
             <span class="text-muted-foreground">Don't have an account? </span>
             <a href="{{ url_for('auth.register') }}" class="font-medium text-primary hover:underline">Sign up</a>
         </div>

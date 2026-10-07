@@ -167,6 +167,21 @@
                                             <i data-lucide="pie-chart" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'performance.financial_performance' else 'text-amber-500' }}"></i> Financial Performance
                                         </a>
                                     </li>
+                                    <li>
+                                        <a href="{{ url_for('extra.calendar_view') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'extra.calendar_view' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="calendar" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'extra.calendar_view' else 'text-sky-500' }}"></i> Financial Calendar
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('extra.tools') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'extra.tools' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="calculator" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'extra.tools' else 'text-emerald-500' }}"></i> Financial Tools
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a href="{{ url_for('extra.leaderboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'extra.leaderboard' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
+                                            <i data-lucide="trophy" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'extra.leaderboard' else 'text-yellow-500' }}"></i> Leaderboard
+                                        </a>
+                                    </li>
                                 </ul>
                                 <div class="mt-8 pt-6 border-t border-border">
                                     <a href="{{ url_for('settings.settings') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'settings.settings' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }} mb-4">
@@ -186,8 +201,33 @@
 
     <!-- Main Content -->
     <main class="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
-{% block content %}{% endblock %}
-        </main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="mb-6 space-y-3">
+              {% for category, message in messages %}
+                <div x-data="{ show: true }" x-show="show" x-transition.duration.300ms class="flex items-center justify-between p-4 rounded-xl border text-sm font-medium shadow-sm transition-all {% if category in ['danger', 'error'] %}bg-destructive/10 text-destructive border-destructive/20{% elif category == 'success' %}bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20{% elif category == 'warning' %}bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20{% else %}bg-primary/10 text-primary border-primary/20{% endif %}" role="alert">
+                  <div class="flex items-center gap-3">
+                    {% if category in ['danger', 'error'] %}
+                      <i data-lucide="alert-circle" class="w-5 h-5 flex-shrink-0 text-destructive"></i>
+                    {% elif category == 'success' %}
+                      <i data-lucide="check-circle-2" class="w-5 h-5 flex-shrink-0 text-emerald-600 dark:text-emerald-400"></i>
+                    {% elif category == 'warning' %}
+                      <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0 text-amber-600 dark:text-amber-400"></i>
+                    {% else %}
+                      <i data-lucide="info" class="w-5 h-5 flex-shrink-0 text-primary"></i>
+                    {% endif %}
+                    <span>{{ message }}</span>
+                  </div>
+                  <button @click="show = false" type="button" class="text-muted-foreground hover:text-foreground p-1 rounded-md transition-colors" aria-label="Tutup pesan">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
         
         <!-- Watermark Footer -->
         <footer class="w-full py-4 text-center mt-auto">

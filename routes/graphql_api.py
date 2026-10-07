@@ -33,7 +33,18 @@ def resolve_transactions(*_):
         return []
     db = get_db()
     txs = db.execute("SELECT * FROM transactions WHERE user_id = ?", (user_id,)).fetchall()
-    return [dict(t) for t in txs]
+    result = []
+    for t in txs:
+        d = dict(t)
+        if d.get('date') is not None:
+            d['date'] = str(d['date'])[:10]
+        if d.get('amount') is not None:
+            try:
+                d['amount'] = float(d['amount'])
+            except (ValueError, TypeError):
+                d['amount'] = 0.0
+        result.append(d)
+    return result
 
 schema = make_executable_schema(type_defs, query)
 
@@ -46,7 +57,7 @@ def graphql_playground():
 @graphql_bp.route("/graphql", methods=["POST"])
 @login_required
 def graphql_server():
-    data = request.get_json()
+    data = request.get_json(silent=True) or {}
     success, result = graphql_sync(
         schema,
         data,

@@ -20,23 +20,13 @@ def transactions_calendar():
     request.args = args
     return transactions_list()
 
-@transactions_bp.route('', strict_slashes=False)
-@transactions_bp.route('/', strict_slashes=False)
-@login_required
-def transactions_list():
-    db = get_db()
-    user_id = session['user_id']
-    view = request.args.get('view', 'list')
-    page = request.args.get('page', 1, type=int)
-    search_query = request.args.get('search', '')
-    start_date = request.args.get('start_date', '')
-    end_date = request.args.get('end_date', '')
-    selected_category = request.args.get('category', '')
-    selected_account = request.args.get('account_id', '')
-    sort_by = request.args.get('sort_by', 'date')
-    sort_order = request.args.get('sort_order', 'desc')
-    
-    # Base query
+def build_transactions_filter_query(user_id, args):
+    search_query = args.get('search', '').strip()
+    start_date = args.get('start_date', '').strip()
+    end_date = args.get('end_date', '').strip()
+    selected_category = args.get('category', '').strip()
+    selected_account = args.get('account_id', '').strip()
+
     query = '''
         SELECT t.*, a.name as account_name 
         FROM transactions t
@@ -58,8 +48,33 @@ def transactions_list():
         query += ' AND t.category = ?'
         params.append(selected_category)
     if selected_account:
-        query += ' AND t.account_id = ?'
-        params.append(selected_account)
+        try:
+            acc_id_int = int(selected_account)
+            query += ' AND t.account_id = ?'
+            params.append(acc_id_int)
+        except (ValueError, TypeError):
+            pass
+            
+    return query, params
+
+@transactions_bp.route('', strict_slashes=False)
+@transactions_bp.route('/', strict_slashes=False)
+@login_required
+def transactions_list():
+    db = get_db()
+    user_id = session['user_id']
+    view = request.args.get('view', 'list')
+    page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('search', '')
+    start_date = request.args.get('start_date', '')
+    end_date = request.args.get('end_date', '')
+    selected_category = request.args.get('category', '')
+    selected_account = request.args.get('account_id', '')
+    sort_by = request.args.get('sort_by', 'date')
+    sort_order = request.args.get('sort_order', 'desc')
+    
+    # Base query with filters
+    query, params = build_transactions_filter_query(user_id, request.args)
         
     # Validate sort parameters to prevent SQL injection
     allowed_sort_columns = {'date', 'amount', 'category', 'description', 'type'}
@@ -95,6 +110,10 @@ def transactions_list():
     now_date = now.date()
     cal_year = request.args.get('cal_year', now.year, type=int)
     cal_month = request.args.get('cal_month', now.month, type=int)
+    if not cal_month or not (1 <= cal_month <= 12):
+        cal_month = now.month
+    if not cal_year or not (1900 <= cal_year <= 2100):
+        cal_year = now.year
     
     cal = calendar.Calendar()
     month_days = cal.monthdatescalendar(cal_year, cal_month)
@@ -109,8 +128,16 @@ def transactions_list():
             d_str = str(d_val)[:10]
         if d_str not in cal_tx_map:
             cal_tx_map[d_str] = {'income': 0, 'expense': 0}
-        cal_tx_map[d_str][tx['type']] += tx['amount']
+        tx_type = tx['type'] if tx['type'] in ('income', 'expense') else 'expense'
+        cal_tx_map[d_str][tx_type] += (tx['amount'] or 0)
     
+    user_cats_rows = db.execute('SELECT type, name FROM user_categories WHERE user_id = ?', (user_id,)).fetchall()
+    merged_categories = {k: list(v) for k, v in CATEGORIES.items()}
+    for uc in user_cats_rows:
+        t = uc['type']
+        if t in merged_categories and uc['name'] not in merged_categories[t]:
+            merged_categories[t].append(uc['name'])
+
     return render_template('transactions_list.html', 
                            month_days=month_days,
                            transactions=tx_page, 
@@ -129,7 +156,7 @@ def transactions_list():
                            sort_by=sort_by,
                            sort_order=sort_order,
                            accounts=accounts,
-                           categories=CATEGORIES,
+                           categories=merged_categories,
                            cal_year=cal_year,
                            cal_month=cal_month,
                            now=now_date,
@@ -144,47 +171,89 @@ def add_transaction():
     if request.method == 'POST':
         t_type = request.form.get('type')
         date = request.form.get('date')
-        amount_str = request.form.get('amount', '0').replace('.', '').replace(',', '')
-        amount = float(amount_str) if amount_str else 0
+        amount_str = request.form.get('amount', '0').replace('.', '').replace(',', '.')
+        try:
+            amount = float(amount_str) if amount_str else 0
+        except ValueError:
+            amount = 0
+            
+        if amount <= 0:
+            flash('Jumlah transaksi harus lebih besar dari 0.', 'danger')
+            return redirect(url_for('transactions.add_transaction'))
+
         category = request.form.get('category')
         account_id = request.form.get('account_id')
         description = request.form.get('description', '')
         to_account_id = request.form.get('to_account_id')
         
+        # Ownership check on source account
+        acc = db.execute("SELECT id, name FROM accounts WHERE id = ? AND user_id = ?", (account_id, user_id)).fetchone()
+        if not acc:
+            flash('Akun sumber tidak valid atau tidak ditemukan.', 'danger')
+            return redirect(url_for('transactions.add_transaction'))
+
         if t_type == 'transfer':
-            if account_id == to_account_id:
+            if str(account_id) == str(to_account_id):
                 flash('Cannot transfer to same account', 'danger')
                 return redirect(url_for('transactions.add_transaction'))
                 
+            to_acc = db.execute("SELECT id, name FROM accounts WHERE id = ? AND user_id = ?", (to_account_id, user_id)).fetchone()
+            if not to_acc:
+                flash('Akun tujuan transfer tidak valid atau tidak ditemukan.', 'danger')
+                return redirect(url_for('transactions.add_transaction'))
+
             db.execute('''
                 INSERT INTO transactions (user_id, account_id, date, type, amount, description, category)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, account_id, date, 'expense', amount, f'Transfer to account {to_account_id}: {description}', 'Transfer'))
+                VALUES (?, ?, ?, 'expense', ?, ?, 'Transfer')
+            ''', (user_id, account_id, date, amount, f'Transfer to account {to_acc["name"]}: {description}'))
             
+            leg1 = db.execute("SELECT id FROM transactions WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
+            leg1_id = leg1['id'] if leg1 else None
+
             db.execute('''
-                INSERT INTO transactions (user_id, account_id, date, type, amount, description, category)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, to_account_id, date, 'income', amount, f'Transfer from account {account_id}: {description}', 'Transfer'))
+                INSERT INTO transactions (user_id, account_id, date, type, amount, description, category, linked_transaction_id)
+                VALUES (?, ?, ?, 'income', ?, ?, 'Transfer', ?)
+            ''', (user_id, to_account_id, date, amount, f'Transfer from account {acc["name"]}: {description}', leg1_id))
             
-            db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (amount, account_id))
-            db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', (amount, to_account_id))
+            if leg1_id:
+                leg2 = db.execute("SELECT id FROM transactions WHERE user_id = ? ORDER BY id DESC LIMIT 1", (user_id,)).fetchone()
+                if leg2:
+                    db.execute("UPDATE transactions SET linked_transaction_id = ? WHERE id = ? AND user_id = ?", (leg2['id'], leg1_id, user_id))
         else:
             db.execute('''
                 INSERT INTO transactions (user_id, account_id, date, type, amount, description, category)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
             ''', (user_id, account_id, date, t_type, amount, description, category))
-            
-            if t_type == 'income':
-                db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', (amount, account_id))
-            else:
-                db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (amount, account_id))
+
+            # Handle split bill if requested
+            is_split = request.form.get('is_split') == 'true'
+            split_person = (request.form.get('split_person') or '').strip()
+            raw_split_amt = request.form.get('split_amount', '0').replace('.', '').replace(',', '.')
+            try:
+                split_amount = float(raw_split_amt) if raw_split_amt else 0.0
+            except ValueError:
+                split_amount = 0.0
+
+            if is_split and split_person and split_amount > 0:
+                db.execute('''
+                    INSERT INTO debts_receivables (user_id, person_name, type, total_amount, remaining_amount, due_date, notes)
+                    VALUES (?, ?, 'receivable', ?, ?, ?, ?)
+                ''', (user_id, split_person, split_amount, split_amount, date, f'Split bill: {description or category}'))
                 
         db.commit()
+        from routes.dashboard import recalculate_account_balances
+        recalculate_account_balances(db, user_id)
         flash('Transaction added', 'success')
         return redirect(url_for('transactions.transactions_list'))
         
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
-    return render_template('add_transaction.html', accounts=accounts, categories=CATEGORIES, now=datetime.now())
+    user_cats_rows = db.execute('SELECT type, name FROM user_categories WHERE user_id = ?', (user_id,)).fetchall()
+    custom_categories = {'income': [], 'expense': []}
+    for uc in user_cats_rows:
+        if uc['type'] in custom_categories:
+            custom_categories[uc['type']].append(uc['name'])
+
+    return render_template('add_transaction.html', accounts=accounts, categories=CATEGORIES, custom_categories=custom_categories, now=datetime.now())
 
 @transactions_bp.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -197,38 +266,75 @@ def edit_transaction(id):
         return redirect(url_for('transactions.transactions_list'))
         
     if request.method == 'POST':
-        # Revert old balance
-        if tx['type'] == 'income':
-            db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (tx['amount'], tx['account_id']))
-        else:
-            db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', (tx['amount'], tx['account_id']))
-            
-        # Apply new
         t_type = request.form.get('type')
         date = request.form.get('date')
-        amount_str = request.form.get('amount', '0').replace('.', '').replace(',', '')
-        amount = float(amount_str) if amount_str else 0
+        amount_str = request.form.get('amount', '0').replace('.', '').replace(',', '.')
+        try:
+            amount = float(amount_str) if amount_str else 0
+        except ValueError:
+            amount = 0
+            
+        if amount <= 0:
+            flash('Jumlah transaksi harus lebih besar dari 0.', 'danger')
+            return redirect(url_for('transactions.edit_transaction', id=id))
+
         category = request.form.get('category')
         account_id = request.form.get('account_id')
         description = request.form.get('description', '')
+        
+        acc = db.execute('SELECT id FROM accounts WHERE id = ? AND user_id = ?', (account_id, user_id)).fetchone()
+        if not acc:
+            flash('Akun yang dipilih tidak valid.', 'danger')
+            return redirect(url_for('transactions.edit_transaction', id=id))
         
         db.execute('''
             UPDATE transactions 
             SET account_id=?, date=?, type=?, amount=?, description=?, category=?
             WHERE id=? AND user_id=?
         ''', (account_id, date, t_type, amount, description, category, id, user_id))
-        
-        if t_type == 'income':
-            db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', (amount, account_id))
-        else:
-            db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (amount, account_id))
-            
+
+        # If this transaction is linked to a transfer pair, keep paired leg date and amount in sync
+        tx_dict = dict(tx)
+        linked_id = tx_dict.get('linked_transaction_id')
+        if linked_id:
+            db.execute('''
+                UPDATE transactions
+                SET date=?, amount=?
+                WHERE id=? AND user_id=?
+            ''', (date, amount, linked_id, user_id))
+        elif tx_dict.get('category') == 'Transfer':
+            other_type = 'income' if tx_dict.get('type') == 'expense' else 'expense'
+            paired = db.execute('''
+                SELECT id FROM transactions 
+                WHERE user_id = ? AND category = 'Transfer' AND type = ? AND amount = ? AND date = ? AND id != ?
+                ORDER BY id ASC LIMIT 1
+            ''', (user_id, other_type, tx_dict.get('amount'), tx_dict.get('date'), id)).fetchone()
+            if paired:
+                db.execute('''
+                    UPDATE transactions
+                    SET date=?, amount=?, linked_transaction_id=?
+                    WHERE id=? AND user_id=?
+                ''', (date, amount, id, paired['id'], user_id))
+                db.execute('''
+                    UPDATE transactions
+                    SET linked_transaction_id=?
+                    WHERE id=? AND user_id=?
+                ''', (paired['id'], id, user_id))
+
         db.commit()
+        from routes.dashboard import recalculate_account_balances
+        recalculate_account_balances(db, user_id)
         flash('Transaction updated', 'success')
         return redirect(url_for('transactions.transactions_list'))
         
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
-    return render_template('add_transaction.html', tx=tx, accounts=accounts, categories=CATEGORIES)
+    user_cats_rows = db.execute('SELECT type, name FROM user_categories WHERE user_id = ?', (user_id,)).fetchall()
+    custom_categories = {'income': [], 'expense': []}
+    for uc in user_cats_rows:
+        if uc['type'] in custom_categories:
+            custom_categories[uc['type']].append(uc['name'])
+
+    return render_template('add_transaction.html', tx=tx, accounts=accounts, categories=CATEGORIES, custom_categories=custom_categories, now=datetime.now())
 
 @transactions_bp.route('/delete/<int:transaction_id>', methods=['POST'])
 @login_required
@@ -237,12 +343,24 @@ def delete_transaction(transaction_id):
     user_id = session['user_id']
     tx = db.execute('SELECT * FROM transactions WHERE id = ? AND user_id = ?', (transaction_id, user_id)).fetchone()
     if tx:
-        if tx['type'] == 'income':
-            db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (tx['amount'], tx['account_id']))
-        else:
-            db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', (tx['amount'], tx['account_id']))
-        db.execute('DELETE FROM transactions WHERE id = ?', (transaction_id,))
+        tx_dict = dict(tx)
+        linked_id = tx_dict.get('linked_transaction_id')
+        if linked_id:
+            db.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (linked_id, user_id))
+        elif tx_dict.get('category') == 'Transfer':
+            other_type = 'income' if tx_dict.get('type') == 'expense' else 'expense'
+            paired = db.execute('''
+                SELECT id FROM transactions 
+                WHERE user_id = ? AND category = 'Transfer' AND type = ? AND amount = ? AND date = ? AND id != ?
+                ORDER BY id ASC LIMIT 1
+            ''', (user_id, other_type, tx_dict.get('amount'), tx_dict.get('date'), transaction_id)).fetchone()
+            if paired:
+                db.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (paired['id'], user_id))
+
+        db.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (transaction_id, user_id))
         db.commit()
+        from routes.dashboard import recalculate_account_balances
+        recalculate_account_balances(db, user_id)
         flash('Transaction deleted', 'success')
     return redirect(url_for('transactions.transactions_list'))
 
@@ -252,16 +370,27 @@ def bulk_delete_transactions():
     db = get_db()
     user_id = session['user_id']
     raw_ids = request.form.get('transaction_ids', '')
-    tx_ids = [tid.strip() for tid in raw_ids.split(',') if tid.strip()]
+    tx_ids = [int(tid.strip()) for tid in raw_ids.split(',') if tid.strip().isdigit()]
     for tid in tx_ids:
         tx = db.execute('SELECT * FROM transactions WHERE id = ? AND user_id = ?', (tid, user_id)).fetchone()
         if tx:
-            if tx['type'] == 'income':
-                db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (tx['amount'], tx['account_id']))
-            else:
-                db.execute('UPDATE accounts SET current_balance = current_balance + ? WHERE id = ?', (tx['amount'], tx['account_id']))
-            db.execute('DELETE FROM transactions WHERE id = ?', (tid,))
+            tx_dict = dict(tx)
+            linked_id = tx_dict.get('linked_transaction_id')
+            if linked_id:
+                db.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (linked_id, user_id))
+            elif tx_dict.get('category') == 'Transfer':
+                other_type = 'income' if tx_dict.get('type') == 'expense' else 'expense'
+                paired = db.execute('''
+                    SELECT id FROM transactions 
+                    WHERE user_id = ? AND category = 'Transfer' AND type = ? AND amount = ? AND date = ? AND id != ?
+                    ORDER BY id ASC LIMIT 1
+                ''', (user_id, other_type, tx_dict.get('amount'), tx_dict.get('date'), tid)).fetchone()
+                if paired:
+                    db.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (paired['id'], user_id))
+            db.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (tid, user_id))
     db.commit()
+    from routes.dashboard import recalculate_account_balances
+    recalculate_account_balances(db, user_id)
     flash(f'{len(tx_ids)} transaksi berhasil dihapus.', 'success')
     return redirect(url_for('transactions.transactions_list'))
 
@@ -270,13 +399,11 @@ def bulk_delete_transactions():
 def delete_all_transactions():
     db = get_db()
     user_id = session['user_id']
-    # Reset all account balances to initial_balance
-    accounts = db.execute('SELECT id, initial_balance FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
-    for acc in accounts:
-        db.execute('UPDATE accounts SET current_balance = ? WHERE id = ?', (acc['initial_balance'], acc['id']))
     # Delete all transactions
     db.execute('DELETE FROM transactions WHERE user_id = ?', (user_id,))
     db.commit()
+    from routes.dashboard import recalculate_account_balances
+    recalculate_account_balances(db, user_id)
     flash('Semua transaksi berhasil dihapus. Saldo akun direset ke saldo awal.', 'success')
     return redirect(url_for('transactions.transactions_list'))
 
@@ -290,8 +417,11 @@ def bulk_edit_transactions():
     
     if category and tx_ids:
         for tid in tx_ids:
-            if tid:
-                db.execute('UPDATE transactions SET category = ? WHERE id = ? AND user_id = ?', (category, tid, user_id))
+            try:
+                valid_id = int(tid.strip())
+            except (ValueError, TypeError):
+                continue
+            db.execute('UPDATE transactions SET category = ? WHERE id = ? AND user_id = ?', (category, valid_id, user_id))
         db.commit()
         flash('Transactions updated', 'success')
     return redirect(url_for('transactions.transactions_list'))
@@ -301,22 +431,19 @@ def bulk_edit_transactions():
 def export_csv():
     db = get_db()
     user_id = session['user_id']
-    transactions = db.execute('''
-        SELECT t.date, t.type, t.amount, t.description, t.category, a.name as account_name 
-        FROM transactions t
-        JOIN accounts a ON t.account_id = a.id
-        WHERE t.user_id = ? ORDER BY t.date DESC
-    ''', (user_id,)).fetchall()
+    query, params = build_transactions_filter_query(user_id, request.args)
+    query += ' ORDER BY t.date DESC'
+    transactions = db.execute(query, params).fetchall()
     
     si = io.StringIO()
     cw = csv.writer(si)
     cw.writerow(['Date', 'Type', 'Amount', 'Description', 'Category', 'Account'])
     for t in transactions:
-        cw.writerow([t['date'], t['type'], t['amount'], t['description'], t['category'], t['account_name']])
+        cw.writerow([str(t['date'])[:10] if t['date'] else '', t['type'], t['amount'], t['description'], t['category'], t['account_name']])
         
-    output = make_response(si.getvalue())
+    output = make_response(('\ufeff' + si.getvalue()).encode('utf-8'))
     output.headers["Content-Disposition"] = "attachment; filename=transactions.csv"
-    output.headers["Content-type"] = "text/csv"
+    output.headers["Content-type"] = "text/csv; charset=utf-8"
     return output
 
 @transactions_bp.route('/export_excel')
@@ -324,12 +451,9 @@ def export_csv():
 def export_excel():
     db = get_db()
     user_id = session['user_id']
-    transactions = db.execute('''
-        SELECT t.date, t.type, t.amount, t.description, t.category, a.name as account_name 
-        FROM transactions t
-        JOIN accounts a ON t.account_id = a.id
-        WHERE t.user_id = ? ORDER BY t.date DESC
-    ''', (user_id,)).fetchall()
+    query, params = build_transactions_filter_query(user_id, request.args)
+    query += ' ORDER BY t.date DESC'
+    transactions = db.execute(query, params).fetchall()
     
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -347,7 +471,7 @@ def export_excel():
     for tx in transactions:
         amount = tx['amount']
         type_cap = tx['type'].capitalize() if tx['type'] else ''
-        ws.append([tx['date'], type_cap, amount, tx['description'], tx['category'], tx['account_name']])
+        ws.append([str(tx['date'])[:10] if tx['date'] else '', type_cap, amount, tx['description'], tx['category'], tx['account_name']])
         if tx['type'] == 'expense':
             cat = tx['category']
             cat_totals[cat] = cat_totals.get(cat, 0) + amount
@@ -378,31 +502,33 @@ def export_excel():
     output.seek(0)
     return send_file(output, download_name="finance_report.xlsx", as_attachment=True, mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
 
+def sanitize_pdf_text(text):
+    if text is None:
+        return ''
+    text = str(text)
+    replacements = {
+        '—': '-', '–': '-', '’': "'", '‘': "'", '“': '"', '”': '"',
+        '…': '...', '•': '*', '✓': 'v', '✔': 'v', '×': 'x', '÷': '/',
+        '±': '+/-', '°': 'deg', '™': 'TM', '©': '(c)', '®': '(R)',
+    }
+    for orig, rep in replacements.items():
+        text = text.replace(orig, rep)
+    return text.encode('latin-1', 'replace').decode('latin-1')
+
 @transactions_bp.route('/export_pdf')
 @login_required
 def export_pdf():
     db = get_db()
     user_id = session['user_id']
     user = db.execute('SELECT fullname, username FROM users WHERE id = ?', (user_id,)).fetchone()
-    fullname = user['fullname'] if user and user['fullname'] else (user['username'] if user else 'User')
+    raw_name = user['fullname'] if user and user['fullname'] else (user['username'] if user else 'User')
+    fullname = sanitize_pdf_text(raw_name)
     
     # Get filter params for period display
     start_date = request.args.get('start_date', '')
     end_date = request.args.get('end_date', '')
     
-    query = '''
-        SELECT t.date, t.type, t.amount, t.description, t.category, a.name as account_name 
-        FROM transactions t
-        JOIN accounts a ON t.account_id = a.id
-        WHERE t.user_id = ?
-    '''
-    params = [user_id]
-    if start_date:
-        query += ' AND t.date >= ?'
-        params.append(start_date)
-    if end_date:
-        query += ' AND t.date <= ?'
-        params.append(end_date)
+    query, params = build_transactions_filter_query(user_id, request.args)
     query += ' ORDER BY t.date DESC'
     
     transactions = db.execute(query, params).fetchall()
@@ -714,13 +840,13 @@ def export_pdf():
             pdf.set_fill_color(240, 242, 250)
         
         date_str = str(t['date'])[:10] if t['date'] else ''
-        desc = str(t['description'] or '')[:32]
-        cat = str(t['category'] or '')[:18]
+        desc = sanitize_pdf_text(t['description'] or '')[:32]
+        cat = sanitize_pdf_text(t['category'] or '')[:18]
         
         # Clean account name
         acc_raw = str(t['account_name'] or '')
         acc = acc_raw.split('] ')[-1] if '] ' in acc_raw else acc_raw
-        acc = acc[:20]
+        acc = sanitize_pdf_text(acc)[:20]
         
         amount = t['amount'] or 0
         is_expense = t['type'] == 'expense'
@@ -792,7 +918,10 @@ def export_pdf():
     pdf.cell(0, 4, 'All amounts are in Indonesian Rupiah (IDR). For questions or support, contact treasuryflow@gmail.com', 0, 1)
 
     # Output
-    response = make_response(pdf.output(dest='S').encode('latin-1'))
+    pdf_out = pdf.output(dest='S')
+    if isinstance(pdf_out, str):
+        pdf_out = pdf_out.encode('latin-1', 'replace')
+    response = make_response(bytes(pdf_out))
     response.headers.set('Content-Disposition', 'attachment', filename='Treasury_Flow_Financial_Report.pdf')
     response.headers.set('Content-Type', 'application/pdf')
     return response
@@ -883,11 +1012,11 @@ def download_receipt(id):
     fields = [
         ('Receipt No', f'#TF-{id:06d}'),
         ('Date', str(tx['date'])[:10]),
-        ('Prepared For', fullname),
-        ('Account', acc),
+        ('Prepared For', sanitize_pdf_text(fullname)),
+        ('Account', sanitize_pdf_text(acc)),
         ('Type', tx['type'].upper()),
-        ('Category', str(tx['category'] or '-')),
-        ('Description', str(tx['description'] or '-')[:50]),
+        ('Category', sanitize_pdf_text(str(tx['category'] or '-'))),
+        ('Description', sanitize_pdf_text(str(tx['description'] or '-'))[:50]),
     ]
 
     y_pos = box_y + 4
@@ -930,7 +1059,10 @@ def download_receipt(id):
     pdf.set_text_color(*ACCENT_BLUE)
     pdf.cell(0, 4, f'Page {pdf.page_no()}/{{nb}}', 0, 0, 'C')
 
-    response = make_response(pdf.output(dest='S').encode('latin-1'))
+    pdf_out = pdf.output(dest='S')
+    if isinstance(pdf_out, str):
+        pdf_out = pdf_out.encode('latin-1', 'replace')
+    response = make_response(bytes(pdf_out))
     response.headers.set('Content-Disposition', 'attachment', filename=f'Treasury_Flow_Receipt_{id}.pdf')
     response.headers.set('Content-Type', 'application/pdf')
     return response

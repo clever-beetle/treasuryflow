@@ -38,6 +38,7 @@ def settings():
             else:
                 db.execute('UPDATE users SET username = ? WHERE id = ?', (new_username, user_id))
                 db.commit()
+                session['username'] = new_username
                 message = "Username has been successfully updated."
 
         elif action == 'update_password':
@@ -79,6 +80,22 @@ def settings():
                 db.execute("DELETE FROM assets WHERE user_id = ?", (user_id,))
                 db.execute("DELETE FROM transactions WHERE user_id = ?", (user_id,))
                 db.execute("DELETE FROM accounts WHERE user_id = ?", (user_id,))
+                try:
+                    db.execute("DELETE FROM deleted_transactions WHERE user_id = ?", (user_id,))
+                except Exception:
+                    pass
+                try:
+                    db.execute("DELETE FROM webauthn_credentials WHERE user_id = ?", (user_id,))
+                except Exception:
+                    pass
+                try:
+                    db.execute("DELETE FROM user_achievements WHERE user_id = ?", (user_id,))
+                except Exception:
+                    pass
+                try:
+                    db.execute("DELETE FROM notifications WHERE user_id = ?", (user_id,))
+                except Exception:
+                    pass
                 db.execute("DELETE FROM users WHERE id = ?", (user_id,))
                 db.commit()
                 
@@ -127,6 +144,10 @@ def settings():
                 db.execute("DELETE FROM assets WHERE user_id = ?", (user_id,))
                 db.execute("DELETE FROM transactions WHERE user_id = ?", (user_id,))
                 db.execute("DELETE FROM accounts WHERE user_id = ?", (user_id,))
+                try:
+                    db.execute("DELETE FROM deleted_transactions WHERE user_id = ?", (user_id,))
+                except Exception:
+                    pass
                 db.commit()
                 
                 message = "Seluruh data finansial Anda telah berhasil direset. Akun Anda tetap aman."
@@ -138,7 +159,7 @@ def settings():
                     new_val = not existing['is_active']
                     db.execute("UPDATE feature_flags SET is_active = ? WHERE name = 'auto_sync'", (new_val,))
                 else:
-                    db.execute("INSERT INTO feature_flags (name, is_active) VALUES ('auto_sync', FALSE)")
+                    db.execute("INSERT INTO feature_flags (name, is_active) VALUES ('auto_sync', ?)", (1,))
                 db.commit()
                 message = "Auto Sync berhasil diperbarui."
             except Exception:
@@ -163,8 +184,8 @@ def settings():
 @login_required
 def setup_account():
     db = get_db()
-    error = None
-    message = None
+    error = request.args.get('error')
+    message = request.args.get('message')
     user_id = session['user_id'] 
     
     edit_id = request.args.get('edit_id', type=int)
@@ -184,19 +205,26 @@ def setup_account():
     ACCOUNT_TYPES['E-WALLET'].sort()
     ACCOUNT_TYPES['BANK'].sort()
 
-    if delete_id:
-        has_transactions = db.execute('SELECT COUNT(id) FROM transactions WHERE account_id = ? AND user_id = ?', (delete_id, user_id)).fetchone()[0]
-        account_name = db.execute('SELECT name FROM accounts WHERE id = ?', (delete_id,)).fetchone()
-        account_name = account_name['name'] if account_name else "Account"
-
-        if has_transactions > 0:
-            error = f"Failed to delete {account_name}. This account still has {has_transactions} related transactions. Please delete transactions first."
+    if delete_id and request.method == 'POST':
+        account_row = db.execute('SELECT name FROM accounts WHERE id = ? AND user_id = ?', (delete_id, user_id)).fetchone()
+        if not account_row:
+            error = "Akun tidak ditemukan atau Anda tidak memiliki akses."
         else:
-            db.execute('DELETE FROM accounts WHERE id = ? AND user_id = ?', (delete_id, user_id))
-            db.commit()
-            from routes.dashboard import recalculate_account_balances
-            recalculate_account_balances(db, user_id)
-            message = f"{account_name} has been successfully deleted."
+            account_name = account_row['name']
+            has_transactions = db.execute('SELECT COUNT(id) FROM transactions WHERE account_id = ? AND user_id = ?', (delete_id, user_id)).fetchone()[0]
+
+            if has_transactions > 0:
+                error = f"Gagal menghapus {account_name}. Akun ini masih memiliki {has_transactions} riwayat transaksi. Hapus transaksinya terlebih dahulu."
+            else:
+                try:
+                    db.execute('UPDATE recurring_installments SET linked_account_id = NULL WHERE linked_account_id = ? AND user_id = ?', (delete_id, user_id))
+                except Exception:
+                    pass
+                db.execute('DELETE FROM accounts WHERE id = ? AND user_id = ?', (delete_id, user_id))
+                db.commit()
+                from routes.dashboard import recalculate_account_balances
+                recalculate_account_balances(db, user_id)
+                message = f"{account_name} berhasil dihapus."
         return redirect(url_for('settings.setup_account', message=message, error=error))
 
     if edit_id:
@@ -207,23 +235,31 @@ def setup_account():
         
         try:
             raw_balance = request.form['initial_balance'].replace('.', '').replace(',', '.')
-            balance = float(raw_balance)
+            balance = float(raw_balance) if raw_balance else 0.0
             
             if action == 'edit':
-                edit_account_id = request.form['edit_account_id']
+                edit_account_id = request.form.get('edit_account_id')
                 
                 # Check if liability account — negate balance (debt)
                 acc_row = db.execute('SELECT account_type FROM accounts WHERE id = ? AND user_id = ?', (edit_account_id, user_id)).fetchone()
-                if acc_row and acc_row['account_type'] == 'liability':
+                if not acc_row:
+                    error = "Akun tidak ditemukan atau Anda tidak memiliki akses."
+                    accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
+                    return render_template('setup_account.html', accounts=accounts, message=message, error=error, categories=ACCOUNT_TYPES, account_to_edit=account_to_edit)
+                    
+                if acc_row['account_type'] == 'liability':
                     balance = -abs(balance) if balance != 0 else 0
                 
-                billing_due_day = request.form.get('billing_due_day', '')
-                billing_due_day = int(billing_due_day) if billing_due_day else None
+                billing_due_day_raw = request.form.get('billing_due_day', '')
+                try:
+                    billing_due_day = int(billing_due_day_raw) if billing_due_day_raw else None
+                except (ValueError, TypeError):
+                    billing_due_day = None
                 
                 limit_raw = request.form.get('limit_amount', '')
                 if limit_raw != '':
                     limit_raw = limit_raw.replace('.', '').replace(',', '.')
-                    limit_amount = float(limit_raw)
+                    limit_amount = float(limit_raw) if limit_raw else 0.0
                     try:
                         db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ?, billing_due_day = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, billing_due_day, edit_account_id, user_id))
                     except Exception:
@@ -262,9 +298,15 @@ def setup_account():
                 if is_liability:
                     balance = -abs(balance) if balance != 0 else 0
                     limit_raw = request.form.get('limit_amount', '0').replace('.', '').replace(',', '.')
-                    limit_amount = float(limit_raw) if limit_raw else 0.0
+                    try:
+                        limit_amount = float(limit_raw) if limit_raw else 0.0
+                    except ValueError:
+                        limit_amount = 0.0
                     billing_due_day_raw = request.form.get('billing_due_day', '')
-                    billing_due_day = int(billing_due_day_raw) if billing_due_day_raw else None
+                    try:
+                        billing_due_day = int(billing_due_day_raw) if billing_due_day_raw else None
+                    except (ValueError, TypeError):
+                        billing_due_day = None
                 else:
                     limit_amount = 0.0
                     billing_due_day = None

@@ -23,7 +23,7 @@ def linear_regression(x, y):
 @login_required
 def api_chat():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         message = data.get('message', '').lower()
         user_id = session['user_id']
         db = get_db()
@@ -92,10 +92,10 @@ def api_forecast():
         db = get_db()
         
         expenses = db.execute("""
-            SELECT SUBSTRING(date, 1, 7) as month, SUM(amount) as total
+            SELECT substr(CAST(date AS TEXT), 1, 7) as month, SUM(amount) as total
             FROM transactions 
             WHERE user_id = ? AND type = 'expense'
-            GROUP BY SUBSTRING(date, 1, 7)
+            GROUP BY substr(CAST(date AS TEXT), 1, 7)
             ORDER BY month ASC
             LIMIT 6
         """, (user_id,)).fetchall()
@@ -127,7 +127,7 @@ def api_forecast():
 @login_required
 def api_rag_chat():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         message = data.get('message', '').lower()
         user_id = session['user_id']
         db = get_db()
@@ -158,8 +158,9 @@ def api_rag_chat():
         total_found = 0
         details = []
         for tx in top_matches:
-            total_found += tx['amount'] if tx['type'] == 'expense' else 0
-            details.append(f"- Rp {tx['amount']:,.0f} pada {tx['date']} untuk {tx['category']} ({tx['description']})")
+            val = float(tx['amount'] or 0)
+            total_found += val if tx['type'] == 'expense' else 0
+            details.append(f"- Rp {val:,.0f} pada {tx['date']} untuk {tx['category']} ({tx['description']})")
             
         reply = f"Berdasarkan mesin pencarian AI, saya menemukan data transaksi yang berkaitan dengan '{message}'.\n\nTotal Pengeluaran: **Rp {total_found:,.0f}**.\n\nRincian:\n"
         reply += "\n".join(details)
@@ -206,15 +207,41 @@ def predict_future():
         return jsonify({'status': 'error', 'message': 'Not enough data to predict. Need at least 3 days of expenses.'})
         
     try:
-        dates = [datetime.strptime(tx['date'], '%Y-%m-%d') for tx in txs]
-        min_date = min(dates)
-        
-        x = [(d - min_date).days for d in dates]
-        y = [float(tx['total']) for tx in txs]
+        from datetime import date as dt_date
+        valid_points = []
+        for tx in txs:
+            d_val = tx['date']
+            dt_obj = None
+            if isinstance(d_val, datetime):
+                dt_obj = d_val
+            elif hasattr(d_val, 'year') and hasattr(d_val, 'month') and hasattr(d_val, 'day'):
+                dt_obj = datetime.combine(d_val, datetime.min.time())
+            elif isinstance(d_val, str):
+                try:
+                    dt_obj = datetime.strptime(d_val[:10], '%Y-%m-%d')
+                except (ValueError, TypeError):
+                    continue
+            else:
+                continue
+
+            try:
+                amt = float(tx['total'] or 0)
+            except (ValueError, TypeError):
+                amt = 0.0
+
+            if dt_obj is not None:
+                valid_points.append((dt_obj, amt))
+
+        if len(valid_points) < 3:
+            return jsonify({'status': 'error', 'message': 'Not enough data to predict. Need at least 3 days of expenses.'})
+
+        min_date = min(p[0] for p in valid_points)
+        x = [(p[0] - min_date).days for p in valid_points]
+        y = [p[1] for p in valid_points]
         
         m, b = linear_regression(x, y)
         
-        last_date = max(dates)
+        last_date = max(p[0] for p in valid_points)
         last_x = max(x)
         
         results = []

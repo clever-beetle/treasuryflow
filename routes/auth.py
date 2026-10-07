@@ -60,8 +60,9 @@ def login():
             session.clear()
             session['user_id'] = user['id']
             
-            user_data = db.execute('SELECT fullname FROM users WHERE id = ?', (user['id'],)).fetchone()
-            session['fullname'] = user_data['fullname'] if user_data and user_data['fullname'] else login_input
+            user_data = db.execute('SELECT username, fullname FROM users WHERE id = ?', (user['id'],)).fetchone()
+            session['username'] = user_data['username'] if user_data and user_data['username'] else login_input
+            session['fullname'] = user_data['fullname'] if user_data and user_data['fullname'] else session['username']
             return redirect(url_for('dashboard.dashboard'))
         else:
             error = "Invalid username/email or password."
@@ -104,7 +105,10 @@ def logout():
 @limiter.limit("5 per minute")
 def forgot_password():
     if request.method == 'POST':
-        email_input = request.form['username']
+        email_input = request.form.get('username') or request.form.get('email')
+        if not email_input:
+            flash('Please enter your email address.', 'danger')
+            return render_template('forgot_password.html')
         db = get_db()
         user = db.execute('SELECT id, fullname FROM users WHERE email = ?', (email_input,)).fetchone()
         
@@ -129,12 +133,16 @@ def reset_password(token):
     db = get_db()
     user = db.execute('SELECT id, token_expiry FROM users WHERE reset_token = ?', (token,)).fetchone()
     
-    if not user:
+    if not user or not user['token_expiry']:
         flash('Invalid or expired reset token.', 'danger')
         return redirect(url_for('auth.login'))
         
-    expiry_time = datetime.strptime(user['token_expiry'], '%Y-%m-%d %H:%M:%S')
-    if datetime.now() > expiry_time:
+    try:
+        expiry_time = datetime.strptime(str(user['token_expiry'])[:19], '%Y-%m-%d %H:%M:%S')
+    except (ValueError, TypeError):
+        expiry_time = None
+
+    if not expiry_time or datetime.now() > expiry_time:
         flash('Reset token has expired.', 'danger')
         return redirect(url_for('auth.login'))
         
@@ -153,23 +161,4 @@ def reset_password(token):
         return redirect(url_for('auth.login'))
         
     return render_template('reset_password.html', token=token)
-
-@auth_bp.route('/api/biometric_login', methods=['POST'])
-def biometric_login():
-    data = request.get_json()
-    username = data.get('username')
-    
-    if not username:
-        return jsonify({'success': False, 'error': 'No username provided'})
-        
-    db = get_db()
-    user = db.execute('SELECT * FROM users WHERE username = ?', (username,)).fetchone()
-    
-    if user:
-        session.clear()
-        session['user_id'] = user['id']
-        session['username'] = user['username']
-        return jsonify({'success': True})
-        
-    return jsonify({'success': False, 'error': 'User not found'})
 

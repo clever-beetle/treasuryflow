@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
 from sqlalchemy.orm import DeclarativeBase
-from sqlalchemy_utils import EncryptedType
+from sqlalchemy_utils import StringEncryptedType
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine
 import os
 
@@ -44,6 +44,7 @@ class Account(db.Model):
     current_balance = db.Column(db.Float, nullable=False, default=0.0)
     account_type = db.Column(db.String(20), default='asset')
     limit_amount = db.Column(db.Float, default=0.0)
+    billing_due_day = db.Column(db.Integer, nullable=True)
 
 class Transaction(db.Model):
     __tablename__ = 'transactions'
@@ -63,7 +64,7 @@ class CreditCard(db.Model):
     __tablename__ = 'credit_cards'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    name = db.Column(EncryptedType(db.String(100), SECRET_KEY, AesEngine, 'pkcs5'), nullable=False)
+    name = db.Column(StringEncryptedType(db.String(100), SECRET_KEY, AesEngine, 'pkcs5'), nullable=False)
     limit_amount = db.Column(db.Float, nullable=False)
     current_usage = db.Column(db.Float, nullable=False, default=0.0)
 
@@ -106,6 +107,7 @@ class RecurringInstallment(db.Model):
     is_temporary_tenor = db.Column(db.Integer, default=0)
     total_tenor = db.Column(db.Integer, nullable=True)
     current_tenor = db.Column(db.Integer, nullable=True)
+    linked_account_id = db.Column(db.Integer, nullable=True)
     is_active = db.Column(db.Integer, default=1)
     created_at = db.Column(db.String(50), default=datetime.utcnow)
 

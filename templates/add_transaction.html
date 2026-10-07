@@ -3,49 +3,51 @@
 {% block content %}
 <div class="max-w-2xl mx-auto space-y-6">
     <div class="space-y-2">
-        <h2 class="text-2xl font-bold tracking-tight">New Transaction</h2>
-        <p class="text-muted-foreground">Record your latest income or expense</p>
+        <h2 class="text-2xl font-bold tracking-tight">{% if tx %}Edit Transaction{% else %}New Transaction{% endif %}</h2>
+        <p class="text-muted-foreground">{% if tx %}Update your transaction details{% else %}Record your latest income or expense{% endif %}</p>
     </div>
 
     <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
-        <form method="POST" action="{{ url_for('transactions.add_transaction') }}" class="p-6 space-y-6">
+        <form method="POST" action="{% if tx %}{{ url_for('transactions.edit_transaction', id=tx.id) }}{% else %}{{ url_for('transactions.add_transaction') }}{% endif %}" class="p-6 space-y-6">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             
             <!-- Transaction Type Toggle (Shadcn Tabs style) -->
             <div class="flex justify-center mb-2">
                 <div class="inline-flex h-11 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
                     <label class="cursor-pointer">
-                        <input type="radio" name="type" value="income" class="peer sr-only" required>
+                        <input type="radio" name="type" value="income" class="peer sr-only" required {% if tx and tx.type == 'income' %}checked{% endif %}>
                         <div class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-6 py-1.5 text-sm font-medium ring-offset-background transition-all peer-checked:bg-background peer-checked:text-emerald-600 peer-checked:shadow-sm">
                             <i data-lucide="arrow-down-circle" class="w-4 h-4 mr-2"></i> Income
                         </div>
                     </label>
                     <label class="cursor-pointer">
-                        <input type="radio" name="type" value="expense" class="peer sr-only" required checked>
+                        <input type="radio" name="type" value="expense" class="peer sr-only" required {% if not tx or (tx and tx.type == 'expense') %}checked{% endif %}>
                         <div class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-6 py-1.5 text-sm font-medium ring-offset-background transition-all peer-checked:bg-background peer-checked:text-destructive peer-checked:shadow-sm">
                             <i data-lucide="arrow-up-circle" class="w-4 h-4 mr-2"></i> Expense
                         </div>
                     </label>
+                    {% if not tx %}
                     <label class="cursor-pointer">
                         <input type="radio" name="type" value="transfer" class="peer sr-only" required>
                         <div class="inline-flex items-center justify-center whitespace-nowrap rounded-sm px-6 py-1.5 text-sm font-medium ring-offset-background transition-all peer-checked:bg-background peer-checked:text-blue-600 peer-checked:shadow-sm">
                             <i data-lucide="arrow-right-left" class="w-4 h-4 mr-2"></i> Transfer
                         </div>
                     </label>
+                    {% endif %}
                 </div>
             </div>
 
             <div class="space-y-4">
                 <div class="space-y-2">
                     <label class="text-sm font-medium leading-none">Date</label>
-                    <input type="date" name="date" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+                    <input type="date" name="date" required value="{% if tx %}{{ tx.date }}{% elif now %}{{ now.strftime('%Y-%m-%d') }}{% endif %}" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                 </div>
 
                 <div class="space-y-2">
                     <label class="text-sm font-medium leading-none">Amount (Rp)</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">Rp</span>
-                        <input type="text" name="amount" id="amountInput" required class="flex h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="0">
+                        <input type="text" name="amount" id="amountInput" required value="{% if tx %}{{ '{:,.0f}'.format(tx.amount).replace(',', '.') }}{% endif %}" class="flex h-10 w-full rounded-md border border-input bg-background pl-9 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="0">
                     </div>
                 </div>
 
@@ -55,25 +57,25 @@
                         <option value="">Select a category</option>
                         <optgroup label="Income" id="incomeOptgroup">
                             {% for c in categories['income'] %}
-                            <option value="{{ c }}">{{ c }}</option>
+                            <option value="{{ c }}" {% if tx and tx.category == c %}selected{% endif %}>{{ c }}</option>
                             {% endfor %}
                         
                     <!-- Custom Income Categories -->
                     {% if custom_categories and custom_categories['income'] %}
                         {% for cat in custom_categories['income'] %}
-                            <option value="{{ cat }}">{{ cat }}</option>
+                            <option value="{{ cat }}" {% if tx and tx.category == cat %}selected{% endif %}>{{ cat }}</option>
                         {% endfor %}
                     {% endif %}
     </optgroup>
                         <optgroup label="Expense" id="expenseOptgroup">
                             {% for c in categories['expense'] %}
-                            <option value="{{ c }}">{{ c }}</option>
+                            <option value="{{ c }}" {% if tx and tx.category == c %}selected{% endif %}>{{ c }}</option>
                             {% endfor %}
                         
                     <!-- Custom Expense Categories -->
                     {% if custom_categories and custom_categories['expense'] %}
                         {% for cat in custom_categories['expense'] %}
-                            <option value="{{ cat }}">{{ cat }}</option>
+                            <option value="{{ cat }}" {% if tx and tx.category == cat %}selected{% endif %}>{{ cat }}</option>
                         {% endfor %}
                     {% endif %}
     </optgroup>
@@ -86,9 +88,9 @@
                         <option value="">Select an account</option>
                         {% for account in accounts %}
                             {% if account.account_type == 'liability' %}
-                            <option value="{{ account.id }}" data-type="liability">💳 {{ account.name.split('] ')[-1] if '] ' in account.name else account.name }} (Terpakai: Rp {{ "{:,.0f}".format(account.current_balance|abs).replace(',', '.') }}{% if account.limit_amount %} / Limit: Rp {{ "{:,.0f}".format(account.limit_amount).replace(',', '.') }}{% endif %})</option>
+                            <option value="{{ account.id }}" data-type="liability" {% if tx and tx.account_id == account.id %}selected{% endif %}>💳 {{ account.name.split('] ')[-1] if '] ' in account.name else account.name }} (Terpakai: Rp {{ "{:,.0f}".format(account.current_balance|abs).replace(',', '.') }}{% if account.limit_amount %} / Limit: Rp {{ "{:,.0f}".format(account.limit_amount).replace(',', '.') }}{% endif %})</option>
                             {% else %}
-                            <option value="{{ account.id }}" data-type="asset">{{ account.name.split('] ')[-1] if '] ' in account.name else account.name }} (Rp {{ "{:,.0f}".format(account.current_balance).replace(',', '.') }})</option>
+                            <option value="{{ account.id }}" data-type="asset" {% if tx and tx.account_id == account.id %}selected{% endif %}>{{ account.name.split('] ')[-1] if '] ' in account.name else account.name }} (Rp {{ "{:,.0f}".format(account.current_balance).replace(',', '.') }})</option>
                             {% endif %}
                         {% endfor %}
                     </select>
@@ -141,7 +143,7 @@
                 </div>
                 <div class="space-y-2">
                     <label class="text-sm font-medium leading-none">Description (Optional)</label>
-                    <textarea name="description" rows="3" class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Notes about this transaction..."></textarea>
+                    <textarea name="description" rows="3" class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Notes about this transaction...">{% if tx %}{{ tx.description }}{% endif %}</textarea>
                 </div>
             </div>
 
@@ -150,7 +152,7 @@
                     Cancel
                 </a>
                 <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-2/3">
-                    <i data-lucide="save" class="w-4 h-4 mr-2"></i> Save Transaction
+                    <i data-lucide="save" class="w-4 h-4 mr-2"></i> {% if tx %}Update Transaction{% else %}Save Transaction{% endif %}
                 </button>
             </div>
         </form>

@@ -57,12 +57,9 @@
                         <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ account.initial_balance|abs }}', limit: '{{ account.limit_amount if account.account_type == "liability" else "" }}', billingDueDay: '{{ account.billing_due_day|default("", true) }}', isLiability: '{{ account.account_type }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors" title="Edit">
                             <i data-lucide="edit-2" class="w-4 h-4"></i>
                         </button>
-                        <form action="{{ url_for('settings.setup_account', delete_id=account.id) }}" method="POST" class="inline" onsubmit="return confirm('Delete this account? All associated transactions will be deleted.');">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <button type="submit" class="text-muted-foreground hover:text-destructive p-1.5 rounded-md hover:bg-muted transition-colors" title="Delete Account">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
-                        </form>
+                        <button type="button" @click="$dispatch('open-delete-modal', {id: '{{ account.id }}'})" class="text-muted-foreground hover:text-destructive p-1.5 rounded-md hover:bg-muted transition-colors" title="Delete Account">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
                     </div>
                 </div>              </div>
               <div class="p-6 pt-4 bg-muted/20">
@@ -282,20 +279,53 @@
     </div>
 </template>
 
+<!-- Delete Account Modal -->
+<template x-teleport="body">
+    <div x-data="{ open: false, delete_id: '' }" 
+         @open-delete-modal.window="open = true; delete_id = $event.detail.id;" 
+         @close-modal.window="open = false" 
+         x-show="open" 
+         class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" 
+         x-cloak
+         @click.self="open = false">
+        <div class="bg-background w-full max-w-sm rounded-xl shadow-lg border border-border overflow-hidden" 
+             x-show="open" 
+             x-transition.scale.95.opacity>
+            <div class="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/30">
+                <h2 class="text-lg font-bold text-foreground">Hapus Akun?</h2>
+                <button @click="open = false" class="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            <div class="p-6">
+                <p class="text-sm text-muted-foreground mb-4">Apakah Anda yakin ingin menghapus akun ini? Pastikan tidak ada transaksi yang terkait dengan akun ini, karena sistem tidak dapat menghapus akun yang masih memiliki riwayat transaksi.</p>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" @click="open = false" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4">Batal</button>
+                    <form method="POST" :action="`{{ url_for('settings.setup_account') }}?delete_id=${delete_id}`">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4">Hapus</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
 <script>
-    // Format Rupiah for Modal
-    const balanceInput = document.getElementById('balanceInput');
-    balanceInput.addEventListener('input', function(e) {
-        let value = this.value.replace(/[^,\d]/g, '');
-        let parts = value.split(',');
-        let sisa = parts[0].length % 3;
-        let rupiah = parts[0].substr(0, sisa);
-        let ribuan = parts[0].substr(sisa).match(/\d{3}/gi);
-        if (ribuan) {
-            let separator = sisa ? '.' : '';
-            rupiah += separator + ribuan.join('.');
+    // Format Rupiah for Modal via event delegation
+    document.addEventListener('input', function(e) {
+        if (e.target && (e.target.id === 'balanceInput' || e.target.classList.contains('input-rupiah-modal'))) {
+            let value = e.target.value.replace(/[^,\d]/g, '');
+            let parts = value.split(',');
+            let sisa = parts[0].length % 3;
+            let rupiah = parts[0].substr(0, sisa);
+            let ribuan = parts[0].substr(sisa).match(/\d{3}/gi);
+            if (ribuan) {
+                let separator = sisa ? '.' : '';
+                rupiah += separator + ribuan.join('.');
+            }
+            e.target.value = parts[1] !== undefined ? rupiah + ',' + parts[1] : rupiah;
         }
-        this.value = parts[1] !== undefined ? rupiah + ',' + parts[1] : rupiah;
     });
 </script>
 {% endblock %}

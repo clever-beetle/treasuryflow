@@ -89,6 +89,7 @@
                 </div>
                 <div class="p-4">
                     <form action="{{ url_for('admin.dev_console') }}?key={{ key }}" method="POST">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <div class="space-y-4">
                             <div>
                                 <textarea name="query" rows="3" class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 font-mono" placeholder="SELECT * FROM users WHERE id = 1;"></textarea>
@@ -132,14 +133,31 @@
                                 {% endfor %}
                                 <td class="p-4 align-middle whitespace-nowrap text-center">
                                     {% if 'id' in table_data[0].keys() %}
-                                    <form action="{{ url_for('admin.dev_console') }}?key={{ key }}&view_table={{ selected_table }}" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this record?');">
-                                        <input type="hidden" name="action" value="delete_row">
-                                        <input type="hidden" name="table_name" value="{{ selected_table }}">
-                                        <input type="hidden" name="row_id" value="{{ row['id'] }}">
-                                        <button type="submit" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-red-100 text-red-600 hover:bg-red-200 h-8 px-2 py-1 transition-colors" title="Delete Row">
-                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
-                                        </button>
-                                    </form>
+                                    <button type="button" @click="$dispatch('open-modal', 'deleteModal-' + '{{ row['id'] }}')" class="inline-flex items-center justify-center rounded-md text-xs font-medium bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 h-8 px-2 py-1 transition-colors" title="Delete Row">
+                                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                    </button>
+
+                                    <!-- In-App Delete Modal -->
+                                    <template x-teleport="body">
+                                        <div x-show="modalOpen && modalId === 'deleteModal-' + '{{ row['id'] }}'" x-cloak class="fixed inset-0 z-50 flex items-center justify-center p-4">
+                                            <div class="fixed inset-0 bg-background/80 backdrop-blur-sm" @click="$dispatch('close-modal')"></div>
+                                            <div class="relative bg-card border border-border rounded-xl p-6 shadow-xl max-w-md w-full space-y-4 z-10" @click.stop>
+                                                <div class="flex items-center gap-3 text-destructive">
+                                                    <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+                                                    <h3 class="text-lg font-semibold">Konfirmasi Hapus Data</h3>
+                                                </div>
+                                                <p class="text-sm text-muted-foreground text-left">Apakah Anda yakin ingin menghapus data dengan ID <span class="font-mono font-bold text-foreground">{{ row['id'] }}</span> dari tabel <span class="font-mono font-bold text-foreground">{{ selected_table }}</span>? Tindakan ini tidak dapat dibatalkan.</p>
+                                                <form action="{{ url_for('admin.dev_console') }}?key={{ key }}&view_table={{ selected_table }}" method="POST" class="flex justify-end gap-3 pt-2">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="action" value="delete_row">
+                                                    <input type="hidden" name="table_name" value="{{ selected_table }}">
+                                                    <input type="hidden" name="row_id" value="{{ row['id'] }}">
+                                                    <button type="button" @click="$dispatch('close-modal')" class="px-4 py-2 text-sm rounded-lg border border-input bg-background hover:bg-accent transition-colors">Batal</button>
+                                                    <button type="submit" class="px-4 py-2 text-sm rounded-lg bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors">Hapus Permanen</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </template>
                                     {% endif %}
                                 </td>
                             </tr>
@@ -195,3 +213,4 @@
     </div>
 </div>
 {% endblock %}
+
