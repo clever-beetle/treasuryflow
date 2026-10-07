@@ -23,6 +23,7 @@ def recalculate_account_balances(db, user_id):
     db.commit()
 
 @dashboard_bp.route('/')
+@dashboard_bp.route('/dashboard')
 @login_required
 def dashboard():
     db = get_db()
@@ -98,11 +99,11 @@ def dashboard():
         chart_expense.append(vals['expense'])
         
     import json
-    chart_data = json.dumps({
+    chart_data = {
         'labels': chart_labels,
         'income': chart_income,
         'expense': chart_expense
-    })
+    }
     
     upcoming_alerts = []
     current_day = today.day
@@ -172,10 +173,10 @@ def dashboard():
         ORDER BY total DESC
     ''', (user_id, days_ago_str)).fetchall()
     
-    category_chart_data = json.dumps({
+    category_chart_data = {
         'labels': [r['category'] for r in cat_rows],
         'data': [r['total'] for r in cat_rows]
-    })
+    }
 
     # Fetch active budgets & compute monthly usage
     first_day_current_month = today.replace(day=1).strftime('%Y-%m-%d')
@@ -272,7 +273,7 @@ def dashboard():
             'date': r['date'],
             'value': r['total']
         })
-    heatmap_json = json.dumps(heatmap_data, default=str)
+    heatmap_json = heatmap_data
 
     # BADGES GAMIFICATION
     badges = []

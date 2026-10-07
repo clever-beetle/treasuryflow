@@ -626,7 +626,7 @@
                                         <td class="p-4 text-muted-foreground hidden sm:table-cell">{{ asset.purchase_date }}</td>
                                         <td class="p-4 text-right">
                                             <button @click="$dispatch('open-modal', 'editAssetModal{{ asset.id }}')" class="p-1.5 bg-background border border-border rounded text-muted-foreground hover:text-blue-500 shadow-sm" title="Edit"><i data-lucide="edit" class="w-4 h-4"></i></button>
-                                            <button @click="$dispatch(\'open-modal\', \'deleteAssetModal{{ asset.id }}\')" class="p-1.5 bg-background border border-border rounded text-muted-foreground hover:text-red-500 shadow-sm ml-1" title="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                                            <button @click="$dispatch('open-modal', 'deleteAssetModal{{ asset.id }}')" class="p-1.5 bg-background border border-border rounded text-muted-foreground hover:text-red-500 shadow-sm ml-1" title="Hapus"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                                         </td>
                                     </tr>
                                     {% endfor %}
@@ -1316,7 +1316,7 @@
             const gridColor = isDark ? '#374151' : '#e5e7eb';
 
             // Time Series Chart
-            const tsDataStr = '{{ analytics_time_series | safe }}';
+            const tsDataStr = {{ analytics_time_series|tojson }};
             if (tsDataStr && tsDataStr !== 'null') {
                 const tsData = JSON.parse(tsDataStr);
                 const ctx = document.getElementById('timeSeriesChart');
@@ -1392,7 +1392,7 @@
             }
 
             // Donut Chart
-            const donutDataStr = '{{ analytics_donut | safe }}';
+            const donutDataStr = {{ analytics_donut|tojson }};
             if (donutDataStr && donutDataStr !== 'null') {
                 const donutData = JSON.parse(donutDataStr);
                 if (donutData.labels.length > 0) {

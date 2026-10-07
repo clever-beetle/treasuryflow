@@ -382,10 +382,10 @@ def financial_performance():
 
     asset_alloc_raw = db.execute("SELECT category, COALESCE(SUM(purchase_price), 0) as total FROM assets WHERE user_id = ? GROUP BY category", (user_id,)).fetchall()
     import json
-    asset_alloc = json.dumps({
+    asset_alloc = {
         'labels': [a['category'] for a in asset_alloc_raw],
         'data': [float(a['total']) for a in asset_alloc_raw]
-    })
+    }
 
     goals_list = db.execute('''
         SELECT id, name, target_amount, current_amount, due_date, status,
@@ -473,12 +473,12 @@ def financial_performance():
         chart_netflow.append(cumulative_net)
         
     import json
-    analytics_time_series = json.dumps({
+    analytics_time_series = {
         'labels': chart_labels,
         'income': [float(x) for x in chart_income],
         'expense': [float(x) for x in chart_expense],
         'netflow': [float(x) for x in chart_netflow]
-    })
+    }
     
     cat_map = {}
     for t in analytics_transactions:
@@ -486,10 +486,10 @@ def financial_performance():
             cat_map[t['category']] = cat_map.get(t['category'], 0) + (t['amount'] or 0)
             
     sorted_cats = sorted(cat_map.items(), key=lambda x: x[1], reverse=True)
-    analytics_donut = json.dumps({
+    analytics_donut = {
         'labels': [c[0] for c in sorted_cats],
         'data': [float(c[1]) for c in sorted_cats]
-    })
+    }
     
     analytics_insights = []
     if analytics_total_income > 0:

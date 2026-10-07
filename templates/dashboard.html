@@ -10,7 +10,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const cal = new CalHeatmap();
-        const rawData = {{ heatmap_json|safe }};
+        const rawData = {{ heatmap_json|tojson }};
         
         const dtStr = new Date();
         dtStr.setMonth(dtStr.getMonth() - 11);
@@ -601,7 +601,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     const ctx = document.getElementById('cashFlowChart').getContext('2d');
-    const chartData = {{ chart_data|safe }};
+    const chartData = {{ chart_data|tojson }};
     
     // Check dark mode for text colors
     const isDark = document.documentElement.classList.contains('dark');
@@ -687,7 +687,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const categoryCtx = document.getElementById('categoryChart');
     if (categoryCtx) {
-        const catDataRaw = {{ category_chart_data|default('{"labels": [], "data": []}')|safe }};
+        const catDataRaw = {{ category_chart_data|default('{"labels": [], "data": []}')|tojson }};
         if (catDataRaw.data.length > 0) {
             new Chart(categoryCtx.getContext('2d'), {
                 type: 'doughnut',
@@ -750,7 +750,7 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const cal = new CalHeatmap();
-        const rawData = {{ heatmap_json|safe }};
+        const rawData = {{ heatmap_json|tojson }};
         
         const dtStr = new Date();
         dtStr.setMonth(dtStr.getMonth() - 11);
