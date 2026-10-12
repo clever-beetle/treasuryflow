@@ -67,3 +67,54 @@ def test_register_validation_and_edge_cases(client):
     }, follow_redirects=True)
     assert b'Password minimal harus 6 karakter' in short_pw_res.data
 
+
+def test_login_validation_and_features(client):
+    import uuid
+    uid = uuid.uuid4().hex[:6]
+    username = f"loguser_{uid}"
+    email = f"{username}@example.com"
+    password = "SecretPassword123!"
+
+    # Register user first
+    reg_res = client.post('/register', data={
+        'fullname': 'Login Tester',
+        'username': username,
+        'email': email,
+        'password': password
+    }, follow_redirects=True)
+    assert reg_res.status_code == 200
+
+    # 1. Login with normal username
+    res1 = client.post('/login', data={'username': username, 'password': password})
+    assert res1.status_code == 302
+    assert res1.location == '/dashboard' or res1.location.endswith('/dashboard')
+
+    # 2. Login with uppercase username (case-insensitive)
+    res2 = client.post('/login', data={'username': username.upper(), 'password': password})
+    assert res2.status_code == 302
+
+    # 3. Login with email (uppercase) and surrounding spaces
+    res3 = client.post('/login', data={'username': f"  {email.upper()}  ", 'password': password})
+    assert res3.status_code == 302
+
+    # 4. Login with wrong password
+    res_wrong = client.post('/login', data={'username': username, 'password': 'wrongpassword'}, follow_redirects=True)
+    assert res_wrong.status_code == 200
+    assert b'Username/email atau password salah' in res_wrong.data
+
+    # 5. Login with empty credentials
+    res_empty = client.post('/login', data={'username': '', 'password': ''}, follow_redirects=True)
+    assert res_empty.status_code == 200
+    assert b'Username/email dan password wajib diisi' in res_empty.data
+
+    # 6. Login with safe next redirect
+    res_next = client.post('/login?next=/settings', data={'username': username, 'password': password})
+    assert res_next.status_code == 302
+    assert res_next.location == '/settings'
+
+    # 7. Login with open redirect attack should fallback to dashboard
+    res_open_red = client.post('/login?next=//malicious-site.com', data={'username': username, 'password': password})
+    assert res_open_red.status_code == 302
+    assert res_open_red.location != '//malicious-site.com'
+    assert 'dashboard' in res_open_red.location
+

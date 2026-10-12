@@ -100,9 +100,10 @@
 
         <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <input type="hidden" name="next" value="{{ request.args.get('next', '') or request.form.get('next', '') }}"/>
             <div class="space-y-2">
                 <label for="username" class="text-sm font-medium leading-none">Username or Email</label>
-                <input type="text" id="username" name="username" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Enter username or email" required>
+                <input type="text" id="username" name="username" value="{{ request.form.get('username', '') }}" autocomplete="username" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Enter username or email" required>
             </div>
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
@@ -110,7 +111,7 @@
                     <a href="{{ url_for('auth.forgot_password') }}" class="text-sm text-primary hover:underline">Forgot password?</a>
                 </div>
                 <div class="relative">
-                    <input :type="showPass ? 'text' : 'password'" id="password" name="password" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Enter password" required>
+                    <input :type="showPass ? 'text' : 'password'" id="password" name="password" autocomplete="current-password" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Enter password" required>
                     <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                         <i data-lucide="eye" x-show="!showPass" class="h-4 w-4"></i>
                         <i data-lucide="eye-off" x-show="showPass" class="h-4 w-4"></i>

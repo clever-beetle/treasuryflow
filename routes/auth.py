@@ -40,32 +40,43 @@ def login():
     error = None
     if request.method == 'POST':
         db = get_db()
-        login_input = request.form['username']
-        password = request.form['password']
+        login_input = (request.form.get('username') or '').strip()
+        password = request.form.get('password') or ''
         
-        user = db.execute('SELECT id, password FROM users WHERE username = ? OR email = ?', (login_input, login_input)).fetchone()
-        valid_login = False
-        if user:
-            is_hashed = user['password'].startswith('scrypt:') or user['password'].startswith('pbkdf2:')
-            if not is_hashed:
-                if user['password'] == password:
-                    new_hash = generate_password_hash(password)
-                    db.execute('UPDATE users SET password = ? WHERE id = ?', (new_hash, user['id']))
-                    db.commit()
-                    valid_login = True
-            else:
-                valid_login = check_password_hash(user['password'], password)
-                
-        if valid_login:
-            session.clear()
-            session['user_id'] = user['id']
-            
-            user_data = db.execute('SELECT username, fullname FROM users WHERE id = ?', (user['id'],)).fetchone()
-            session['username'] = user_data['username'] if user_data and user_data['username'] else login_input
-            session['fullname'] = user_data['fullname'] if user_data and user_data['fullname'] else session['username']
-            return redirect(url_for('dashboard.dashboard'))
+        if not login_input or not password:
+            error = "Username/email dan password wajib diisi."
         else:
-            error = "Invalid username/email or password."
+            user = db.execute('''
+                SELECT id, password, username, fullname, role 
+                FROM users 
+                WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)
+            ''', (login_input, login_input)).fetchone()
+            
+            valid_login = False
+            if user:
+                is_hashed = user['password'].startswith('scrypt:') or user['password'].startswith('pbkdf2:')
+                if not is_hashed:
+                    if user['password'] == password:
+                        new_hash = generate_password_hash(password)
+                        db.execute('UPDATE users SET password = ? WHERE id = ?', (new_hash, user['id']))
+                        db.commit()
+                        valid_login = True
+                else:
+                    valid_login = check_password_hash(user['password'], password)
+                    
+            if valid_login:
+                session.clear()
+                session['user_id'] = user['id']
+                session['username'] = user['username'] if user['username'] else login_input
+                session['fullname'] = user['fullname'] if user['fullname'] else session['username']
+                session['role'] = user['role'] if 'role' in user and user['role'] else 'user'
+                
+                next_page = request.args.get('next') or request.form.get('next')
+                if next_page and next_page.startswith('/') and not next_page.startswith('//') and next_page != '/login':
+                    return redirect(next_page)
+                return redirect(url_for('dashboard.dashboard'))
+            else:
+                error = "Username/email atau password salah."
     
     return render_template('login.html', error=error)
 

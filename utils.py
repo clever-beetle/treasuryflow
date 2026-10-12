@@ -197,7 +197,11 @@ def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
-            flash('Authentication required. Please log in to access this page.', 'danger')
+            flash('Silakan masuk terlebih dahulu untuk mengakses halaman ini.', 'danger')
+            from flask import request
+            next_url = request.full_path if request.full_path and not request.full_path.endswith('?') else request.path
+            if next_url and next_url != '/login' and next_url.startswith('/'):
+                return redirect(url_for('auth.login', next=next_url))
             return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
     return decorated_function
