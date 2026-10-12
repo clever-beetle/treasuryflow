@@ -128,6 +128,7 @@ def register():
 @auth_bp.route('/logout')
 def logout():
     session.clear()
+    flash('Anda telah berhasil keluar dari akun.', 'success')
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/forgot_password', methods=['GET', 'POST'])

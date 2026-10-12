@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, url_for, redirect, session, g, flash, Response, jsonify
-from utils import get_db, login_required, format_rupiah, format_rupiah_input, CATEGORIES
+from utils import get_db, login_required, format_rupiah, format_rupiah_input, parse_amount, CATEGORIES
 from models import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -25,40 +25,52 @@ def settings():
         action = request.form.get('action')
 
         if action == 'update_fullname':
-            new_fullname = request.form['fullname']
-            db.execute('UPDATE users SET fullname = ? WHERE id = ?', (new_fullname, user_id))
-            db.commit()
-            session['fullname'] = new_fullname 
-            message = "Full name has been successfully updated."
+            new_fullname = (request.form.get('fullname') or '').strip()
+            if not new_fullname:
+                error = "Nama lengkap tidak boleh kosong."
+            else:
+                db.execute('UPDATE users SET fullname = ? WHERE id = ?', (new_fullname, user_id))
+                db.commit()
+                session['fullname'] = new_fullname 
+                message = "Nama lengkap berhasil diperbarui."
         
         elif action == 'update_username':
-            new_username = request.form['username']
-            if db.execute('SELECT id FROM users WHERE username = ? AND id != ?', (new_username, user_id)).fetchone():
-                error = "Username is already used by another account."
+            new_username = (request.form.get('username') or '').strip()
+            if not new_username:
+                error = "Username tidak boleh kosong."
+            elif len(new_username) < 3:
+                error = "Username minimal harus 3 karakter."
+            elif ' ' in new_username:
+                error = "Username tidak boleh mengandung spasi."
+            elif db.execute('SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ?', (new_username, user_id)).fetchone():
+                error = "Username sudah digunakan oleh akun lain."
             else:
                 db.execute('UPDATE users SET username = ? WHERE id = ?', (new_username, user_id))
                 db.commit()
                 session['username'] = new_username
-                message = "Username has been successfully updated."
+                message = "Username berhasil diperbarui."
 
         elif action == 'update_password':
-            old_password = request.form['old_password']
-            new_password = request.form['new_password']
-            confirm_password = request.form['confirm_password']
+            old_password = request.form.get('old_password') or ''
+            new_password = request.form.get('new_password') or ''
+            confirm_password = request.form.get('confirm_password') or ''
 
             is_hashed = user['password'].startswith('scrypt:') or user['password'].startswith('pbkdf2:')
             pw_correct = check_password_hash(user['password'], old_password) if is_hashed else (old_password == user['password'])
             
             if not pw_correct:
-                error = "Incorrect current password."
+                error = "Password saat ini tidak sesuai."
+            elif len(new_password) < 6:
+                error = "Password baru minimal harus 6 karakter."
             elif new_password != confirm_password:
-                error = "New password and confirmation do not match."
+                error = "Password baru dan konfirmasi password tidak cocok."
             else:
                 hashed_pw = generate_password_hash(new_password)
                 db.execute('UPDATE users SET password = ? WHERE id = ?', (hashed_pw, user_id))
                 db.commit()
                 session.clear()
-                return redirect(url_for('auth.login', message="Password updated successfully. Please log in again."))
+                flash("Password berhasil diperbarui. Silakan masuk kembali dengan password baru Anda.", "success")
+                return redirect(url_for('auth.login'))
 
         elif action == 'delete_account':
             password_check = request.form.get('password_check')
@@ -105,10 +117,10 @@ def settings():
 
         elif action == 'add_category':
             cat_type = request.form.get('type')
-            cat_name = request.form.get('name')
-            if cat_type and cat_name:
-                # Check if it already exists to prevent duplicates
-                existing = db.execute("SELECT id FROM user_categories WHERE user_id = ? AND name = ? AND type = ?", (user_id, cat_name, cat_type)).fetchone()
+            cat_name = (request.form.get('name') or '').strip()
+            if cat_type in ['income', 'expense'] and cat_name:
+                # Check if it already exists to prevent duplicates (case-insensitive)
+                existing = db.execute("SELECT id FROM user_categories WHERE user_id = ? AND LOWER(name) = LOWER(?) AND type = ?", (user_id, cat_name, cat_type)).fetchone()
                 if existing:
                     error = f"Kategori '{cat_name}' sudah ada."
                 else:
@@ -116,7 +128,7 @@ def settings():
                     db.commit()
                     message = f"Kategori '{cat_name}' berhasil ditambahkan."
             else:
-                error = "Data kategori tidak valid."
+                error = "Nama kategori dan jenis kategori wajib diisi."
 
         elif action == 'delete_category':
             cat_id = request.form.get('category_id')
@@ -211,7 +223,7 @@ def setup_account():
             error = "Akun tidak ditemukan atau Anda tidak memiliki akses."
         else:
             account_name = account_row['name']
-            has_transactions = db.execute('SELECT COUNT(id) FROM transactions WHERE account_id = ? AND user_id = ?', (delete_id, user_id)).fetchone()[0]
+            has_transactions = db.execute('SELECT COUNT(id) FROM transactions WHERE (account_id = ? OR transfer_to_account_id = ?) AND user_id = ?', (delete_id, delete_id, user_id)).fetchone()[0]
 
             if has_transactions > 0:
                 error = f"Gagal menghapus {account_name}. Akun ini masih memiliki {has_transactions} riwayat transaksi. Hapus transaksinya terlebih dahulu."
@@ -234,8 +246,7 @@ def setup_account():
         action = request.form.get('action')
         
         try:
-            raw_balance = request.form['initial_balance'].replace('.', '').replace(',', '.')
-            balance = float(raw_balance) if raw_balance else 0.0
+            balance = parse_amount(request.form.get('initial_balance', '0'))
             
             if action == 'edit':
                 edit_account_id = request.form.get('edit_account_id')
@@ -256,39 +267,30 @@ def setup_account():
                 except (ValueError, TypeError):
                     billing_due_day = None
                 
-                limit_raw = request.form.get('limit_amount', '')
-                if limit_raw != '':
-                    limit_raw = limit_raw.replace('.', '').replace(',', '.')
-                    limit_amount = float(limit_raw) if limit_raw else 0.0
-                    try:
-                        db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ?, billing_due_day = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, billing_due_day, edit_account_id, user_id))
-                    except Exception:
-                        db.rollback()
-                        db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, edit_account_id, user_id))
-                else:
-                    try:
-                        db.execute('UPDATE accounts SET initial_balance = ?, billing_due_day = ? WHERE id = ? AND user_id = ?', (balance, billing_due_day, edit_account_id, user_id))
-                    except Exception:
-                        db.rollback()
-                        db.execute('UPDATE accounts SET initial_balance = ? WHERE id = ? AND user_id = ?', (balance, edit_account_id, user_id))
+                limit_amount = parse_amount(request.form.get('limit_amount', '0'))
+                try:
+                    db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ?, billing_due_day = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, billing_due_day, edit_account_id, user_id))
+                except Exception:
+                    db.rollback()
+                    db.execute('UPDATE accounts SET initial_balance = ?, limit_amount = ? WHERE id = ? AND user_id = ?', (balance, limit_amount, edit_account_id, user_id))
                     
                 db.commit()
                 from routes.dashboard import recalculate_account_balances
                 recalculate_account_balances(db, user_id)
-                message = "Account details have been successfully updated."
+                message = "Pengaturan akun berhasil diperbarui."
                 return redirect(url_for('settings.setup_account', message=message))
 
             elif action == 'add':
-                category_key = request.form['category_key'] 
+                category_key = (request.form.get('category_key') or '').strip()
                 if category_key == 'CASH':
                     name_detail = 'Cash' 
                     final_name = "Cash"
                 else:
-                    name_detail = request.form['name_detail'] 
+                    name_detail = (request.form.get('name_detail') or '').strip()
                     final_name = f"[{category_key}] {name_detail}"
                 
-                if category_key not in ACCOUNT_TYPES or name_detail not in ACCOUNT_TYPES[category_key]:
-                     raise ValueError("Invalid category or name selection.")
+                if not category_key or category_key not in ACCOUNT_TYPES or not name_detail or name_detail not in ACCOUNT_TYPES[category_key]:
+                     raise ValueError("Pilihan kategori atau nama institusi tidak valid.")
                 
                 # Check if it's a liability type
                 is_liability = category_key in ['KARTU KREDIT', 'PAYLATER', 'PINJOL']
@@ -297,11 +299,7 @@ def setup_account():
                 # For liability accounts, negate balance (debt stored as negative)
                 if is_liability:
                     balance = -abs(balance) if balance != 0 else 0
-                    limit_raw = request.form.get('limit_amount', '0').replace('.', '').replace(',', '.')
-                    try:
-                        limit_amount = float(limit_raw) if limit_raw else 0.0
-                    except ValueError:
-                        limit_amount = 0.0
+                    limit_amount = parse_amount(request.form.get('limit_amount', '0'))
                     billing_due_day_raw = request.form.get('billing_due_day', '')
                     try:
                         billing_due_day = int(billing_due_day_raw) if billing_due_day_raw else None
@@ -311,9 +309,9 @@ def setup_account():
                     limit_amount = 0.0
                     billing_due_day = None
                 
-                existing_account = db.execute('SELECT id FROM accounts WHERE user_id = ? AND name = ?', (user_id, final_name)).fetchone()
+                existing_account = db.execute('SELECT id FROM accounts WHERE user_id = ? AND LOWER(name) = LOWER(?)', (user_id, final_name)).fetchone()
                 if existing_account:
-                     error = f"Account '{final_name}' is already registered."
+                     error = f"Akun '{final_name}' sudah terdaftar."
                 else:
                     try:
                         db.execute('INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount, billing_due_day) VALUES (?, ?, ?, ?, ?, ?, ?)', 
@@ -325,10 +323,10 @@ def setup_account():
                     db.commit()
                     from routes.dashboard import recalculate_account_balances
                     recalculate_account_balances(db, user_id)
-                    message = f"{final_name} account successfully registered."
+                    message = f"Akun {final_name} berhasil didaftarkan."
         
         except ValueError as e:
-            error = str(e) or "Balance input must be a valid number."
+            error = str(e) or "Input saldo harus berupa angka yang valid."
         except Exception as e:
             try:
                 db.rollback()

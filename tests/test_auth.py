@@ -118,3 +118,35 @@ def test_login_validation_and_features(client):
     assert res_open_red.location != '//malicious-site.com'
     assert 'dashboard' in res_open_red.location
 
+
+def test_logout_flow(client):
+    import uuid
+    uid = uuid.uuid4().hex[:6]
+    username = f"logoutuser_{uid}"
+    email = f"{username}@example.com"
+    password = "SecretPassword123!"
+
+    # Register and login
+    client.post('/register', data={
+        'fullname': 'Logout Tester',
+        'username': username,
+        'email': email,
+        'password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    # Verify session active by accessing settings
+    set_res = client.get('/settings')
+    assert set_res.status_code == 200
+
+    # Logout
+    logout_res = client.get('/logout', follow_redirects=True)
+    assert logout_res.status_code == 200
+    assert b'berhasil keluar' in logout_res.data or b'login' in logout_res.request.path
+
+    # Verify session is dead: accessing settings now redirects to login
+    protected_res = client.get('/settings')
+    assert protected_res.status_code == 302
+    assert 'login' in protected_res.location
+
+

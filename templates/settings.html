@@ -177,14 +177,9 @@
                                         {% endif %}
                                     </td>
                                     <td class="p-4 align-middle text-right">
-                                        <form method="POST" class="inline">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                                            <input type="hidden" name="action" value="delete_category">
-                                            <input type="hidden" name="category_id" value="{{ cat.id }}">
-                                            <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-9 w-9 text-muted-foreground" title="Delete">
-                                                <i data-lucide="trash-2" class="h-4 w-4"></i>
-                                            </button>
-                                        </form>
+                                        <button type="button" @click="$dispatch('open-delete-category-modal', { id: '{{ cat.id }}', name: '{{ cat.name|escape }}' })" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-9 w-9 text-muted-foreground" title="Hapus Kategori">
+                                            <i data-lucide="trash-2" class="h-4 w-4"></i>
+                                        </button>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -228,6 +223,49 @@
                             <span :class="syncOn ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"></span>
                         </button>
                     </form>
+                </div>
+            </div>
+
+            <!-- Integrations Tab -->
+            <div x-show="activeTab === 'integrations'" x-cloak class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-medium">Integrations & Data</h3>
+                    <p class="text-sm text-muted-foreground">Kelola integrasi sistem, keamanan biometrik, dan ekspor data pembukuan.</p>
+                </div>
+                <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
+                
+                <div class="rounded-xl border border-border bg-card p-6 shadow-sm space-y-6">
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <h4 class="text-base font-semibold flex items-center gap-2">
+                                <i data-lucide="fingerprint" class="w-5 h-5 text-primary"></i> Biometric / Passkey Login
+                            </h4>
+                            <p class="text-sm text-muted-foreground">Masuk lebih cepat dan aman menggunakan Face ID, Touch ID, atau Windows Hello.</p>
+                        </div>
+                        <a href="{{ url_for('extra.tools') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shrink-0">
+                            Buka Financial Tools
+                        </a>
+                    </div>
+
+                    <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
+
+                    <div class="space-y-3">
+                        <h4 class="text-base font-semibold flex items-center gap-2">
+                            <i data-lucide="download" class="w-5 h-5 text-primary"></i> Unduh & Ekspor Data Keuangan
+                        </h4>
+                        <p class="text-sm text-muted-foreground">Unduh seluruh riwayat transaksi dan pembukuan dalam format pilihan Anda.</p>
+                        <div class="flex flex-wrap gap-3 pt-2">
+                            <a href="{{ url_for('transactions.export_excel') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-2">
+                                <i data-lucide="file-spreadsheet" class="w-4 h-4 mr-2 text-emerald-600"></i> Unduh Excel (.xlsx)
+                            </a>
+                            <a href="{{ url_for('transactions.export_csv') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-2">
+                                <i data-lucide="file-text" class="w-4 h-4 mr-2 text-blue-600"></i> Unduh CSV (.csv)
+                            </a>
+                            <a href="{{ url_for('transactions.export_pdf') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3 py-2">
+                                <i data-lucide="file" class="w-4 h-4 mr-2 text-red-600"></i> Unduh PDF (.pdf)
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -345,6 +383,34 @@
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
                     <button type="button" @click="open = false" class="mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 sm:mt-0">Cancel</button>
                     <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">Permanently Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Category Modal -->
+<div x-data="{ open: false, catId: '', catName: '' }" 
+     @open-delete-category-modal.window="open = true; catId = $event.detail.id; catName = $event.detail.name;" 
+     @keydown.escape.window="open = false" 
+     x-show="open" 
+     class="relative z-50" 
+     x-cloak>
+    <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
+    <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-sm rounded-xl border bg-card p-6 text-card-foreground shadow-lg relative">
+            <button @click="open = false" class="absolute top-4 right-4 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
+            <div class="flex flex-col space-y-1.5 text-center sm:text-left">
+                <h2 class="text-lg font-semibold leading-none tracking-tight text-destructive">Hapus Kategori?</h2>
+                <p class="text-sm text-muted-foreground">Apakah Anda yakin ingin menghapus kategori <span class="font-bold text-foreground" x-text="catName"></span>? Riwayat transaksi lama tetap tersimpan dengan aman.</p>
+            </div>
+            <form method="POST" class="space-y-4 pt-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="action" value="delete_category">
+                <input type="hidden" name="category_id" :value="catId">
+                <div class="flex justify-end space-x-2 pt-2">
+                    <button type="button" @click="open = false" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4">Batal</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4">Hapus</button>
                 </div>
             </form>
         </div>

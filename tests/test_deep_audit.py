@@ -155,6 +155,20 @@ def test_settings_operations_and_flags(client):
     assert set_name.status_code == 200
     assert b'Updated Settings User' in set_name.data
 
+    # 1b. Update username validations
+    bad_uname = client.post('/settings', data={
+        'action': 'update_username',
+        'username': 'bad name with space'
+    }, follow_redirects=True)
+    assert b'tidak boleh mengandung spasi' in bad_uname.data
+
+    good_uname = client.post('/settings', data={
+        'action': 'update_username',
+        'username': f"new_{username}"
+    }, follow_redirects=True)
+    assert good_uname.status_code == 200
+    assert b'berhasil diperbarui' in good_uname.data
+
     # 2. Add custom user category
     add_cat = client.post('/settings', data={
         'action': 'add_category',
@@ -164,11 +178,56 @@ def test_settings_operations_and_flags(client):
     assert add_cat.status_code == 200
     assert b'Hobi' in add_cat.data and b'Game' in add_cat.data
 
+    # 2b. Add duplicate custom category (case-insensitive)
+    dup_cat = client.post('/settings', data={
+        'action': 'add_category',
+        'type': 'expense',
+        'name': 'hobi & game'
+    }, follow_redirects=True)
+    assert b'sudah ada' in dup_cat.data
+
+    # 2c. Delete custom category
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        cat_row = db.execute("SELECT id FROM user_categories WHERE name = 'Hobi & Game'").fetchone()
+        cat_id = cat_row['id']
+    del_cat = client.post('/settings', data={
+        'action': 'delete_category',
+        'category_id': cat_id
+    }, follow_redirects=True)
+    assert del_cat.status_code == 200
+
     # 3. Toggle auto_sync
     toggle_res = client.post('/settings', data={
         'action': 'toggle_auto_sync'
     }, follow_redirects=True)
     assert toggle_res.status_code == 200
+
+    # 3b. Password change: short password check
+    short_pw = client.post('/settings', data={
+        'action': 'update_password',
+        'old_password': password,
+        'new_password': '123',
+        'confirm_password': '123'
+    }, follow_redirects=True)
+    assert b'minimal harus 6 karakter' in short_pw.data
+
+    # 3c. Password change: valid update
+    new_pw = "BrandNewSecret123!"
+    up_pw = client.post('/settings', data={
+        'action': 'update_password',
+        'old_password': password,
+        'new_password': new_pw,
+        'confirm_password': new_pw
+    }, follow_redirects=True)
+    assert up_pw.status_code == 200
+    assert 'login' in up_pw.request.path or b'berhasil' in up_pw.data
+
+    # Relogin with new password
+    relogin = client.post('/login', data={'username': f"new_{username}", 'password': new_pw}, follow_redirects=True)
+    assert relogin.status_code == 200
+    assert 'dashboard' in relogin.request.path
 
     # 4. Forgot password endpoint with email
     forgot_res = client.post('/forgot_password', data={
