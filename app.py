@@ -208,7 +208,7 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
-def init_db():
+def init_db(force=False):
     with app.app_context():
         db = utils.get_db()
         cursor = db.cursor()
@@ -219,6 +219,17 @@ def init_db():
             pass
             
         is_pg = bool(utils.DATABASE_URL)
+        if not force:
+            try:
+                # Fast cold-start path: if schema already exists, avoid 50+ DDL queries over network
+                cursor.execute("SELECT 1 FROM transactions LIMIT 1")
+                return
+            except Exception:
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+
         pk_type = "SERIAL PRIMARY KEY" if is_pg else "INTEGER PRIMARY KEY AUTOINCREMENT"
         blob_type = "BYTEA" if is_pg else "BLOB"
         
@@ -574,7 +585,7 @@ def init_db():
 @app.cli.command("init-db")
 def init_db_command():
     """Create new tables if they don't exist."""
-    init_db()
+    init_db(force=True)
     print("Initialized the database.")
 
 # Run init_db on module load (Vercel cold start)
@@ -603,6 +614,11 @@ app.register_blueprint(auth_biometric_bp)
 app.register_blueprint(graphql_bp)
 app.register_blueprint(stream_bp)
 app.register_blueprint(extra_bp)
+
+@app.route('/edit_transaction/<int:id>', methods=['GET', 'POST'])
+def edit_transaction_legacy_alias(id):
+    from routes.transactions import edit_transaction
+    return edit_transaction(id)
 
 
 
@@ -724,6 +740,13 @@ def debug_logs():
         return f"<pre>{out}</pre>"
     except Exception as e:
         return f"Error: {e}"
+
+@app.errorhandler(429)
+def ratelimit_handler(e):
+    flash('Terlalu banyak permintaan dalam waktu singkat. Mohon tunggu beberapa saat sebelum mencoba lagi.', 'warning')
+    if request.referrer and request.referrer.startswith(request.host_url):
+        return redirect(request.referrer)
+    return redirect(url_for('auth.login'))
 
 @app.errorhandler(404)
 def page_not_found(e):

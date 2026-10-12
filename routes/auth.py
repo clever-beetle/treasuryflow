@@ -13,7 +13,7 @@ from utils import SMTP_SERVER, SMTP_PORT, SMTP_EMAIL, SMTP_PASSWORD
 auth_bp = Blueprint('auth', __name__)
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("30 per minute", methods=["POST"])
 def login():
     """
     User Login Endpoint
@@ -70,7 +70,7 @@ def login():
     return render_template('login.html', error=error)
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("20 per minute", methods=["POST"])
 def register():
     error = None
     if request.method == 'POST':
@@ -102,7 +102,7 @@ def logout():
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/forgot_password', methods=['GET', 'POST'])
-@limiter.limit("5 per minute")
+@limiter.limit("15 per minute", methods=["POST"])
 def forgot_password():
     if request.method == 'POST':
         email_input = request.form.get('username') or request.form.get('email')

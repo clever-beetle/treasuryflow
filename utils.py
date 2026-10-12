@@ -56,6 +56,51 @@ def format_rupiah_input(value):
     formatted = '{:,.0f}'.format(abs(value)).replace(',', '.')
     return formatted
 
+def parse_amount(raw, default=0.0):
+    """Parse a user-entered amount into a float.
+
+    Accepts Indonesian formatting ("150.000", "150.000,50"), plain numbers
+    ("150000"), and machine formatting ("150000.0", "150000.50"). Previously
+    callers did ``raw.replace('.', '')`` which turned "150000.0" into 1500000.
+    """
+    import re
+    from decimal import Decimal
+    if raw is None:
+        return default
+    if isinstance(raw, (int, float, Decimal)):
+        return float(raw)
+    s = str(raw).strip().replace('Rp', '').replace('rp', '').replace(' ', '')
+    if not s:
+        return default
+    if ',' in s:
+        # Indonesian format: dots are thousand separators, comma is decimal
+        s = s.replace('.', '').replace(',', '.')
+    elif '.' in s and re.fullmatch(r'-?\d{1,3}(\.\d{3})+', s):
+        # Only thousand separators, e.g. "1.500.000"
+        s = s.replace('.', '')
+    try:
+        val = float(s)
+    except ValueError:
+        return default
+    if val != val or val in (float('inf'), float('-inf')):
+        return default
+    return val
+
+def format_amount_input(value):
+    """Format a stored amount for an editable text input without losing decimals."""
+    v = parse_amount(value)
+    v = abs(v)
+    if v == int(v):
+        return '{:,.0f}'.format(v).replace(',', '.')
+    s = '{:,.2f}'.format(v)  # e.g. "1,500.50"
+    s = s.replace(',', '#').replace('.', ',').replace('#', '.')
+    return s.rstrip('0').rstrip(',')
+
+@limiter.request_filter
+def _limiter_skip_static():
+    from flask import request
+    return request.endpoint == 'static' or request.path.startswith('/static/') or request.path in ('/sw.js', '/favicon.ico')
+
 DATABASE = 'treasury_flow.db'
 DATABASE_URL = os.environ.get('DATABASE_URL')
 REPLICA_DATABASE_URL = os.environ.get('REPLICA_DATABASE_URL')

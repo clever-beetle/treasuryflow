@@ -315,3 +315,98 @@ def test_budget_calendar_and_liability_balance(client):
     # Check financial performance page loads without error and overpayment is 0 debt
     perf_res = client.get('/financial_performance')
     assert perf_res.status_code == 200
+
+def test_edit_transaction_modal_and_rate_limits(client):
+    test_id = uuid.uuid4().hex[:8]
+    username = f"user_edit_{test_id}"
+    password = "Password123!"
+
+    # 1. Register & Login
+    client.post('/register', data={
+        'fullname': 'Edit Test User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    # 2. Add an account with 1.000.000
+    client.post('/setup/accounts', data={
+        'action': 'add',
+        'category_key': 'BANK',
+        'name_detail': 'BCA',
+        'initial_balance': '1.000.000'
+    }, follow_redirects=True)
+
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user_id = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()['id']
+        acc = db.execute("SELECT id FROM accounts WHERE user_id = ?", (user_id,)).fetchone()
+        acc_id = acc['id']
+
+    # 3. Add an expense: 50.000 Makan Siang
+    client.post('/transactions/add', data={
+        'type': 'expense',
+        'date': '2026-10-10',
+        'amount': '50.000',
+        'category': 'Makanan & Minuman',
+        'account_id': acc_id,
+        'description': 'Makan Siang Awal'
+    }, follow_redirects=True)
+
+    with client.application.app_context():
+        db = get_db()
+        tx = db.execute("SELECT id, amount, description FROM transactions WHERE user_id = ?", (user_id,)).fetchone()
+        assert tx['amount'] == 50000
+        assert tx['description'] == 'Makan Siang Awal'
+        tx_id = tx['id']
+        acc_bal = db.execute("SELECT current_balance FROM accounts WHERE id = ?", (acc_id,)).fetchone()['current_balance']
+        assert acc_bal == 950000
+
+    # 4. Edit transaction using the modal form payload to /transactions/edit/<id>
+    edit_res = client.post(f'/transactions/edit/{tx_id}', data={
+        'amount': '75000',
+        'description': 'Makan Siang + Es Teh Jumbo',
+        'date': '2026-10-11',
+        'category': 'Makanan & Minuman',
+        'account_id': acc_id,
+        'type': 'expense',
+        'next': '/transactions/?page=1'
+    }, follow_redirects=True)
+    assert edit_res.status_code == 200
+
+    with client.application.app_context():
+        db = get_db()
+        tx_after = db.execute("SELECT amount, description, date FROM transactions WHERE id = ?", (tx_id,)).fetchone()
+        assert tx_after['amount'] == 75000
+        assert tx_after['description'] == 'Makan Siang + Es Teh Jumbo'
+        assert tx_after['date'] == '2026-10-11'
+        # Balance should be 1.000.000 - 75.000 = 925.000
+        acc_bal_after = db.execute("SELECT current_balance FROM accounts WHERE id = ?", (acc_id,)).fetchone()['current_balance']
+        assert acc_bal_after == 925000
+
+    # 5. Test editing via legacy alias route /edit_transaction/<id>
+    alias_res = client.post(f'/edit_transaction/{tx_id}', data={
+        'amount': '100.000',
+        'description': 'Makan Malam Mewah',
+        'date': '2026-10-12',
+        'category': 'Makanan & Minuman',
+        'account_id': acc_id,
+        'type': 'expense'
+    }, follow_redirects=True)
+    assert alias_res.status_code == 200
+
+    with client.application.app_context():
+        db = get_db()
+        tx_alias = db.execute("SELECT amount, description FROM transactions WHERE id = ?", (tx_id,)).fetchone()
+        assert tx_alias['amount'] == 100000
+        assert tx_alias['description'] == 'Makan Malam Mewah'
+        acc_bal_final = db.execute("SELECT current_balance FROM accounts WHERE id = ?", (acc_id,)).fetchone()['current_balance']
+        assert acc_bal_final == 900000
+
+    # 6. Verify multiple rapid GET requests to /login do NOT get rate-limited with 429
+    for _ in range(8):
+        login_page_res = client.get('/login')
+        assert login_page_res.status_code == 200

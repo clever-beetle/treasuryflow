@@ -320,7 +320,7 @@
                                 {% endif %}
                             </td>
                             <td class="p-4 align-middle text-center flex justify-center items-center gap-1">
-                                <button type="button" @click='$dispatch("open-edit-modal", { id: {{ tx.id }}, amount: {{ tx.amount }}, description: {{ (tx.description or "")|tojson }}, date: "{{ tx.date }}", category: "{{ tx.category }}", account_id: {{ tx.account_id }}, type: "{{ tx.type }}" })' class="text-muted-foreground hover:text-blue-500 p-2 rounded-md hover:bg-muted transition-colors" title="Edit">
+                                <button type="button" @click='$dispatch("open-edit-modal", { id: {{ tx.id }}, amount: {{ tx.amount }}, description: {{ (tx.description or "")|tojson }}, date: "{{ (tx.date|string)[:10] }}", category: "{{ tx.category }}", account_id: {{ tx.account_id }}, type: "{{ tx.type }}" })' class="text-muted-foreground hover:text-blue-500 p-2 rounded-md hover:bg-muted transition-colors" title="Edit">
                                     <i data-lucide="edit-2" class="w-4 h-4"></i>
                                 </button>
                                 <button type="button" @click='$dispatch("open-delete-modal", { id: {{ tx.id }}, desc: {{ (tx.description or tx.category)|tojson }} })' class="text-muted-foreground hover:text-destructive p-2 rounded-md hover:bg-muted transition-colors" title="Hapus">
@@ -378,7 +378,7 @@
     editOpen: false, 
     tx: {id: '', amount: '', description: '', date: '', category: '', account_id: '', type: ''} 
 }" 
-@open-edit-modal.window="tx = $event.detail; editOpen = true;" 
+@open-edit-modal.window="tx = { ...$event.detail, account_id: String($event.detail.account_id || ''), date: String($event.detail.date || '').slice(0, 10) }; editOpen = true;" 
 x-cloak>
     
     <div x-show="editOpen" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -386,8 +386,10 @@ x-cloak>
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
                 <div x-show="editOpen" x-transition.scale.origin.bottom.duration.300 class="relative transform overflow-hidden rounded-xl bg-background text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg border border-border">
-                    <form :action="'/edit_transaction/' + tx.id" method="POST">
+                    <form :action="'/transactions/edit/' + tx.id" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <input type="hidden" name="type" :value="tx.type">
+                        <input type="hidden" name="next" :value="window.location.pathname + window.location.search">
                         <div class="px-6 py-6 pb-4">
                             <div class="flex items-center justify-between mb-4">
                                 <h3 class="text-lg font-semibold leading-6">Edit Transaction</h3>
@@ -395,8 +397,8 @@ x-cloak>
                             </div>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium mb-1">Amount</label>
-                                    <input type="number" name="amount" x-model="tx.amount" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                    <label class="block text-sm font-medium mb-1">Amount (Rp)</label>
+                                    <input type="number" step="any" min="0" name="amount" x-model="tx.amount" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Description</label>
@@ -409,6 +411,7 @@ x-cloak>
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Category</label>
                                     <select name="category" x-model="tx.category" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                        <option value="Transfer" x-show="tx.category === 'Transfer'">Transfer</option>
                                         {% for group, cats in categories.items() %}
                                             <optgroup label="{{ group }}">
                                                 {% for cat in cats %}
@@ -420,7 +423,7 @@ x-cloak>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Account</label>
-                                    <select name="account_id" x-model="tx.account_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                    <select name="account_id" x-model="tx.account_id" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                         {% for acc in accounts %}
                                             <option value="{{ acc.id }}">{{ acc.name }}</option>
                                         {% endfor %}

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, url_for, redirect, session, flash, Response, jsonify, send_file, make_response
-from utils import get_db, login_required, CATEGORIES
+from utils import get_db, login_required, CATEGORIES, parse_amount, logger
 from datetime import datetime
 import io
 import csv
@@ -171,11 +171,7 @@ def add_transaction():
     if request.method == 'POST':
         t_type = request.form.get('type')
         date = request.form.get('date')
-        amount_str = request.form.get('amount', '0').replace('.', '').replace(',', '.')
-        try:
-            amount = float(amount_str) if amount_str else 0
-        except ValueError:
-            amount = 0
+        amount = parse_amount(request.form.get('amount'))
             
         if amount <= 0:
             flash('Jumlah transaksi harus lebih besar dari 0.', 'danger')
@@ -266,66 +262,104 @@ def edit_transaction(id):
         return redirect(url_for('transactions.transactions_list'))
         
     if request.method == 'POST':
-        t_type = request.form.get('type')
-        date = request.form.get('date')
-        amount_str = request.form.get('amount', '0').replace('.', '').replace(',', '.')
-        try:
-            amount = float(amount_str) if amount_str else 0
-        except ValueError:
-            amount = 0
-            
+        tx_dict = dict(tx)
+        old_type = tx_dict.get('type')
+        old_category = tx_dict.get('category')
+        is_transfer_leg = old_category == 'Transfer'
+
+        # Only allow redirecting back inside the transactions section (no open redirect)
+        next_url = request.form.get('next') or ''
+        if not next_url.startswith('/transactions') or next_url.startswith('//'):
+            next_url = url_for('transactions.transactions_list')
+
+        amount = parse_amount(request.form.get('amount'))
         if amount <= 0:
             flash('Jumlah transaksi harus lebih besar dari 0.', 'danger')
-            return redirect(url_for('transactions.edit_transaction', id=id))
+            return redirect(next_url)
 
-        category = request.form.get('category')
-        account_id = request.form.get('account_id')
-        description = request.form.get('description', '')
-        
+        # Type: the edit modal previously never sent this field, which set type=NULL
+        # and made the transaction vanish from balance calculations.
+        t_type = request.form.get('type') or old_type
+        if is_transfer_leg or t_type not in ('income', 'expense'):
+            t_type = old_type
+
+        category = (request.form.get('category') or '').strip() or old_category
+        if is_transfer_leg:
+            category = 'Transfer'
+
+        raw_date = (request.form.get('date') or '').strip()[:10]
+        try:
+            datetime.strptime(raw_date, '%Y-%m-%d')
+            date = raw_date
+        except ValueError:
+            date = str(tx_dict.get('date') or '')[:10] or datetime.now().strftime('%Y-%m-%d')
+
+        if 'description' in request.form:
+            description = request.form.get('description') or ''
+        else:
+            description = tx_dict.get('description') or ''
+
+        account_id = request.form.get('account_id') or tx_dict.get('account_id')
         acc = db.execute('SELECT id FROM accounts WHERE id = ? AND user_id = ?', (account_id, user_id)).fetchone()
         if not acc:
             flash('Akun yang dipilih tidak valid.', 'danger')
-            return redirect(url_for('transactions.edit_transaction', id=id))
-        
-        db.execute('''
-            UPDATE transactions 
-            SET account_id=?, date=?, type=?, amount=?, description=?, category=?
-            WHERE id=? AND user_id=?
-        ''', (account_id, date, t_type, amount, description, category, id, user_id))
+            return redirect(next_url)
+        account_id = acc['id']
 
-        # If this transaction is linked to a transfer pair, keep paired leg date and amount in sync
-        tx_dict = dict(tx)
         linked_id = tx_dict.get('linked_transaction_id')
-        if linked_id:
-            db.execute('''
-                UPDATE transactions
-                SET date=?, amount=?
-                WHERE id=? AND user_id=?
-            ''', (date, amount, linked_id, user_id))
-        elif tx_dict.get('category') == 'Transfer':
-            other_type = 'income' if tx_dict.get('type') == 'expense' else 'expense'
-            paired = db.execute('''
-                SELECT id FROM transactions 
-                WHERE user_id = ? AND category = 'Transfer' AND type = ? AND amount = ? AND date = ? AND id != ?
-                ORDER BY id ASC LIMIT 1
-            ''', (user_id, other_type, tx_dict.get('amount'), tx_dict.get('date'), id)).fetchone()
-            if paired:
-                db.execute('''
-                    UPDATE transactions
-                    SET date=?, amount=?, linked_transaction_id=?
-                    WHERE id=? AND user_id=?
-                ''', (date, amount, id, paired['id'], user_id))
-                db.execute('''
-                    UPDATE transactions
-                    SET linked_transaction_id=?
-                    WHERE id=? AND user_id=?
-                ''', (paired['id'], id, user_id))
+        if is_transfer_leg and linked_id:
+            paired_leg = db.execute('SELECT account_id FROM transactions WHERE id = ? AND user_id = ?', (linked_id, user_id)).fetchone()
+            if paired_leg and str(paired_leg['account_id']) == str(account_id):
+                flash('Akun sumber dan tujuan transfer tidak boleh sama.', 'danger')
+                return redirect(next_url)
 
-        db.commit()
+        try:
+            db.execute('''
+                UPDATE transactions 
+                SET account_id=?, date=?, type=?, amount=?, description=?, category=?
+                WHERE id=? AND user_id=?
+            ''', (account_id, date, t_type, amount, description, category, id, user_id))
+
+            # If this transaction is linked to a transfer pair, keep paired leg date and amount in sync
+            if linked_id:
+                db.execute('''
+                    UPDATE transactions
+                    SET date=?, amount=?
+                    WHERE id=? AND user_id=?
+                ''', (date, amount, linked_id, user_id))
+            elif is_transfer_leg:
+                other_type = 'income' if old_type == 'expense' else 'expense'
+                paired = db.execute('''
+                    SELECT id FROM transactions 
+                    WHERE user_id = ? AND category = 'Transfer' AND type = ? AND amount = ? AND date = ? AND id != ?
+                    ORDER BY id ASC LIMIT 1
+                ''', (user_id, other_type, tx_dict.get('amount'), tx_dict.get('date'), id)).fetchone()
+                if paired:
+                    db.execute('''
+                        UPDATE transactions
+                        SET date=?, amount=?, linked_transaction_id=?
+                        WHERE id=? AND user_id=?
+                    ''', (date, amount, id, paired['id'], user_id))
+                    db.execute('''
+                        UPDATE transactions
+                        SET linked_transaction_id=?
+                        WHERE id=? AND user_id=?
+                    ''', (paired['id'], id, user_id))
+
+            db.commit()
+        except Exception as e:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+            logger.error(f"edit_transaction failed for tx {id}: {e}")
+            flash('Gagal menyimpan perubahan transaksi. Silakan coba lagi.', 'danger')
+            return redirect(next_url)
+
         from routes.dashboard import recalculate_account_balances
         recalculate_account_balances(db, user_id)
-        flash('Transaction updated', 'success')
-        return redirect(url_for('transactions.transactions_list'))
+        flash('Transaksi berhasil diperbarui.', 'success')
+        return redirect(next_url)
         
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     user_cats_rows = db.execute('SELECT type, name FROM user_categories WHERE user_id = ?', (user_id,)).fetchall()
