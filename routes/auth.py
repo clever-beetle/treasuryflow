@@ -75,24 +75,42 @@ def register():
     error = None
     if request.method == 'POST':
         db = get_db()
-        fullname = request.form['fullname']
-        username = request.form['username']
-        email = request.form.get('email')
-        password = request.form['password']
+        fullname = (request.form.get('fullname') or '').strip()
+        username = (request.form.get('username') or '').strip()
+        email = (request.form.get('email') or '').strip().lower()
+        password = request.form.get('password') or ''
         
         if not fullname or not username or not password or not email:
-            error = "All fields are required."
-        elif db.execute('SELECT id FROM users WHERE username = ?', (username,)).fetchone():
-            error = "Username is already taken."
-        elif db.execute('SELECT id FROM users WHERE email = ?', (email,)).fetchone():
-            error = "Email address is already registered."
+            error = "Semua bidang wajib diisi."
+        elif len(username) < 3:
+            error = "Username minimal harus 3 karakter."
+        elif ' ' in username:
+            error = "Username tidak boleh mengandung spasi."
+        elif '@' not in email or '.' not in email.split('@')[-1] or len(email.split('@')[-1].split('.')[-1]) < 2:
+            error = "Format alamat email tidak valid."
+        elif len(password) < 6:
+            error = "Password minimal harus 6 karakter."
+        elif db.execute('SELECT id FROM users WHERE LOWER(username) = LOWER(?)', (username,)).fetchone():
+            error = "Username sudah digunakan, silakan pilih username lain."
+        elif db.execute('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', (email,)).fetchone():
+            error = "Alamat email sudah terdaftar."
         else:
-            hashed_pw = generate_password_hash(password)
-            db.execute('INSERT INTO users (fullname, username, email, password) VALUES (?, ?, ?, ?)',
-                       (fullname, username, email, hashed_pw))
-            db.commit()
-            flash('Registration successful! Please log in.', 'success')
-            return redirect(url_for('auth.login', registered=True))
+            try:
+                hashed_pw = generate_password_hash(password)
+                db.execute('INSERT INTO users (fullname, username, email, password) VALUES (?, ?, ?, ?)',
+                           (fullname, username, email, hashed_pw))
+                db.commit()
+                flash('Pendaftaran akun berhasil! Silakan masuk.', 'success')
+                return redirect(url_for('auth.login', registered=True))
+            except Exception as e:
+                try:
+                    db.rollback()
+                except Exception:
+                    pass
+                if 'UNIQUE' in str(e).upper() or 'DUPLICATE' in str(e).upper():
+                    error = "Username atau email sudah terdaftar."
+                else:
+                    error = "Terjadi kesalahan sistem saat mendaftar. Silakan coba lagi."
             
     return render_template('register.html', error=error)
 
