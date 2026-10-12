@@ -13,7 +13,6 @@ performance_bp = Blueprint('performance', __name__)
 
 @performance_bp.route('/financial_performance', methods=['GET', 'POST'])
 @login_required
-@cache.cached(timeout=30, query_string=True, unless=lambda: request.method == 'POST')
 def financial_performance():
     db = get_db()
     user_id = session['user_id']
@@ -356,10 +355,11 @@ def financial_performance():
     clean_accounts = []
     liability_accounts = []
     for acc in raw_accounts:
-        clean_label = acc['name'].split('] ')[1] if '] ' in acc['name'] else acc['name']
-        clean_accounts.append({'raw': acc['id'], 'clean': clean_label})
-        if acc.get('account_type') == 'liability':
-            liability_accounts.append({'id': acc['id'], 'name': clean_label})
+        acc_dict = dict(acc)
+        clean_label = acc_dict['name'].split('] ')[1] if '] ' in acc_dict['name'] else acc_dict['name']
+        clean_accounts.append({'raw': acc_dict['id'], 'clean': clean_label})
+        if acc_dict.get('account_type') == 'liability':
+            liability_accounts.append({'id': acc_dict['id'], 'name': clean_label})
 
     installments_raw = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 1 ORDER BY due_day_of_month ASC", (user_id,)).fetchall()
     # Compute remaining_tenor for template

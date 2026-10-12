@@ -1,0 +1,379 @@
+import pytest
+import uuid
+
+def test_pdf_and_excel_exports_with_unicode(client):
+    test_id = uuid.uuid4().hex[:8]
+    username = f"user_pdf_{test_id}"
+    password = "Password123!"
+
+    # Register user with special characters in name
+    client.post('/register', data={
+        'fullname': 'Dr. René — O’Connor & Co. • ☕',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    # Add account
+    client.post('/setup/accounts', data={
+        'action': 'add',
+        'category_key': 'CASH',
+        'initial_balance': '500.000'
+    }, follow_redirects=True)
+
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        user_id = user['id']
+        acc = db.execute("SELECT id FROM accounts WHERE user_id = ?", (user_id,)).fetchone()
+
+    # Add transaction with unicode characters (em-dash, emoji, bullet, smart quotes)
+    client.post('/transactions/add', data={
+        'type': 'expense',
+        'date': '2026-10-01',
+        'amount': '45.000,50',
+        'category': 'Makanan & Minuman',
+        'account_id': acc['id'],
+        'description': 'Kopi “Espresso” — Double Shot • Enak!'
+    }, follow_redirects=True)
+
+    with client.application.app_context():
+        db = get_db()
+        tx = db.execute("SELECT id FROM transactions WHERE user_id = ?", (user_id,)).fetchone()
+        tx_id = tx['id']
+
+    # 1. Test export_pdf with unicode
+    pdf_res = client.get('/transactions/export_pdf')
+    assert pdf_res.status_code == 200
+    assert pdf_res.headers.get('Content-Type') == 'application/pdf'
+    assert len(pdf_res.data) > 1000
+
+    # 2. Test download_receipt with unicode
+    receipt_res = client.get(f'/transactions/transaction/{tx_id}/receipt')
+    assert receipt_res.status_code == 200
+    assert receipt_res.headers.get('Content-Type') == 'application/pdf'
+    assert len(receipt_res.data) > 500
+
+    # 3. Test export_excel
+    excel_res = client.get('/transactions/export_excel')
+    assert excel_res.status_code == 200
+    assert 'spreadsheet' in excel_res.headers.get('Content-Type', '')
+
+def test_calendar_boundary_and_invalid_inputs(client):
+    test_id = uuid.uuid4().hex[:8]
+    username = f"user_cal_{test_id}"
+    password = "Password123!"
+
+    client.post('/register', data={
+        'fullname': 'Cal User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    # 1. Valid calendar view
+    res_valid = client.get('/transactions/?view=calendar&cal_year=2026&cal_month=10')
+    assert res_valid.status_code == 200
+
+    # 2. Invalid cal_month > 12 should not crash (500)
+    res_invalid_month = client.get('/transactions/?view=calendar&cal_year=2026&cal_month=15')
+    assert res_invalid_month.status_code == 200
+
+    # 3. Invalid cal_month <= 0 should not crash
+    res_zero_month = client.get('/transactions/?view=calendar&cal_year=2026&cal_month=0')
+    assert res_zero_month.status_code == 200
+
+    # 4. Out of bounds cal_year
+    res_invalid_year = client.get('/transactions/?view=calendar&cal_year=99999&cal_month=5')
+    assert res_invalid_year.status_code == 200
+
+def test_graphql_and_webauthn_and_stream(client):
+    test_id = uuid.uuid4().hex[:8]
+    username = f"user_api_{test_id}"
+    password = "Password123!"
+
+    client.post('/register', data={
+        'fullname': 'API User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    # 1. GraphQL playground GET
+    gql_get = client.get('/graphql')
+    assert gql_get.status_code == 200
+
+    # 2. GraphQL valid query
+    gql_query = client.post('/graphql', json={'query': '{ hello transactions { id } }'})
+    assert gql_query.status_code == 200
+    assert gql_query.json['data']['hello'] == "Selamat datang di GraphQL Supergraph!"
+
+    # 3. GraphQL empty body should not crash
+    gql_empty = client.post('/graphql', json={})
+    assert gql_empty.status_code in (200, 400)
+
+    # 4. WebAuthn register generate
+    webauthn_res = client.post('/api/webauthn/register/generate')
+    assert webauthn_res.status_code == 200
+    assert 'challenge' in webauthn_res.json or 'rp' in webauthn_res.json
+
+    # 5. Calendar events API
+    events_res = client.get('/api/calendar_events')
+    assert events_res.status_code == 200
+    assert isinstance(events_res.json, list)
+
+def test_settings_operations_and_flags(client):
+    test_id = uuid.uuid4().hex[:8]
+    username = f"user_set_{test_id}"
+    password = "Password123!"
+
+    client.post('/register', data={
+        'fullname': 'Settings User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    # 1. Update fullname
+    set_name = client.post('/settings', data={
+        'action': 'update_fullname',
+        'fullname': 'Updated Settings User'
+    }, follow_redirects=True)
+    assert set_name.status_code == 200
+    assert b'Updated Settings User' in set_name.data
+
+    # 2. Add custom user category
+    add_cat = client.post('/settings', data={
+        'action': 'add_category',
+        'type': 'expense',
+        'name': 'Hobi & Game'
+    }, follow_redirects=True)
+    assert add_cat.status_code == 200
+    assert b'Hobi' in add_cat.data and b'Game' in add_cat.data
+
+    # 3. Toggle auto_sync
+    toggle_res = client.post('/settings', data={
+        'action': 'toggle_auto_sync'
+    }, follow_redirects=True)
+    assert toggle_res.status_code == 200
+
+    # 4. Forgot password endpoint with email
+    forgot_res = client.post('/forgot_password', data={
+        'username': f"{username}@test.com"
+    }, follow_redirects=True)
+    assert forgot_res.status_code == 200
+
+def test_ai_rag_and_prediction_suite(client):
+    test_id = uuid.uuid4().hex[:8]
+    username = f"user_ai_{test_id}"
+    password = "Password123!"
+
+    client.post('/register', data={
+        'fullname': 'AI Test User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        user_id = user['id']
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance) VALUES (?, 'Test Wallet', 1000000, 1000000)", (user_id,))
+        db.commit()
+        acc = db.execute("SELECT id FROM accounts WHERE user_id = ?", (user_id,)).fetchone()
+        acc_id = acc['id']
+
+        # Add 3 transactions: first one does NOT match search query, second one DOES match
+        db.execute("INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-10-01', 'expense', 15000, 'Beli Odol', 'Kebutuhan')", (user_id, acc_id))
+        db.execute("INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-10-02', 'expense', 25000, 'Makan Nasi Padang', 'Makanan')", (user_id, acc_id))
+        db.execute("INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-10-03', 'expense', 50000, 'Bensin Motor', 'Transport')", (user_id, acc_id))
+        db.commit()
+
+    # 1. Test RAG chat searches across all transactions (match is on 2nd tx: Padang)
+    rag_res = client.post('/api/rag_chat', json={'message': 'padang'})
+    assert rag_res.status_code == 200
+    assert 'Padang' in rag_res.json['reply']
+    assert '25,000' in rag_res.json['reply']
+
+    # 2. Test predict_future with >= 3 data points
+    pred_res = client.get('/api/predict_future')
+    assert pred_res.status_code == 200
+    assert pred_res.json['status'] == 'success'
+    assert len(pred_res.json['predictions']) == 7
+
+def test_dashboard_alias_and_bulk_transfer_symmetry(client):
+    test_id = uuid.uuid4().hex[:8]
+    username = f"user_dash_{test_id}"
+    password = "Password123!"
+
+    client.post('/register', data={
+        'fullname': 'Dash User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    # 1. Test /dashboard alias returns 200
+    dash_res = client.get('/dashboard')
+    assert dash_res.status_code == 200
+
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        user_id = user['id']
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance) VALUES (?, 'Bank A', 500000, 500000)", (user_id,))
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance) VALUES (?, 'Bank B', 500000, 500000)", (user_id,))
+        db.commit()
+        accs = db.execute("SELECT id FROM accounts WHERE user_id = ? ORDER BY id ASC", (user_id,)).fetchall()
+        acc1, acc2 = accs[0]['id'], accs[1]['id']
+
+        # Insert legacy paired transfer (without linked_transaction_id)
+        db.execute("INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-10-05', 'expense', 100000, 'Transfer out', 'Transfer')", (user_id, acc1))
+        leg1 = db.execute("SELECT id FROM transactions WHERE user_id = ? AND type = 'expense'", (user_id,)).fetchone()
+        db.execute("INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-10-05', 'income', 100000, 'Transfer in', 'Transfer')", (user_id, acc2))
+        db.commit()
+
+        leg1_id = leg1['id']
+
+    # 2. Test bulk_delete deletes legacy paired leg symmetrically
+    client.post('/transactions/bulk_delete', data={'transaction_ids': str(leg1_id)}, follow_redirects=True)
+
+    with client.application.app_context():
+        db = get_db()
+        remaining_txs = db.execute("SELECT COUNT(*) FROM transactions WHERE user_id = ?", (user_id,)).fetchone()[0]
+        assert remaining_txs == 0
+
+def test_split_bill_and_custom_category_integration(client):
+    test_id = uuid.uuid4().hex[:8]
+    username = f"user_split_{test_id}"
+    password = "Password123!"
+
+    client.post('/register', data={
+        'fullname': 'Split User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    # 1. Add Custom Category in settings
+    client.post('/settings', data={
+        'action': 'add_category',
+        'type': 'expense',
+        'name': 'Konser & Musik'
+    }, follow_redirects=True)
+
+    # 2. Setup account
+    client.post('/setup/accounts', data={
+        'action': 'add',
+        'category_key': 'CASH',
+        'initial_balance': '500.000'
+    }, follow_redirects=True)
+
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        user_id = user['id']
+        acc = db.execute("SELECT id FROM accounts WHERE user_id = ?", (user_id,)).fetchone()
+        acc_id = acc['id']
+
+    # 3. Add Transaction with Split Bill enabled
+    tx_res = client.post('/transactions/add', data={
+        'type': 'expense',
+        'date': '2026-10-06',
+        'amount': '150.000',
+        'category': 'Konser & Musik',
+        'account_id': acc_id,
+        'description': 'Beli Tiket Konser Berdua',
+        'is_split': 'true',
+        'split_person': 'Budi Doremi',
+        'split_amount': '75.000'
+    }, follow_redirects=True)
+    assert tx_res.status_code == 200
+
+    # 4. Verify receivable was automatically created in debts_receivables
+    with client.application.app_context():
+        db = get_db()
+        debt = db.execute("SELECT * FROM debts_receivables WHERE user_id = ? AND person_name = ?", (user_id, 'Budi Doremi')).fetchone()
+        assert debt is not None
+        assert debt['type'] == 'receivable'
+        assert debt['total_amount'] == 75000.0
+        assert debt['remaining_amount'] == 75000.0
+        assert debt['status'] == 'BELUM LUNAS'
+
+    # 5. Verify custom category is merged and visible in transactions_list
+    list_res = client.get('/transactions/')
+    assert list_res.status_code == 200
+    assert b'Konser &amp; Musik' in list_res.data or b'Konser & Musik' in list_res.data
+
+def test_delete_account_foreign_key_safety(client):
+    test_id = uuid.uuid4().hex[:8]
+    username = f"user_del_{test_id}"
+    password = "Password123!"
+
+    client.post('/register', data={
+        'fullname': 'Delete User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        user_id = user['id']
+
+        # Add referencing rows across webauthn, achievements, and notifications
+        try:
+            db.execute("INSERT INTO webauthn_credentials (user_id, credential_id, public_key, sign_count) VALUES (?, 'testcred', b'key', 0)", (user_id,))
+        except Exception:
+            pass
+        try:
+            db.execute("INSERT INTO user_achievements (user_id, xp, level, badges) VALUES (?, 100, 2, '[]')", (user_id,))
+        except Exception:
+            pass
+        try:
+            db.execute("INSERT INTO notifications (user_id, message) VALUES (?, 'Selamat datang!')", (user_id,))
+        except Exception:
+            pass
+        db.commit()
+
+    # Call delete_account
+    del_res = client.post('/settings', data={
+        'action': 'delete_account',
+        'password_check': password
+    }, follow_redirects=True)
+    assert del_res.status_code == 200
+    assert b'Akun Anda beserta seluruh data terkait telah berhasil dihapus' in del_res.data
+
+    with client.application.app_context():
+        db = get_db()
+        deleted_user = db.execute("SELECT id FROM users WHERE id = ?", (user_id,)).fetchone()
+        assert deleted_user is None
+
+
