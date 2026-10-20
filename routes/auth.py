@@ -3,7 +3,7 @@ from utils import get_db, login_required, format_rupiah, format_rupiah_input, CA
 from models import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-import secrets, smtplib, json, csv, os
+import secrets, smtplib, json, csv, os, re
 from io import StringIO
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -46,30 +46,39 @@ def login():
         if not login_input or not password:
             error = "Username/email dan password wajib diisi."
         else:
-            user = db.execute('''
+            candidates = db.execute('''
                 SELECT id, password, username, fullname, role 
                 FROM users 
                 WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)
-            ''', (login_input, login_input)).fetchone()
+                ORDER BY id ASC
+            ''', (login_input, login_input)).fetchall()
             
-            valid_login = False
-            if user:
-                is_hashed = user['password'].startswith('scrypt:') or user['password'].startswith('pbkdf2:')
-                if not is_hashed:
-                    if user['password'] == password:
-                        new_hash = generate_password_hash(password)
-                        db.execute('UPDATE users SET password = ? WHERE id = ?', (new_hash, user['id']))
-                        db.commit()
-                        valid_login = True
-                else:
-                    valid_login = check_password_hash(user['password'], password)
+            # Legacy data may contain a username that equals another user's email, so
+            # verify the password against every matching row instead of only the first one.
+            user = None
+            for cand in candidates:
+                stored_pw = cand['password'] or ''
+                is_hashed = stored_pw.startswith('scrypt:') or stored_pw.startswith('pbkdf2:')
+                if is_hashed:
+                    if check_password_hash(stored_pw, password):
+                        user = cand
+                        break
+                elif stored_pw and stored_pw == password:
+                    db.execute('UPDATE users SET password = ? WHERE id = ?', (generate_password_hash(password), cand['id']))
+                    db.commit()
+                    user = cand
+                    break
                     
-            if valid_login:
+            if user:
+                try:
+                    role = user['role']
+                except (KeyError, IndexError):
+                    role = None
                 session.clear()
                 session['user_id'] = user['id']
                 session['username'] = user['username'] if user['username'] else login_input
                 session['fullname'] = user['fullname'] if user['fullname'] else session['username']
-                session['role'] = user['role'] if 'role' in user and user['role'] else 'user'
+                session['role'] = role or 'user'
                 
                 next_page = request.args.get('next') or request.form.get('next')
                 if next_page and next_page.startswith('/') and not next_page.startswith('//') and next_page != '/login':
@@ -80,30 +89,47 @@ def login():
     
     return render_template('login.html', error=error)
 
+USERNAME_RE = re.compile(r'^[A-Za-z0-9._]+$')
+EMAIL_RE = re.compile(r'^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$')
+
 @auth_bp.route('/register', methods=['GET', 'POST'])
 @limiter.limit("20 per minute", methods=["POST"])
 def register():
+    # Already signed in: don't let a second account be created on top of the active session
+    if session.get('user_id'):
+        return redirect(url_for('dashboard.dashboard'))
+
     error = None
     if request.method == 'POST':
         db = get_db()
-        fullname = (request.form.get('fullname') or '').strip()
+        # Collapse repeated inner whitespace in the display name ("Budi    Santoso" -> "Budi Santoso")
+        fullname = ' '.join((request.form.get('fullname') or '').split())
         username = (request.form.get('username') or '').strip()
         email = (request.form.get('email') or '').strip().lower()
         password = request.form.get('password') or ''
         
-        if not fullname or not username or not password or not email:
+        if not fullname or not username or not password.strip() or not email:
             error = "Semua bidang wajib diisi."
+        elif len(fullname) > 100:
+            error = "Nama lengkap maksimal 100 karakter."
         elif len(username) < 3:
             error = "Username minimal harus 3 karakter."
-        elif ' ' in username:
+        elif len(username) > 30:
+            error = "Username maksimal 30 karakter."
+        elif any(ch.isspace() for ch in username):
             error = "Username tidak boleh mengandung spasi."
-        elif '@' not in email or '.' not in email.split('@')[-1] or len(email.split('@')[-1].split('.')[-1]) < 2:
+        elif not USERNAME_RE.match(username):
+            # '@' is deliberately rejected so a username can never be mistaken for someone's email at login
+            error = "Username hanya boleh berisi huruf, angka, titik (.), dan underscore (_)."
+        elif len(email) > 254 or not EMAIL_RE.match(email):
             error = "Format alamat email tidak valid."
         elif len(password) < 6:
             error = "Password minimal harus 6 karakter."
-        elif db.execute('SELECT id FROM users WHERE LOWER(username) = LOWER(?)', (username,)).fetchone():
+        elif len(password) > 128:
+            error = "Password maksimal 128 karakter."
+        elif db.execute('SELECT id FROM users WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)', (username, username)).fetchone():
             error = "Username sudah digunakan, silakan pilih username lain."
-        elif db.execute('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', (email,)).fetchone():
+        elif db.execute('SELECT id FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)', (email, email)).fetchone():
             error = "Alamat email sudah terdaftar."
         else:
             try:

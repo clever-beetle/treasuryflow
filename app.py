@@ -36,8 +36,12 @@ csrf = CSRFProtect(app)
 
 app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SECURE=True,
+    # Secure cookies are dropped by browsers on plain http (e.g. testing from a phone via LAN IP),
+    # which made every form POST fail CSRF. Only force it when served over HTTPS (Vercel) or explicitly requested.
+    SESSION_COOKIE_SECURE=bool(os.environ.get('VERCEL')) or os.environ.get('SESSION_COOKIE_SECURE') == '1',
     SESSION_COOKIE_SAMESITE='Lax',
+    # Bind CSRF token to the session instead of a 1-hour timer, so a form left open (e.g. register page) still submits
+    WTF_CSRF_TIME_LIMIT=None,
     SWAGGER={
         'title': 'Treasury Flow API',
         'uiversion': 3
@@ -659,7 +663,13 @@ def add_header(response):
 from flask_wtf.csrf import CSRFError
 @app.errorhandler(CSRFError)
 def handle_csrf_error(e):
-    flash('Your session expired or was invalid. Please try again.', 'warning')
+    msg = 'Sesi formulir sudah kedaluwarsa. Silakan tekan tombol kirim sekali lagi.'
+    # Auth forms: re-render with the submitted values kept (request.form is still available) and a fresh token
+    if request.endpoint == 'auth.register':
+        return render_template('register.html', error=msg), 400
+    if request.endpoint == 'auth.login':
+        return render_template('login.html', error=msg), 400
+    flash(msg, 'warning')
     return redirect(request.url)
 
 @app.route('/session_expired')

@@ -58,6 +58,7 @@
             --border: 217.2 32.6% 17.5%; --input: 217.2 32.6% 17.5%; --ring: 212.7 26.8% 83.9%;
         }
         body { font-family: 'Inter', sans-serif; background-color: hsl(var(--background)); color: hsl(var(--foreground)); }
+        [x-cloak] { display: none !important; }
     </style>
     <script>
         (function(){
@@ -98,32 +99,35 @@
             </div>
         {% endif %}
 
-        <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-4">
+        <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-4" x-data="{ submitting: false }" @pageshow.window="submitting = false" @submit="if (submitting) { $event.preventDefault(); return; } submitting = true">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="space-y-2">
                 <label for="fullname" class="text-sm font-medium leading-none">Full Name</label>
-                <input type="text" id="fullname" name="fullname" value="{{ request.form.get('fullname', '') }}" autocomplete="name" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="John Doe" required>
+                <input type="text" id="fullname" name="fullname" value="{{ request.form.get('fullname', '') }}" autocomplete="name" maxlength="100" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="John Doe" required>
             </div>
             <div class="space-y-2">
                 <label for="username" class="text-sm font-medium leading-none">Username</label>
-                <input type="text" id="username" name="username" value="{{ request.form.get('username', '') }}" autocomplete="username" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="johndoe123" required>
+                <input type="text" id="username" name="username" value="{{ request.form.get('username', '') }}" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" minlength="3" maxlength="30" pattern="[A-Za-z0-9._]+" title="3–30 karakter: huruf, angka, titik (.) atau underscore (_), tanpa spasi." class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="johndoe123" required>
+                <p class="text-xs text-muted-foreground">3–30 karakter: huruf, angka, titik (.) atau underscore (_).</p>
             </div>
             <div class="space-y-2">
                 <label for="email" class="text-sm font-medium leading-none">Email Address</label>
-                <input type="email" id="email" name="email" value="{{ request.form.get('email', '') }}" autocomplete="email" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="john@example.com" required>
+                <input type="email" id="email" name="email" value="{{ request.form.get('email', '') }}" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="254" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="john@example.com" required>
             </div>
             <div class="space-y-2">
                 <label for="password" class="text-sm font-medium leading-none">Password</label>
                 <div class="relative">
-                    <input :type="showPass ? 'text' : 'password'" id="password" name="password" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Create a secure password" required>
-                    <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <input :type="showPass ? 'text' : 'password'" id="password" name="password" autocomplete="new-password" minlength="6" maxlength="128" class="flex h-10 w-full rounded-md border border-input bg-transparent pl-3 pr-10 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Create a secure password" required>
+                    <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" :aria-label="showPass ? 'Sembunyikan password' : 'Tampilkan password'">
                         <i data-lucide="eye" x-show="!showPass" class="h-4 w-4"></i>
                         <i data-lucide="eye-off" x-show="showPass" class="h-4 w-4"></i>
                     </button>
                 </div>
+                <p class="text-xs text-muted-foreground">Minimal 6 karakter.</p>
             </div>
-            <button type="submit" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full mt-2">
-                Sign Up
+            <button type="submit" :disabled="submitting" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed h-10 px-4 py-2 w-full mt-2">
+                <span x-show="!submitting">Sign Up</span>
+                <span x-show="submitting" x-cloak>Memproses...</span>
             </button>
         </form>
         <div class="mt-6 text-center text-sm">
