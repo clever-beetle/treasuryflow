@@ -177,11 +177,6 @@
                                             <i data-lucide="calculator" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'extra.tools' else 'text-emerald-500' }}"></i> Financial Tools
                                         </a>
                                     </li>
-                                    <li>
-                                        <a href="{{ url_for('extra.leaderboard') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'extra.leaderboard' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="trophy" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'extra.leaderboard' else 'text-yellow-500' }}"></i> Leaderboard
-                                        </a>
-                                    </li>
                                 </ul>
                                 <div class="mt-8 pt-6 border-t border-border">
                                     <a href="{{ url_for('settings.settings') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'settings.settings' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }} mb-4">

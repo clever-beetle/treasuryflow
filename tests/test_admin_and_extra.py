@@ -27,9 +27,9 @@ def test_admin_and_extra_routes(client):
     assert dev_ok.status_code == 200
     assert b'users' in dev_ok.data
 
-    # 3. Leaderboard route
+    # 3. Leaderboard route (removed - should return 404)
     lb_res = client.get('/leaderboard')
-    assert lb_res.status_code == 200
+    assert lb_res.status_code == 404
 
     # 4. Tools route
     tools_res = client.get('/tools')

@@ -313,10 +313,11 @@ def financial_performance():
             
         return redirect(url_for('performance.financial_performance'))
 
-    days_range = request.args.get('days', type=int, default=7)
-    if days_range not in [3, 7, 30, 90, 180, 365]: days_range = 7
+    req_days = request.args.get('days', type=int) or request.args.get('period', type=int)
+    days_range = req_days if req_days in [3, 7, 30, 90, 180, 365] else 7
         
-    today = datetime.now().date()
+    wib_now = datetime.now() + timedelta(hours=7)
+    today = wib_now.date()
     today_str = today.strftime('%Y-%m-%d')
     days_ago_str = (today - timedelta(days=days_range)).strftime('%Y-%m-%d')
     
@@ -433,48 +434,52 @@ def financial_performance():
 
     
     # --- Analytics Integration ---
-    period = request.args.get('period', type=int, default=30)
-    if period not in [7, 30, 90, 180, 365]:
-        period = 30
+    req_period = request.args.get('period', type=int) or request.args.get('days', type=int)
+    period = req_period if req_period in [3, 7, 30, 90, 180, 365] else 30
         
-    today_dt = datetime.now()
-    days_ago_str = (today_dt - timedelta(days=period)).strftime('%Y-%m-%d')
+    today_dt = datetime.now() + timedelta(hours=7)
+    days_ago_str = (today_dt.date() - timedelta(days=period)).strftime('%Y-%m-%d')
     
     analytics_transactions = db.execute('''
         SELECT t.id, t.date, t.type, t.amount, t.category, t.description, a.name AS account_name
         FROM transactions t
         JOIN accounts a ON t.account_id = a.id
-        WHERE t.user_id = ? AND t.date >= ? AND t.category != 'Transfer'
+        WHERE t.user_id = ? AND t.date >= ? AND COALESCE(t.category, '') != 'Transfer'
         ORDER BY t.date ASC
     ''', (user_id, days_ago_str)).fetchall()
     
-    analytics_total_income = sum((t['amount'] or 0) for t in analytics_transactions if t['type'] == 'income')
-    analytics_total_expense = sum((t['amount'] or 0) for t in analytics_transactions if t['type'] == 'expense')
+    analytics_total_income = sum(float(t['amount'] or 0) for t in analytics_transactions if t['type'] == 'income')
+    analytics_total_expense = sum(float(t['amount'] or 0) for t in analytics_transactions if t['type'] == 'expense')
     analytics_net_flow = analytics_total_income - analytics_total_expense
     analytics_savings_rate = (analytics_net_flow / analytics_total_income * 100) if analytics_total_income > 0 else 0
     
     date_map = {}
     for i in range(period + 1):
-        d = (today_dt - timedelta(days=period - i)).strftime('%Y-%m-%d')
-        date_map[d] = {'income': 0, 'expense': 0}
+        d = (today_dt.date() - timedelta(days=period - i)).strftime('%Y-%m-%d')
+        date_map[d] = {'income': 0.0, 'expense': 0.0}
         
     for t in analytics_transactions:
-        if t['date'] in date_map:
-            date_map[t['date']][t['type']] += (t['amount'] or 0)
+        d_key = str(t['date'])[:10] if t['date'] else ''
+        if not d_key:
+            continue
+        if d_key not in date_map:
+            date_map[d_key] = {'income': 0.0, 'expense': 0.0}
+        if t['type'] in ('income', 'expense'):
+            date_map[d_key][t['type']] += float(t['amount'] or 0)
             
     chart_labels = []
     chart_income = []
     chart_expense = []
     chart_netflow = []
-    cumulative_net = 0
-    for d, vals in date_map.items():
+    cumulative_net = 0.0
+    for d in sorted(date_map.keys()):
+        vals = date_map[d]
         chart_labels.append(d[-5:])
-        chart_income.append(vals['income'])
-        chart_expense.append(vals['expense'])
+        chart_income.append(float(vals['income']))
+        chart_expense.append(float(vals['expense']))
         cumulative_net += (vals['income'] - vals['expense'])
-        chart_netflow.append(cumulative_net)
+        chart_netflow.append(float(cumulative_net))
         
-    import json
     analytics_time_series = {
         'labels': chart_labels,
         'income': [float(x) for x in chart_income],

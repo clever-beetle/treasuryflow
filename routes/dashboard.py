@@ -37,7 +37,8 @@ def dashboard():
     
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     
-    today = datetime.now().date()
+    wib_now = datetime.now() + timedelta(hours=7)
+    today = wib_now.date()
     today_str = today.strftime('%Y-%m-%d')
     period = request.args.get('period', type=int, default=30)
     if period not in [3, 7, 30, 90, 365]:
@@ -46,37 +47,28 @@ def dashboard():
     days_ago_str = (today - timedelta(days=period)).strftime('%Y-%m-%d')
     
     # Bundle scalar queries into a single round-trip to reduce latency
-    stats_query = '''
-        SELECT 
-            (SELECT SUM(current_balance) FROM accounts WHERE user_id = %(uid)s AND account_type = 'asset') as total_balance,
-            (SELECT SUM(amount) FROM transactions WHERE user_id = %(uid)s AND type = 'expense' AND date >= %(days_ago)s AND category != 'Transfer') as total_expense,
-            (SELECT SUM(amount) FROM transactions WHERE user_id = %(uid)s AND type = 'income' AND date >= %(days_ago)s AND category != 'Transfer') as total_income,
-            (SELECT SUM(amount) FROM transactions WHERE user_id = %(uid)s AND type = 'expense' AND date = %(today)s AND category != 'Transfer') as expense_today,
-            (SELECT SUM(limit_amount) FROM budgets WHERE user_id = %(uid)s) as total_budget
-    '''
-    # SQLite uses ?, Postgres uses %s, but since DBWrapper replaces ? with %s we can use ? safely if we pass tuple
     stats_query_compat = '''
         SELECT 
             (SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND account_type = 'asset') as total_balance,
-            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date >= ? AND category != 'Transfer') as total_expense,
-            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income' AND date >= ? AND category != 'Transfer') as total_income,
-            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date = ? AND category != 'Transfer') as expense_today,
+            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date >= ? AND COALESCE(category, '') != 'Transfer') as total_expense,
+            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income' AND date >= ? AND COALESCE(category, '') != 'Transfer') as total_income,
+            (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date = ? AND COALESCE(category, '') != 'Transfer') as expense_today,
             (SELECT SUM(limit_amount) FROM budgets WHERE user_id = ?) as total_budget
     '''
     stats = db.execute(stats_query_compat, (user_id, user_id, days_ago_str, user_id, days_ago_str, user_id, today_str, user_id)).fetchone()
     
-    total_balance = stats['total_balance'] or 0
-    total_expense = stats['total_expense'] or 0
-    total_income = stats['total_income'] or 0
-    expense_today = stats['expense_today'] or 0
-    total_budget = stats['total_budget'] or 0
+    total_balance = float(stats['total_balance'] or 0)
+    total_expense = float(stats['total_expense'] or 0)
+    total_income = float(stats['total_income'] or 0)
+    expense_today = float(stats['expense_today'] or 0)
+    total_budget = float(stats['total_budget'] or 0)
     budget_usage = (total_expense / total_budget * 100) if total_budget > 0 else 0
     
     # Chart Data
     chart_data_rows = db.execute('''
         SELECT date, type, SUM(amount) as total
         FROM transactions
-        WHERE user_id = ? AND date >= ? AND category != 'Transfer'
+        WHERE user_id = ? AND date >= ? AND COALESCE(category, '') != 'Transfer'
         GROUP BY date, type
         ORDER BY date ASC
     ''', (user_id, days_ago_str)).fetchall()
@@ -84,21 +76,26 @@ def dashboard():
     date_map = {}
     for i in range(period + 1):
         d = (today - timedelta(days=period - i)).strftime('%Y-%m-%d')
-        date_map[d] = {'income': 0, 'expense': 0}
+        date_map[d] = {'income': 0.0, 'expense': 0.0}
         
     for r in chart_data_rows:
-        if r['date'] in date_map:
-            date_map[r['date']][r['type']] = r['total']
+        d_key = str(r['date'])[:10] if r['date'] else ''
+        if not d_key:
+            continue
+        if d_key not in date_map:
+            date_map[d_key] = {'income': 0.0, 'expense': 0.0}
+        if r['type'] in ('income', 'expense'):
+            date_map[d_key][r['type']] += float(r['total'] or 0)
             
     chart_labels = []
     chart_income = []
     chart_expense = []
-    for d, vals in date_map.items():
+    for d in sorted(date_map.keys()):
+        vals = date_map[d]
         chart_labels.append(d[-5:])
-        chart_income.append(vals['income'])
-        chart_expense.append(vals['expense'])
+        chart_income.append(float(vals['income']))
+        chart_expense.append(float(vals['expense']))
         
-    import json
     chart_data = {
         'labels': chart_labels,
         'income': chart_income,

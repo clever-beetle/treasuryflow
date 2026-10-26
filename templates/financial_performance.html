@@ -64,6 +64,9 @@
                             <option value="3" {% if days_range == 3 %}selected{% endif %}>Rentang: 3 Hari Terakhir</option>
                             <option value="7" {% if days_range == 7 %}selected{% endif %}>Rentang: 7 Hari Terakhir</option>
                             <option value="30" {% if days_range == 30 %}selected{% endif %}>Rentang: 30 Hari Terakhir</option>
+                            <option value="90" {% if days_range == 90 %}selected{% endif %}>Rentang: 3 Bulan Terakhir</option>
+                            <option value="180" {% if days_range == 180 %}selected{% endif %}>Rentang: 6 Bulan Terakhir</option>
+                            <option value="365" {% if days_range == 365 %}selected{% endif %}>Rentang: 1 Tahun Terakhir</option>
                         </select>
                     </form>
                 </div>
@@ -190,7 +193,7 @@
                             <p class="text-sm text-muted-foreground">Ke mana uang Anda paling banyak dihabiskan</p>
                         </div>
                         <div class="relative w-full flex-1 min-h-[300px] flex items-center justify-center">
-                            {% if analytics_donut and analytics_donut != '{"labels": [], "data": []}' %}
+                            {% if analytics_donut and analytics_donut.data %}
                             <canvas id="expenseDonutChart"></canvas>
                             {% else %}
                             <div class="flex flex-col items-center justify-center text-center text-muted-foreground h-full">
@@ -206,6 +209,21 @@
 
             <!-- TAB 1: CASHFLOW -->
             <div x-show="activeTab === 'cashflow'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-6">
+                <!-- Cash Flow Chart in Arus Kas Tab -->
+                <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
+                    <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                        <div>
+                            <h3 class="text-lg font-semibold tracking-tight flex items-center gap-2">
+                                <i data-lucide="bar-chart-2" class="w-5 h-5 text-blue-500"></i> Grafik Arus Kas (Cash Flow)
+                            </h3>
+                            <p class="text-sm text-muted-foreground">Perbandingan pemasukan, pengeluaran, dan akumulasi arus kas bersih harian</p>
+                        </div>
+                    </div>
+                    <div class="relative w-full h-[320px]">
+                        <canvas id="cashflowTabChart"></canvas>
+                    </div>
+                </div>
+
                 <!-- Dist Capital -->
                 <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
                     <div class="p-6">
@@ -1315,87 +1333,95 @@
             const textColor = isDark ? '#9ca3af' : '#4b5563';
             const gridColor = isDark ? '#374151' : '#e5e7eb';
 
-            // Time Series Chart
-            const tsDataStr = {{ analytics_time_series|tojson }};
-            if (tsDataStr && tsDataStr !== 'null') {
-                const tsData = JSON.parse(tsDataStr);
-                const ctx = document.getElementById('timeSeriesChart');
-                if (ctx) {
-                    new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: tsData.labels,
-                            datasets: [
-                                {
-                                    label: 'Net Flow',
-                                    data: tsData.netflow,
-                                    borderColor: '#3b82f6',
-                                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                    fill: true,
-                                    tension: 0.4,
-                                    order: 1
-                                },
-                                {
-                                    label: 'Income',
-                                    data: tsData.income,
-                                    type: 'bar',
-                                    backgroundColor: '#10b981',
-                                    borderRadius: 4,
-                                    order: 2
-                                },
-                                {
-                                    label: 'Expense',
-                                    data: tsData.expense,
-                                    type: 'bar',
-                                    backgroundColor: '#ef4444',
-                                    borderRadius: 4,
-                                    order: 3
-                                }
-                            ]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            interaction: { mode: 'index', intersect: false },
-                            plugins: {
-                                legend: { position: 'top', labels: { color: textColor, usePointStyle: true, boxWidth: 8 } },
-                                tooltip: {
-                                    backgroundColor: isDark ? '#1f2937' : '#ffffff',
-                                    titleColor: isDark ? '#f3f4f6' : '#111827',
-                                    bodyColor: isDark ? '#d1d5db' : '#4b5563',
-                                    borderColor: gridColor,
-                                    borderWidth: 1,
-                                    padding: 10,
-                                    callbacks: {
-                                        label: function(context) {
-                                            let label = context.dataset.label || '';
-                                            if (label) label += ': ';
-                                            if (context.parsed.y !== null) {
-                                                label += 'Rp ' + new Intl.NumberFormat('id-ID').format(context.parsed.y);
-                                            }
-                                            return label;
+            // Time Series & Cashflow Charts
+            const tsDataRaw = {{ analytics_time_series|tojson }};
+            if (tsDataRaw && tsDataRaw !== 'null') {
+                const tsData = typeof tsDataRaw === 'string' ? JSON.parse(tsDataRaw) : tsDataRaw;
+                const buildCashFlowConfig = () => ({
+                    type: 'line',
+                    data: {
+                        labels: tsData.labels || [],
+                        datasets: [
+                            {
+                                label: 'Arus Bersih (Net Flow)',
+                                data: tsData.netflow || [],
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                                borderWidth: 2.5,
+                                pointRadius: 2.5,
+                                fill: true,
+                                tension: 0.35,
+                                order: 1
+                            },
+                            {
+                                label: 'Pemasukan (Income)',
+                                data: tsData.income || [],
+                                type: 'bar',
+                                backgroundColor: '#10b981',
+                                borderRadius: 4,
+                                order: 2
+                            },
+                            {
+                                label: 'Pengeluaran (Expense)',
+                                data: tsData.expense || [],
+                                type: 'bar',
+                                backgroundColor: '#ef4444',
+                                borderRadius: 4,
+                                order: 3
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { position: 'top', labels: { color: textColor, usePointStyle: true, boxWidth: 8 } },
+                            tooltip: {
+                                backgroundColor: isDark ? '#1f2937' : '#ffffff',
+                                titleColor: isDark ? '#f3f4f6' : '#111827',
+                                bodyColor: isDark ? '#d1d5db' : '#4b5563',
+                                borderColor: gridColor,
+                                borderWidth: 1,
+                                padding: 10,
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed.y !== null) {
+                                            label += 'Rp ' + new Intl.NumberFormat('id-ID').format(context.parsed.y);
                                         }
+                                        return label;
                                     }
                                 }
-                            },
-                            scales: {
-                                x: { grid: { display: false, drawBorder: false }, ticks: { color: textColor, maxTicksLimit: 10 } },
-                                y: { grid: { color: gridColor, borderDash: [4, 4], drawBorder: false }, ticks: { color: textColor, callback: function(value) {
-                                    if (value >= 1000000) return 'Rp ' + (value/1000000).toFixed(1) + 'M';
-                                    if (value >= 1000) return 'Rp ' + (value/1000).toFixed(0) + 'K';
-                                    return 'Rp ' + value;
-                                }}}
                             }
+                        },
+                        scales: {
+                            x: { grid: { display: false, drawBorder: false }, ticks: { color: textColor, maxTicksLimit: 10 } },
+                            y: { beginAtZero: true, grid: { color: gridColor, borderDash: [4, 4], drawBorder: false }, ticks: { color: textColor, callback: function(value) {
+                                if (Math.abs(value) >= 1000000) return 'Rp ' + (value/1000000).toFixed(1).replace('.0', '') + ' Jt';
+                                if (Math.abs(value) >= 1000) return 'Rp ' + (value/1000).toFixed(0) + ' Rb';
+                                return 'Rp ' + value;
+                            }}}
                         }
-                    });
+                    }
+                });
+
+                const ctx = document.getElementById('timeSeriesChart');
+                if (ctx) {
+                    new Chart(ctx, buildCashFlowConfig());
+                }
+                const ctxCashflowTab = document.getElementById('cashflowTabChart');
+                if (ctxCashflowTab) {
+                    new Chart(ctxCashflowTab, buildCashFlowConfig());
                 }
             }
 
             // Donut Chart
-            const donutDataStr = {{ analytics_donut|tojson }};
-            if (donutDataStr && donutDataStr !== 'null') {
-                const donutData = JSON.parse(donutDataStr);
-                if (donutData.labels.length > 0) {
+            const donutDataRaw = {{ analytics_donut|tojson }};
+            if (donutDataRaw && donutDataRaw !== 'null') {
+                const donutData = typeof donutDataRaw === 'string' ? JSON.parse(donutDataRaw) : donutDataRaw;
+                if (donutData && donutData.labels && donutData.labels.length > 0) {
                     const ctxDonut = document.getElementById('expenseDonutChart');
                     if (ctxDonut) {
                         new Chart(ctxDonut, {

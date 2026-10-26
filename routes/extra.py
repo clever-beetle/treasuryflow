@@ -1,31 +1,7 @@
 from flask import Blueprint, render_template, session, redirect, url_for, flash, jsonify
 from utils import get_db, login_required
-import json
 
 extra_bp = Blueprint('extra', __name__)
-
-@extra_bp.route('/leaderboard')
-@login_required
-def leaderboard():
-    db = get_db()
-    users_raw = db.execute('''
-        SELECT u.username, a.xp, a.level, a.badges
-        FROM user_achievements a
-        JOIN users u ON a.user_id = u.id
-        ORDER BY a.xp DESC
-        LIMIT 50
-    ''').fetchall()
-    
-    users = []
-    for u in users_raw:
-        udict = dict(u)
-        try:
-            udict['badges_list'] = json.loads(udict['badges']) if udict.get('badges') else []
-        except Exception:
-            udict['badges_list'] = []
-        users.append(udict)
-        
-    return render_template('leaderboard.html', users=users)
 
 @extra_bp.route('/tools')
 @login_required
