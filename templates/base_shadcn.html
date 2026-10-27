@@ -575,9 +575,10 @@
             window.formatRibuanInput = function(rawVal, isInitialLoad = false) {
                 let str = String(rawVal ?? '').trim();
                 if (!str) return '';
-                // Prevent Python float strings like "500000.0" from becoming "5.000.000"
-                if (isInitialLoad || /^\d+\.0+$/.test(str)) {
-                    str = str.replace(/^(\d+)\.0+$/, '$1');
+                // Only on initial load, strip a single trailing ".0" from raw Python floats (e.g. "500000.0")
+                // Never strip ".000" (thousands separator)!
+                if (isInitialLoad && /^\d+\.0$/.test(str)) {
+                    str = str.slice(0, -2);
                 }
                 let value = str.replace(/[^,\d]/g, '');
                 let parts = value.split(',');

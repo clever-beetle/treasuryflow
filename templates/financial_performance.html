@@ -1279,8 +1279,10 @@
         
         // Rupiah formatter for inputs
         function formatRupiahLive(angka) {
-            let cleanStr = String(angka || '').replace(/^(\d+)\.0+$/, '$1');
-            let number_string = cleanStr.replace(/[^,\d]/g, '').toString(),
+            if (window.formatRibuanInput) {
+                return window.formatRibuanInput(angka, false);
+            }
+            let number_string = String(angka || '').replace(/[^,\d]/g, ''),
                 split = number_string.split(','),
                 sisa = split[0].length % 3,
                 rupiah = split[0].substr(0, sisa),
