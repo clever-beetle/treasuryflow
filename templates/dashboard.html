@@ -551,8 +551,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Rupiah formatter for modal amount inputs
     document.querySelectorAll('.input-rupiah-modal').forEach(input => {
         input.addEventListener('input', function() {
-            let val = this.value.replace(/[^\d]/g, '');
-            this.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            if (window.formatRibuanInput) {
+                this.value = window.formatRibuanInput(this.value, false);
+            } else {
+                let val = this.value.replace(/[^\d]/g, '');
+                this.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+            }
         });
     });
     const cashFlowEl = document.getElementById('cashFlowChart');

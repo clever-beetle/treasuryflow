@@ -52,7 +52,21 @@
                     <i data-lucide="calendar-days" class="w-4 h-4 mr-1.5"></i> Calendar
                 </a>
             </div>
-            <div class="grid grid-cols-2 gap-2 w-full sm:flex sm:items-center sm:w-auto">
+            <div class="grid grid-cols-3 gap-2 w-full sm:flex sm:items-center sm:w-auto">
+                <!-- Bulk Edit Category Button -->
+                <button type="button" @click="
+                    const checkedBoxes = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
+                    if(checkedBoxes.length === 0) { 
+                        $dispatch('toast', { type: 'error', message: 'Silakan centang kotak di tabel terlebih dahulu.' }); 
+                        return; 
+                    }
+                    selectedRows = checkedBoxes;
+                    $dispatch('open-bulk-edit-modal');
+                " class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 sm:h-8 px-3 transition-colors">
+                    <i data-lucide="tag" class="w-3.5 h-3.5"></i> 
+                    <span class="inline">Ubah Kategori</span>
+                </button>
+
                 <!-- Bulk Delete Selected Button -->
                 <div x-data="{ bulkDeleteOpen: false, bulkDeleteCount: 0, bulkDeleteIds: '' }">
                     <button type="button" @click="
@@ -268,7 +282,7 @@
                                 {% set is_active = (sort_by == col_name) %}
                                 {% set new_order = 'asc' if (is_active and sort_order == 'desc') else 'desc' %}
                                 <th class="h-12 px-4 {{ classes }} align-middle font-medium text-muted-foreground">
-                                    <a href="{{ clean_url('transactions.transactions_list', view=view, page=1, sort_by=col_name, sort_order=new_order, search=search_query, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account) }}" class="inline-flex items-center hover:text-foreground transition-colors group">
+                                    <a href="{{ clean_url('transactions.transactions_list', view=view, page=1, sort_by=col_name, sort_order=new_order, search=search_query, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, tx_type=tx_type, min_amount=min_amount) }}" class="inline-flex items-center hover:text-foreground transition-colors group">
                                         {{ label }}
                                         <i data-lucide="arrow-up-down" class="ml-1 h-3 w-3 opacity-50 group-hover:opacity-100 {% if is_active %}text-primary opacity-100{% endif %}"></i>
                                     </a>
@@ -303,7 +317,6 @@
                             </td>
                             <td class="p-4 align-middle">
                                 {{ macros.render_account_logo(tx.account_name) }}
-                                </div>
                             </td>
                             <td class="p-4 align-middle max-w-[200px] truncate" title="{{ tx.description or '-' }}">
                                 {% if search_query and tx.description and search_query.lower() in tx.description.lower() %}
@@ -339,12 +352,12 @@
                     <p class="text-sm text-muted-foreground">Page {{ page }} of {{ total_pages }}</p>
                     <div class="flex gap-2">
                         {% if page > 1 %}
-                        <a href="{{ clean_url('transactions.transactions_list', view=view, page=page - 1, sort_by=sort_by, sort_order=sort_order, search=search_query, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
+                        <a href="{{ clean_url('transactions.transactions_list', view=view, page=page - 1, sort_by=sort_by, sort_order=sort_order, search=search_query, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, tx_type=tx_type, min_amount=min_amount) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
                             <i data-lucide="chevron-left" class="w-4 h-4"></i>
                         </a>
                         {% endif %}
                         {% if page < total_pages %}
-                        <a href="{{ clean_url('transactions.transactions_list', view=view, page=page + 1, sort_by=sort_by, sort_order=sort_order, search=search_query, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
+                        <a href="{{ clean_url('transactions.transactions_list', view=view, page=page + 1, sort_by=sort_by, sort_order=sort_order, search=search_query, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, tx_type=tx_type, min_amount=min_amount) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
                             <i data-lucide="chevron-right" class="w-4 h-4"></i>
                         </a>
                         {% endif %}

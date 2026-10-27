@@ -435,6 +435,26 @@
 </div>
 
 <script>
+function base64urlToUint8Array(base64url) {
+    const padding = '='.repeat((4 - (base64url.length % 4)) % 4);
+    const base64 = (base64url + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
+function bufferToBase64url(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
 async function registerBiometric() {
     const statusEl = document.getElementById('biometricStatus');
     const btnEl = document.getElementById('biometricBtn');
@@ -455,15 +475,36 @@ async function registerBiometric() {
     }
 
     try {
-        const challenge = new Uint8Array(32);
-        window.crypto.getRandomValues(challenge);
-        const userIdBytes = new TextEncoder().encode("{{ user.username }}");
-        await navigator.credentials.create({
-            publicKey: {
+        const csrfToken = "{{ csrf_token() }}";
+        const genRes = await fetch('/api/webauthn/register/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
+        });
+        let publicKeyOpts = null;
+        if (genRes.ok) {
+            const opts = await genRes.json();
+            publicKeyOpts = {
+                ...opts,
+                challenge: base64urlToUint8Array(opts.challenge),
+                user: {
+                    ...opts.user,
+                    id: base64urlToUint8Array(opts.user.id)
+                }
+            };
+            if (opts.excludeCredentials) {
+                publicKeyOpts.excludeCredentials = opts.excludeCredentials.map(c => ({
+                    ...c,
+                    id: base64urlToUint8Array(c.id)
+                }));
+            }
+        } else {
+            const challenge = new Uint8Array(32);
+            window.crypto.getRandomValues(challenge);
+            publicKeyOpts = {
                 challenge: challenge,
                 rp: { name: "Treasury Flow" },
                 user: {
-                    id: userIdBytes,
+                    id: new TextEncoder().encode("{{ user.username }}"),
                     name: "{{ user.username }}",
                     displayName: "{{ user.fullname or user.username }}"
                 },
@@ -471,17 +512,35 @@ async function registerBiometric() {
                     { type: "public-key", alg: -7 },
                     { type: "public-key", alg: -257 }
                 ],
-                authenticatorSelection: {
-                    userVerification: "preferred"
-                },
+                authenticatorSelection: { userVerification: "preferred" },
                 timeout: 60000
-            }
-        });
+            };
+        }
+
+        const cred = await navigator.credentials.create({ publicKey: publicKeyOpts });
+
+        if (cred && cred.response) {
+            const payload = {
+                id: cred.id,
+                rawId: bufferToBase64url(cred.rawId),
+                type: cred.type,
+                response: {
+                    attestationObject: bufferToBase64url(cred.response.attestationObject),
+                    clientDataJSON: bufferToBase64url(cred.response.clientDataJSON)
+                }
+            };
+            await fetch('/api/webauthn/register/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify(payload)
+            });
+        }
+
         localStorage.setItem('passkeyRegistered_{{ user.username }}', 'true');
         if (btnEl) {
             btnEl.textContent = 'Passkey Aktif di Perangkat Ini';
         }
-        showStatus('Passkey Biometrik berhasil didaftarkan pada perangkat ini!', true);
+        showStatus('Passkey Biometrik berhasil didaftarkan dan diverifikasi ke server!', true);
     } catch (err) {
         if (err && err.name === 'NotAllowedError') {
             showStatus('Pendaftaran biometrik dibatalkan atau tidak diizinkan oleh perangkat.', false);

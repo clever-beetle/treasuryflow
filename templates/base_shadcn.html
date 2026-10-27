@@ -439,20 +439,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // 1. PWA Service Worker Registration
-            if ('serviceWorker' in navigator) {
-                window.addEventListener('load', () => {
-                    navigator.serviceWorker.register('/sw.js')
-                        .then(registration => {
-                            console.log('SW registered:', registration);
-                        })
-                        .catch(error => {
-                            console.log('SW registration failed:', error);
-                        });
-                });
-            }
-
-            // 2. HTML5 Notification API
+            // 1. HTML5 Notification API
             function showNotification(title, body) {
                 if (Notification.permission === 'granted') {
                     new Notification(title, {

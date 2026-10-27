@@ -122,9 +122,17 @@ def dashboard():
         except ValueError:
             pass
 
+    import calendar as cal_mod
     for inst in db_alerts_inst:
-        due_day = inst['due_day_of_month']
-        days_left_inst = due_day - current_day
+        due_day = int(inst['due_day_of_month'] or 1)
+        max_d = cal_mod.monthrange(today.year, today.month)[1]
+        cand_date = today.replace(day=min(max(1, due_day), max_d))
+        if cand_date < today:
+            next_m = 1 if today.month == 12 else today.month + 1
+            next_y = today.year + 1 if today.month == 12 else today.year
+            max_d_next = cal_mod.monthrange(next_y, next_m)[1]
+            cand_date = today.replace(year=next_y, month=next_m, day=min(max(1, due_day), max_d_next))
+        days_left_inst = (cand_date - today).days
         if 0 <= days_left_inst <= 7:
             upcoming_alerts.append({
                 'name': inst['name'],
@@ -238,7 +246,7 @@ def dashboard():
                 desc = f"Auto-Sync: {inst['name']}"
                 existing = db.execute("SELECT id FROM transactions WHERE user_id = ? AND description = ? AND date >= ? AND date <= ?", (user_id, desc, first_day_of_month, last_day_of_month)).fetchone()
                 if not existing:
-                    account = db.execute("SELECT id FROM accounts WHERE user_id = ? LIMIT 1", (user_id,)).fetchone()
+                    account = db.execute("SELECT id FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL) LIMIT 1", (user_id,)).fetchone()
                     if account:
                         try:
                             date_str = f"{current_month_str}-{inst['due_day_of_month']:02d}"
@@ -247,6 +255,7 @@ def dashboard():
                                        (user_id, date_str, account['id'], inst['amount_per_cycle'], desc))
                             db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (inst['amount_per_cycle'], account['id']))
                             db.commit()
+                            recalculate_account_balances(db, user_id)
                         except Exception as e:
                             try:
                                 db.rollback()
@@ -260,7 +269,7 @@ def dashboard():
     heatmap_raw = db.execute('''
         SELECT date, SUM(amount) as total 
         FROM transactions 
-        WHERE user_id = ? AND type = 'expense' AND date >= ?
+        WHERE user_id = ? AND type = 'expense' AND date >= ? AND COALESCE(category, '') != 'Transfer'
         GROUP BY date
     ''', (user_id, days_ago_365)).fetchall()
     

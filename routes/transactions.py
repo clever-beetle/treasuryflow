@@ -26,6 +26,8 @@ def build_transactions_filter_query(user_id, args):
     end_date = args.get('end_date', '').strip()
     selected_category = args.get('category', '').strip()
     selected_account = args.get('account_id', '').strip()
+    tx_type = args.get('tx_type', '').strip()
+    min_amount_raw = args.get('min_amount', '').strip()
 
     query = '''
         SELECT t.*, a.name as account_name 
@@ -54,6 +56,14 @@ def build_transactions_filter_query(user_id, args):
             params.append(acc_id_int)
         except (ValueError, TypeError):
             pass
+    if tx_type in ('income', 'expense'):
+        query += ' AND t.type = ?'
+        params.append(tx_type)
+    if min_amount_raw:
+        min_val = parse_amount(min_amount_raw)
+        if min_val > 0:
+            query += ' AND t.amount >= ?'
+            params.append(min_val)
             
     return query, params
 
@@ -70,6 +80,9 @@ def transactions_list():
     end_date = request.args.get('end_date', '')
     selected_category = request.args.get('category', '')
     selected_account = request.args.get('account_id', '')
+    tx_type = request.args.get('tx_type', '').strip()
+    min_amount_raw = request.args.get('min_amount', '').strip()
+    min_amount_val = parse_amount(min_amount_raw) if min_amount_raw else None
     sort_by = request.args.get('sort_by', 'date')
     sort_order = request.args.get('sort_order', 'desc')
     
@@ -77,20 +90,21 @@ def transactions_list():
     query, params = build_transactions_filter_query(user_id, request.args)
         
     # Validate sort parameters to prevent SQL injection
-    allowed_sort_columns = {'date', 'amount', 'category', 'description', 'type'}
+    allowed_sort_columns = {'date', 'amount', 'category', 'description', 'type', 'account_name'}
     allowed_sort_orders = {'asc', 'desc'}
     if sort_by not in allowed_sort_columns:
         sort_by = 'date'
     if sort_order.lower() not in allowed_sort_orders:
         sort_order = 'desc'
         
-    query += f' ORDER BY t.{sort_by} {sort_order}'
+    sort_col_sql = 'a.name' if sort_by == 'account_name' else f't.{sort_by}'
+    query += f' ORDER BY {sort_col_sql} {sort_order}'
     
     transactions = db.execute(query, params).fetchall()
     
-    # Calculate totals
-    total_income = sum(t['amount'] for t in transactions if t['type'] == 'income')
-    total_expense = sum(t['amount'] for t in transactions if t['type'] == 'expense')
+    # Calculate totals (exclude internal Transfer legs)
+    total_income = sum(t['amount'] for t in transactions if t['type'] == 'income' and (t['category'] or '') != 'Transfer')
+    total_expense = sum(t['amount'] for t in transactions if t['type'] == 'expense' and (t['category'] or '') != 'Transfer')
     net_flow = total_income - total_expense
     
     # Pagination for list view
@@ -121,6 +135,8 @@ def transactions_list():
     from datetime import date as dt_date, datetime as dt_datetime
     cal_tx_map = {}
     for tx in transactions:
+        if (tx['category'] or '') == 'Transfer':
+            continue
         d_val = tx['date']
         if isinstance(d_val, (dt_datetime, dt_date)):
             d_str = d_val.strftime('%Y-%m-%d')
@@ -128,8 +144,8 @@ def transactions_list():
             d_str = str(d_val)[:10]
         if d_str not in cal_tx_map:
             cal_tx_map[d_str] = {'income': 0, 'expense': 0}
-        tx_type = tx['type'] if tx['type'] in ('income', 'expense') else 'expense'
-        cal_tx_map[d_str][tx_type] += (tx['amount'] or 0)
+        t_kind = tx['type'] if tx['type'] in ('income', 'expense') else 'expense'
+        cal_tx_map[d_str][t_kind] += (tx['amount'] or 0)
     
     user_cats_rows = db.execute('SELECT type, name FROM user_categories WHERE user_id = ?', (user_id,)).fetchall()
     merged_categories = {k: list(v) for k, v in CATEGORIES.items()}
@@ -153,6 +169,8 @@ def transactions_list():
                            end_date=end_date,
                            selected_category=selected_category,
                            selected_account=selected_account,
+                           tx_type=tx_type,
+                           min_amount=min_amount_val,
                            sort_by=sort_by,
                            sort_order=sort_order,
                            accounts=accounts,
@@ -446,8 +464,9 @@ def delete_all_transactions():
 def bulk_edit_transactions():
     db = get_db()
     user_id = session['user_id']
-    tx_ids = request.form.get('transaction_ids_bulk', '').split(',')
-    category = request.form.get('bulk_category')
+    raw_ids = request.form.get('transaction_ids_bulk') or request.form.get('transaction_ids', '')
+    tx_ids = [t for t in raw_ids.split(',') if t.strip()]
+    category = request.form.get('bulk_category') or request.form.get('category')
     
     if category and tx_ids:
         for tid in tx_ids:
@@ -567,8 +586,8 @@ def export_pdf():
     
     transactions = db.execute(query, params).fetchall()
     
-    total_income = sum(t['amount'] for t in transactions if t['type'] == 'income')
-    total_expense = sum(t['amount'] for t in transactions if t['type'] == 'expense')
+    total_income = sum(t['amount'] for t in transactions if t['type'] == 'income' and (t['category'] or '') != 'Transfer')
+    total_expense = sum(t['amount'] for t in transactions if t['type'] == 'expense' and (t['category'] or '') != 'Transfer')
     net_flow = total_income - total_expense
     total_transactions = len(transactions)
 

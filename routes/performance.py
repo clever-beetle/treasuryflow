@@ -55,7 +55,7 @@ def financial_performance():
                 cash_flow_type = 'expense' if debt['type'] == 'debt' else 'income'
                 clean_acc_label = acc_row['name'].split('] ')[1] if '] ' in acc_row['name'] else acc_row['name']
                 tx_desc = f"Cicilan {debt['type']} ({debt['person_name']}) via {clean_acc_label}: {notes}"
-                tx_date = datetime.now().strftime('%Y-%m-%d')
+                tx_date = (datetime.now() + timedelta(hours=7)).strftime('%Y-%m-%d')
                 
                 db.execute('''
                     INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
@@ -65,6 +65,8 @@ def financial_performance():
                 adjustment = -amount_paid if cash_flow_type == 'expense' else amount_paid
                 db.execute("UPDATE accounts SET current_balance = current_balance + ? WHERE id = ? AND user_id = ?", (adjustment, target_account_id, user_id))
                 db.commit()
+                from routes.dashboard import recalculate_account_balances
+                recalculate_account_balances(db, user_id)
 
         elif action == 'edit_debt':
             debt_id = int(request.form.get('debt_id'))
@@ -170,7 +172,7 @@ def financial_performance():
             
             if inst and source_acc:
                 clean_src = source_acc['name'].split('] ')[1] if '] ' in source_acc['name'] else source_acc['name']
-                tx_date = datetime.now().strftime('%Y-%m-%d')
+                tx_date = (datetime.now() + timedelta(hours=7)).strftime('%Y-%m-%d')
                 
                 # Check if cicilan is linked to a liability account
                 linked_id = None
@@ -239,6 +241,8 @@ def financial_performance():
                         db.execute("UPDATE recurring_installments SET current_tenor = ? WHERE id = ?", (new_tenor, inst_id))
                 
                 db.commit()
+                from routes.dashboard import recalculate_account_balances
+                recalculate_account_balances(db, user_id)
 
         elif action == 'add_asset':
             asset_name = request.form.get('asset_name')
@@ -314,7 +318,7 @@ def financial_performance():
         return redirect(url_for('performance.financial_performance'))
 
     req_days = request.args.get('days', type=int) or request.args.get('period', type=int)
-    days_range = req_days if req_days in [3, 7, 30, 90, 180, 365] else 7
+    days_range = req_days if req_days in [3, 7, 30, 90, 180, 365] else 30
         
     wib_now = datetime.now() + timedelta(hours=7)
     today = wib_now.date()
@@ -445,8 +449,7 @@ def financial_performance():
 
     
     # --- Analytics Integration ---
-    req_period = request.args.get('period', type=int) or request.args.get('days', type=int)
-    period = req_period if req_period in [3, 7, 30, 90, 180, 365] else 30
+    period = days_range
         
     today_dt = datetime.now() + timedelta(hours=7)
     days_ago_str = (today_dt.date() - timedelta(days=period)).strftime('%Y-%m-%d')

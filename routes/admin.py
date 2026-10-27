@@ -25,10 +25,10 @@ def dev_console():
     try:
         # Secret Key Authentication
         provided_key = request.args.get('key')
-        dev_secret_key = os.environ.get('DEV_SECRET_KEY', '1')
+        dev_secret_key = os.environ.get('DEV_SECRET_KEY')
         
         # Require DEV_SECRET_KEY to be set in environment and match provided key
-        if not provided_key or provided_key != dev_secret_key:
+        if not dev_secret_key or not provided_key or provided_key != dev_secret_key:
             abort(403)
             
         db = get_db()

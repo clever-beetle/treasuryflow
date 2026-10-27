@@ -436,3 +436,86 @@ def test_delete_account_foreign_key_safety(client):
         assert deleted_user is None
 
 
+def test_remaining_14_bugs_regression(client, monkeypatch):
+    test_id = uuid.uuid4().hex[:8]
+    username = f"user_14b_{test_id}"
+    password = "Password123!"
+
+    # Unauthenticated debug endpoints must redirect or return 403
+    for ep in ['/test_db', '/session_expired', '/test_performance', '/debug_logs', '/test_all_queries', '/run_migration', '/dump_logs']:
+        res_ep = client.get(ep)
+        assert res_ep.status_code in (302, 403)
+
+    # /dev-console with unset DEV_SECRET_KEY must return 403 even if ?key=1 is passed
+    monkeypatch.delenv('DEV_SECRET_KEY', raising=False)
+    assert client.get('/dev-console?key=1').status_code == 403
+
+    client.post('/register', data={
+        'fullname': 'Audit 14 User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        user_id = user['id']
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type) VALUES (?, '[BANK] BCA', 1000000, 1000000, 'asset')", (user_id,))
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type) VALUES (?, '[BANK] Mandiri', 500000, 500000, 'asset')", (user_id,))
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount) VALUES (?, '[KARTU KREDIT] BCA Card', 0, -200000, 'liability', 5000000)", (user_id,))
+        db.commit()
+        accs = db.execute("SELECT id, name FROM accounts WHERE user_id = ? ORDER BY id ASC", (user_id,)).fetchall()
+        acc_bca, acc_mandiri = accs[0]['id'], accs[1]['id']
+
+        # Insert 1 income (800k), 1 small expense (50k), 1 high expense (600k), and 1 Transfer pair (300k)
+        db.execute("INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-10-10', 'income', 800000, 'Gaji', 'Gaji')", (user_id, acc_bca))
+        db.execute("INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-10-11', 'expense', 50000, 'Makan Siang', 'Makanan')", (user_id, acc_bca))
+        db.execute("INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-10-12', 'expense', 600000, 'Servis Mobil', 'Transportasi')", (user_id, acc_bca))
+        db.execute("INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-10-12', 'expense', 300000, 'Transfer ke Mandiri', 'Transfer')", (user_id, acc_bca))
+        db.execute("INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-10-12', 'income', 300000, 'Transfer dari BCA', 'Transfer')", (user_id, acc_mandiri))
+        db.commit()
+        tx_small = db.execute("SELECT id FROM transactions WHERE user_id = ? AND amount = 50000", (user_id,)).fetchone()['id']
+
+    # 1. Verify Transfer is excluded from Filtered Income (800.000, not 1.100.000) and Filtered Expense (650.000, not 950.000)
+    res_list = client.get('/transactions/')
+    assert res_list.status_code == 200
+    assert b'Rp 800.000' in res_list.data
+    assert b'Rp 650.000' in res_list.data
+
+    # 2. Verify Sort by Account (sort_by=account_name)
+    res_sort = client.get('/transactions/?sort_by=account_name&sort_order=asc')
+    assert res_sort.status_code == 200
+
+    # 3. Verify Quick Filters (tx_type=income and min_amount=500000)
+    res_inc = client.get('/transactions/?tx_type=income')
+    assert res_inc.status_code == 200
+    assert b'Gaji' in res_inc.data
+    assert b'Makan Siang' not in res_inc.data
+
+    res_high = client.get('/transactions/?tx_type=expense&min_amount=500000')
+    assert res_high.status_code == 200
+    assert b'Servis Mobil' in res_high.data
+    assert b'Makan Siang' not in res_high.data
+
+    # 4. Verify Bulk Edit modal form names (transaction_ids & category)
+    res_bulk = client.post('/transactions/bulk_edit', data={
+        'transaction_ids': str(tx_small),
+        'category': 'Hiburan'
+    }, follow_redirects=True)
+    assert res_bulk.status_code == 200
+    with client.application.app_context():
+        db = get_db()
+        updated_cat = db.execute("SELECT category FROM transactions WHERE id = ?", (tx_small,)).fetchone()['category']
+        assert updated_cat == 'Hiburan'
+
+    # 5. Verify Financial Performance Net Worth card Beban does not double-count CC usage (should be Rp 200.000, not Rp 400.000)
+    res_perf = client.get('/financial_performance?days=7')
+    assert res_perf.status_code == 200
+    assert b'Beban: Rp 200.000' in res_perf.data
+
+
+

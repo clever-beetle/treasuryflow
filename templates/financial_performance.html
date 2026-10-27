@@ -24,7 +24,7 @@
                                 <i data-lucide="building" class="w-4 h-4"></i> Aset: {{ total_asset_value | rupiah }}
                             </div>
                             <div class="flex items-center gap-1 text-red-300">
-                                <i data-lucide="trending-down" class="w-4 h-4"></i> Beban: {{ (total_debt + total_cc_usage) | rupiah }}
+                                <i data-lucide="trending-down" class="w-4 h-4"></i> Beban: {{ total_debt | rupiah }}
                             </div>
                         </div>
                     </div>
@@ -116,6 +116,7 @@
                     </div>
                     <div class="relative">
                         <select onchange="window.location.href='?period=' + this.value" class="h-10 px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring">
+                            <option value="3" {% if analytics_period == 3 %}selected{% endif %}>Last 3 Days</option>
                             <option value="7" {% if analytics_period == 7 %}selected{% endif %}>Last 7 Days</option>
                             <option value="30" {% if analytics_period == 30 %}selected{% endif %}>Last 30 Days</option>
                             <option value="90" {% if analytics_period == 90 %}selected{% endif %}>Last 3 Months</option>
@@ -164,8 +165,8 @@
                 <div class="grid gap-4 md:grid-cols-2">
                     {% for insight in analytics_insights %}
                     <div class="rounded-xl border border-border bg-card/50 text-card-foreground shadow-sm p-4 flex gap-4 items-start">
-                        <div class="p-2 bg-{{ insight.color }}/10 rounded-full">
-                            <i data-lucide="{{ insight.icon }}" class="h-5 w-5 text-{{ insight.color }}"></i>
+                        <div class="p-2 rounded-full {% if insight.color == 'emerald-500' %}bg-emerald-500/10 text-emerald-500{% elif insight.color == 'blue-500' %}bg-blue-500/10 text-blue-500{% elif insight.color == 'amber-500' %}bg-amber-500/10 text-amber-500{% elif insight.color == 'destructive' %}bg-destructive/10 text-destructive{% else %}bg-muted text-muted-foreground{% endif %}">
+                            <i data-lucide="{{ insight.icon }}" class="h-5 w-5"></i>
                         </div>
                         <div>
                             <h4 class="font-semibold text-sm">{{ insight.title }}</h4>
@@ -1251,26 +1252,6 @@
             </div>
         </template>
         {% endfor %}
-
-        <!-- Add other simple deletes via a generic script or duplicate structure -->
-
-        <template x-teleport="body">
-            <div x-show="modalOpen && modalId === 'logoutModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4" @click.self="$dispatch('close-modal')">
-                <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-destructive/20 w-full max-w-sm overflow-hidden relative">
-                    <div class="p-6 text-center space-y-4"><button @click="$dispatch('close-modal')" class="absolute top-3 right-3 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
-                        <div class="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center mx-auto">
-                            <i data-lucide="log-out" class="w-6 h-6 text-red-600 dark:text-red-500"></i>
-                        </div>
-                        <h3 class="font-bold text-lg">Logout?</h3>
-                        <p class="text-sm text-muted-foreground">Are you sure you want to logout from Treasury Flow?</p>
-                        <div class="flex gap-2 w-full pt-4">
-                            <button @click="$dispatch('close-modal')" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-10">Cancel</button>
-                            <a href="{{ url_for('auth.logout') }}" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10">Yes, Logout</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </template>
     </div>
 
     <!-- Scripts -->
@@ -1298,19 +1279,6 @@
                 }
             });
         });
-    </script>
-
-    <!-- PWA Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').then((reg) => {
-                    console.log('ServiceWorker registration successful with scope: ', reg.scope);
-                }).catch((err) => {
-                    console.log('ServiceWorker registration failed: ', err);
-                });
-            });
-        }
     </script>
 
 

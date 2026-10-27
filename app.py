@@ -180,6 +180,7 @@ def sitemap():
     return response
 
 @app.route('/test_db')
+@utils.admin_required
 def test_db():
     try:
         import psycopg2
@@ -673,6 +674,7 @@ def handle_csrf_error(e):
     return redirect(request.url)
 
 @app.route('/session_expired')
+@utils.admin_required
 def session_expired():
     from flask import session
     try:
@@ -705,6 +707,7 @@ def session_expired():
         return f"Outer Error: {e}"
 
 @app.route('/test_performance')
+@utils.admin_required
 def test_performance():
     from flask import session
     try:
@@ -738,6 +741,7 @@ def test_performance():
 
 
 @app.route('/debug_logs')
+@utils.admin_required
 def debug_logs():
     try:
         db = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
@@ -803,6 +807,7 @@ if __name__ == '__main__':
     app.run(debug=True)
 
 @app.route('/test_all_queries')
+@utils.admin_required
 def test_all_queries():
     from flask import session
     try:
@@ -838,6 +843,7 @@ def test_all_queries():
         return f"Outer Error: {e}"
 
 @app.route('/run_migration')
+@utils.admin_required
 def run_migration():
     try:
         import psycopg2
@@ -881,6 +887,7 @@ def run_migration():
         return f"Error: {e}"
 
 @app.route('/dump_logs')
+@utils.admin_required
 def dump_logs():
     try:
         import psycopg2
