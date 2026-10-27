@@ -35,7 +35,7 @@ def api_chat():
         
         # 1. Saldo Check
         if 'saldo' in message or 'uang' in message or 'sisa' in message:
-            total_balance = db.execute('SELECT SUM(current_balance) FROM accounts WHERE user_id = ?', (user_id,)).fetchone()[0] or 0
+            total_balance = db.execute("SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL)", (user_id,)).fetchone()[0] or 0
             if total_balance > 0:
                 reply = f"Total saldo Anda di semua akun saat ini adalah **Rp {total_balance:,.0f}**. Tetap bijak mengelolanya ya!"
             else:
@@ -182,7 +182,7 @@ def api_chat_fallback(message, db, user_id):
     last_day_num = cal_mod.monthrange(today.year, today.month)[1]
     last_day = today.replace(day=last_day_num).strftime('%Y-%m-%d')
     if 'saldo' in message or 'uang' in message or 'sisa' in message:
-        total_balance = db.execute('SELECT SUM(current_balance) FROM accounts WHERE user_id = ?', (user_id,)).fetchone()[0] or 0
+        total_balance = db.execute("SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL)", (user_id,)).fetchone()[0] or 0
         return jsonify({'reply': f"Total saldo Anda: **Rp {total_balance:,.0f}**."})
     elif 'boros' in message or 'pengeluaran' in message:
         expense = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND category != 'Transfer' AND date >= ? AND date <= ?", (user_id, first_day, last_day)).fetchone()[0] or 0

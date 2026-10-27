@@ -95,8 +95,7 @@
 </head>
 <body class="bg-background text-foreground antialiased min-h-screen flex flex flex-col min-h-screen" x-data="{ mobileMenuOpen: false, modalOpen: false, modalId: null }" @open-modal.window="modalOpen = true; modalId = $event.detail" @close-modal.window="modalOpen = false; modalId = null">
 
-    <!-- Mobile Sidebar Backdrop -->
-    <div x-show="sidebarOpen" class="fixed inset-0 z-40 bg-background/80 backdrop-blur-sm lg:hidden" x-transition.opacity @click="sidebarOpen = false"></div>
+    <!-- Mobile Sidebar Backdrop handled inside Offcanvas Menu -->
 
     <!-- Navbar -->
     <nav class="sticky top-0 z-40 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -488,19 +487,16 @@
 
             // 3. Interactive Onboarding Tour (driver.js)
             window.startTour = function() {
-                const sidebar = document.querySelector('aside');
-                if(sidebar) sidebar.id = 'sidebar';
-                
                 let customSteps = [];
                 const path = window.location.pathname;
                 
                 if (path.includes('dashboard') || path === '/') {
                     customSteps = [
-                        { element: '#sidebar', popover: { title: 'Menu Utama', description: 'Di sini Anda dapat berpindah antar halaman seperti Dashboard, Transaksi, dan Performa Keuangan.', side: "right", align: 'start' }},
-                        { element: 'header button', popover: { title: 'Tema Layar & Tutorial', description: 'Ganti tema gelap/terang, dan putar ulang tutorial ini kapan saja Anda butuhkan.', side: "bottom", align: 'end' }},
-                        { element: 'a[href="/add_transaction"]', popover: { title: 'Catat Transaksi', description: 'Akses cepat untuk mencatat setiap pemasukan atau pengeluaran Anda.', side: "bottom", align: 'center' }},
+                        { element: 'nav button:last-child', popover: { title: 'Menu Utama', description: 'Di sini Anda dapat berpindah antar halaman seperti Dashboard, Transaksi, dan Performa Keuangan.', side: "bottom", align: 'end' }},
+                        { element: 'nav button[title="Toggle Theme"]', popover: { title: 'Tema Layar & Tutorial', description: 'Ganti tema gelap/terang, dan putar ulang tutorial ini kapan saja Anda butuhkan.', side: "bottom", align: 'end' }},
+                        { element: 'a[href*="/transactions/add"]', popover: { title: 'Catat Transaksi', description: 'Akses cepat untuk mencatat setiap pemasukan atau pengeluaran Anda.', side: "bottom", align: 'center' }},
                         { element: 'select', popover: { title: 'Filter Waktu', description: 'Ubah rentang waktu untuk melihat tren ringkasan keuangan pada periode tertentu.', side: "bottom", align: 'start' }},
-                        { element: '.grid.gap-4 > div:nth-child(1)', popover: { title: 'Kartu Total Saldo', description: 'Jumlah gabungan dari semua rekening dan dompet Anda. Angka ini adalah kekayaan likuid Anda saat ini.', side: "bottom", align: 'center' }},
+                        { element: '.grid.gap-4 > div:nth-child(1)', popover: { title: 'Kartu Total Saldo', description: 'Jumlah gabungan dari semua rekening dan dompet aset Anda. Angka ini adalah kekayaan likuid Anda saat ini.', side: "bottom", align: 'center' }},
                         { element: '.grid.gap-4 > div:nth-child(2)', popover: { title: 'Kartu Pemasukan', description: 'Akumulasi seluruh uang yang masuk (Gaji, Bonus, dll) dalam periode yang Anda pilih.', side: "bottom", align: 'center' }},
                         { element: '.grid.gap-4 > div:nth-child(3)', popover: { title: 'Kartu Pengeluaran', description: 'Total seluruh uang yang Anda belanjakan dalam periode waktu yang dipilih.', side: "bottom", align: 'center' }},
                         { element: '.grid.gap-4 > div:nth-child(4)', popover: { title: 'Pengeluaran Hari Ini', description: 'Laporan instan uang yang Anda habiskan khusus untuk hari ini saja. Berguna untuk membatasi pengeluaran harian.', side: "bottom", align: 'center' }},
@@ -509,63 +505,64 @@
                         { element: 'table', popover: { title: 'Aktivitas Terakhir', description: 'Daftar riwayat mutasi atau transaksi terbaru yang baru saja Anda catat.', side: "top", align: 'center' }},
                         { element: '.fixed.bottom-6.right-6', popover: { title: 'Treasury Flow AI', description: 'Punya pertanyaan tentang dompet Anda? Chat dengan AI cerdas kami kapan saja di sini!', side: "left", align: 'end' }}
                     ];
+                } else if (path.includes('transactions/add')) {
+                    customSteps = [
+                        { element: 'form', popover: { title: 'Formulir Pencatatan', description: 'Isi detail transaksi Anda di sini. Mulai dari jenis, tanggal, hingga nominalnya.', side: "top", align: 'center' }},
+                        { element: 'input[name="amount"]', popover: { title: 'Nominal Uang', description: 'Masukkan jumlah uangnya. Sistem akan menata titik ribuan secara otomatis!', side: "bottom", align: 'start' }},
+                        { element: 'select[name="account_id"]', popover: { title: 'Pilih Dompet', description: 'Tentukan dompet mana yang uangnya bertambah atau berkurang (misal: Tunai atau BCA).', side: "top", align: 'start' }},
+                        { element: 'button[type="submit"]', popover: { title: 'Simpan Data', description: 'Klik simpan untuk merekam transaksi ini secara permanen ke dalam sistem.', side: "top", align: 'center' }}
+                    ];
                 } else if (path.includes('transactions')) {
                     customSteps = [
                         { element: '.flex.items-center.p-1.border', popover: { title: 'Tampilan Layar', description: 'Pilih tampilan favorit Anda: Daftar Tabel (List) atau Kalender (Calendar).', side: "bottom", align: 'center' }},
-                        { element: '.grid.gap-4 > div:nth-child(1)', popover: { title: 'Pemasukan Teksaring', description: 'Total pemasukan berdasarkan filter waktu dan kategori yang sedang aktif saat ini.', side: "bottom", align: 'center' }},
-                        { element: '.grid.gap-4 > div:nth-child(2)', popover: { title: 'Pengeluaran Teksaring', description: 'Total pengeluaran berdasarkan filter waktu dan kategori yang sedang aktif saat ini.', side: "bottom", align: 'center' }},
+                        { element: '.grid.gap-4 > div:nth-child(1)', popover: { title: 'Pemasukan Tersaring', description: 'Total pemasukan berdasarkan filter waktu dan kategori yang sedang aktif saat ini.', side: "bottom", align: 'center' }},
+                        { element: '.grid.gap-4 > div:nth-child(2)', popover: { title: 'Pengeluaran Tersaring', description: 'Total pengeluaran berdasarkan filter waktu dan kategori yang sedang aktif saat ini.', side: "bottom", align: 'center' }},
                         { element: '.grid.gap-4 > div:nth-child(3)', popover: { title: 'Arus Bersih (Net Flow)', description: 'Selisih antara Pemasukan dan Pengeluaran. Pastikan angkanya positif (hijau) agar Anda tidak merugi!', side: "bottom", align: 'center' }},
-                        { element: 'form', popover: { title: 'Kotak Pencarian & Filter', description: 'Ketik nama transaksi, atau filter secara mendetail berdasarkan tanggal, dompet, jenis, dan kategori (misal: "Makan" atau "BCA").', side: "top", align: 'start' }},
+                        { element: 'form', popover: { title: 'Kotak Pencarian & Filter', description: 'Ketik nama transaksi, atau filter secara mendetail berdasarkan tanggal, dompet, jenis, dan kategori.', side: "top", align: 'start' }},
                         { element: 'button[type="submit"]', popover: { title: 'Terapkan Filter', description: 'Klik tombol ini setelah Anda selesai memasukkan kriteria filter untuk memperbarui tabel.', side: "top", align: 'center' }},
                         { element: 'div[x-data="{ exportOpen: false }"]', popover: { title: 'Unduh & Ekspor Laporan', description: 'Ekspor seluruh atau sebagian data transaksi Anda ke dalam format PDF, CSV, atau Excel (.xlsx) dengan sekali klik.', side: "bottom", align: 'end' }},
-                        { element: 'table', popover: { title: 'Tabel Histori Transaksi', description: 'Semua mutasi uang Anda tercatat rapi di sini. Anda juga dapat menyeleksi beberapa transaksi sekaligus untuk dihapus.', side: "top", align: 'center' }}
+                        { element: 'table', popover: { title: 'Tabel Histori Transaksi', description: 'Semua mutasi uang Anda tercatat rapi di sini. Anda juga dapat mengedit atau menghapus transaksi.', side: "top", align: 'center' }}
                     ];
-                } else if (path.includes('financial_performance')) {
+                } else if (path.includes('performance') || path.includes('financial_performance')) {
                     customSteps = [
-                        { element: '.flex.border-b.mb-6', popover: { title: 'Navigasi Tab', description: 'Gunakan tab ini untuk berpindah antara menu Analisa Arus Kas, Aset, Utang Piutang, Kartu Kredit, atau Cicilan.', side: "bottom", align: 'center' }},
-                        { element: 'select[onchange*="window.location.href"]', popover: { title: 'Filter Periode Analisa', description: 'Ubah jangka waktu analisa Anda di sini, misalnya khusus untuk 30 hari terakhir atau 1 tahun.', side: "bottom", align: 'end' }},
-                        { element: 'div[x-show="activeTab === \'analytics\'"] .grid.gap-4 > div:nth-child(1)', popover: { title: 'Total Pemasukan (Total Income)', description: 'Akumulasi semua uang yang berhasil Anda kumpulkan pada periode ini.', side: "bottom", align: 'center' }},
-                        { element: 'div[x-show="activeTab === \'analytics\'"] .grid.gap-4 > div:nth-child(2)', popover: { title: 'Total Pengeluaran (Total Expense)', description: 'Jumlah keseluruhan uang yang Anda belanjakan atau keluarkan pada periode yang sama.', side: "bottom", align: 'center' }},
-                        { element: 'div[x-show="activeTab === \'analytics\'"] .grid.gap-4 > div:nth-child(3)', popover: { title: 'Arus Bersih (Net Flow)', description: 'Selisih antara Pemasukan dan Pengeluaran. Jika angkanya minus (merah), berarti Anda lebih besar pasak daripada tiang!', side: "bottom", align: 'center' }},
-                        { element: 'div[x-show="activeTab === \'analytics\'"] .grid.gap-4 > div:nth-child(4)', popover: { title: 'Tingkat Tabungan (Savings Rate)', description: 'Persentase uang yang berhasil Anda selamatkan (Net Flow dibagi Income). Pastikan angkanya di atas 20% agar finansial Anda tergolong sangat sehat!', side: "bottom", align: 'center' }},
                         { element: '#timeSeriesChart', popover: { title: 'Tren Arus Kas', description: 'Grafik fluktuasi harian yang membandingkan secara visual berapa banyak uang yang masuk dan uang yang keluar.', side: "top", align: 'center' }},
-                        { element: '#expenseDonutChart', popover: { title: 'Rincian Pengeluaran', description: 'Bagan ini membelah total pengeluaran Anda ke dalam beberapa kategori sehingga Anda tahu letak kebocoran uang terbesar.', side: "top", align: 'center' }}
+                        { element: '#expenseDonutChart', popover: { title: 'Rincian Pengeluaran', description: 'Bagan ini membelah total pengeluaran Anda ke dalam beberapa kategori sehingga Anda tahu letak pengeluaran terbesar.', side: "top", align: 'center' }}
                     ];
-                } else if (path.includes('setup_account')) {
+                } else if (path.includes('setup/accounts') || path.includes('setup_account')) {
                     customSteps = [
-                        { element: 'form[action*="add_account"]', popover: { title: 'Tambah Rekening (Dompet)', description: 'Buat dompet baru (misalnya BCA, GoPay, Uang Tunai) untuk memisahkan pelacakan saldo Anda secara rapi dan akurat.', side: "bottom", align: 'start' }},
-                        { element: 'table', popover: { title: 'Daftar Dompet Aktif', description: 'Ini adalah daftar seluruh rekening dan dompet yang Anda miliki beserta saldo terkininya. Anda dapat mengedit atau menghapusnya.', side: "top", align: 'center' }},
-                        { element: 'form[action*="manage_budget"]', popover: { title: 'Pengaturan Anggaran Bulanan', description: 'Kunci keuangan Anda! Tetapkan batas pengeluaran maksimal untuk setiap kategori (Makan, Hiburan, dll) agar Anda tidak boros.', side: "bottom", align: 'start' }},
-                        { element: 'form[action*="import_csv"]', popover: { title: 'Impor Otomatis Data Bank', description: 'Malas mencatat manual? Anda bisa mengunduh mutasi dari m-Banking Anda, lalu mengimpornya langsung menggunakan file CSV ke dompet yang dipilih.', side: "top", align: 'start' }}
+                        { element: 'button[\@click*="addAccountModal"]', popover: { title: 'Tambah Rekening (Dompet)', description: 'Buat dompet baru (misalnya BCA, GoPay, Uang Tunai, atau Kartu Kredit) untuk memisahkan pelacakan saldo Anda secara rapi dan akurat.', side: "bottom", align: 'end' }},
+                        { element: '.grid.gap-6', popover: { title: 'Daftar Dompet Aktif', description: 'Ini adalah daftar seluruh rekening dan dompet yang Anda miliki beserta saldo terkininya. Anda dapat mengedit atau menghapusnya.', side: "top", align: 'center' }}
                     ];
                 } else if (path.includes('settings')) {
                     customSteps = [
-                        { element: 'form[action*="settings"]', popover: { title: 'Pengaturan Profil Pengguna', description: 'Perbarui nama, kata sandi (password), preferensi mata uang, dan data personal Anda di formulir ini.', side: "bottom", align: 'start' }},
-                        { element: 'button[onclick="registerBiometric()"]', popover: { title: 'Aktivasi Login Biometrik', description: 'Daftarkan sidik jari (Fingerprint) atau Face ID Anda agar login ke Treasury Flow jadi lebih praktis, instan, dan sangat aman.', side: "top", align: 'center' }},
-                        { element: 'a[href="/logout"]', popover: { title: 'Keluar (Sign Out)', description: 'Sangat disarankan untuk Logout jika aplikasi ini sedang digunakan di perangkat umum atau PC kantor.', side: "top", align: 'end' }}
-                    ];
-                } else if (path.includes('add_transaction')) {
-                    customSteps = [
-                        { element: 'form', popover: { title: 'Formulir Pencatatan', description: 'Isi detail transaksi Anda di sini. Mulai dari jenis, tanggal, hingga nominalnya.', side: "top", align: 'center' }},
-                        { element: 'select[name="type"]', popover: { title: 'Jenis Transaksi', description: 'Pilih apakah ini uang masuk (Pemasukan) atau uang keluar (Pengeluaran).', side: "bottom", align: 'start' }},
-                        { element: 'input[name="amount"]', popover: { title: 'Nominal Uang', description: 'Masukkan jumlah uangnya. Tidak perlu titik atau koma, sistem akan menatanya secara otomatis!', side: "bottom", align: 'start' }},
-                        { element: 'select[name="account_id"]', popover: { title: 'Pilih Dompet', description: 'Tentukan dompet mana yang uangnya bertambah atau berkurang (misal: Tunai atau Mandiri).', side: "top", align: 'start' }},
-                        { element: 'button[type="submit"]', popover: { title: 'Simpan Data', description: 'Klik simpan untuk merekam transaksi ini secara permanen ke dalam sistem.', side: "top", align: 'center' }}
+                        { element: 'form', popover: { title: 'Pengaturan Profil Pengguna', description: 'Perbarui nama, username, kata sandi (password), dan kategori transaksi Anda di halaman ini.', side: "bottom", align: 'start' }},
+                        { element: 'button[onclick="registerBiometric()"]', popover: { title: 'Aktivasi Login Biometrik', description: 'Daftarkan sidik jari (Fingerprint) atau Face ID Anda agar keamanan akun lebih terjaga.', side: "top", align: 'center' }}
                     ];
                 } else {
                     customSteps = [
-                        { element: '#sidebar', popover: { title: 'Menu Utama', description: 'Gunakan panel navigasi ini untuk berpindah ke fitur-fitur utama Treasury Flow.', side: "right", align: 'start' }},
-                        { element: 'header button', popover: { title: 'Header Navigasi', description: 'Di sini Anda dapat mengakses tombol mode gelap dan memutar ulang tutorial ini secara instan.', side: "bottom", align: 'center' }},
+                        { element: 'nav button:last-child', popover: { title: 'Menu Utama', description: 'Gunakan panel navigasi ini untuk berpindah ke fitur-fitur utama Treasury Flow.', side: "bottom", align: 'end' }},
+                        { element: 'nav button[title="Toggle Theme"]', popover: { title: 'Header Navigasi', description: 'Di sini Anda dapat mengakses tombol mode gelap dan memutar ulang tutorial ini secara instan.', side: "bottom", align: 'center' }},
                         { element: '.fixed.bottom-6.right-6', popover: { title: 'AI Assistant', description: 'Asisten cerdas kami selalu siap menemani Anda menganalisa keuangan 24/7.', side: "left", align: 'end' }}
                     ];
                 }
                 
-                const driver = window.driver.js.driver;
-                const driverObj = driver({
-                    showProgress: true,
-                    steps: customSteps
+                const validSteps = customSteps.filter(step => {
+                    if (!step.element) return true;
+                    try {
+                        return Boolean(document.querySelector(step.element));
+                    } catch (e) {
+                        return false;
+                    }
                 });
-                driverObj.drive();
+                
+                if (window.driver && window.driver.js && validSteps.length > 0) {
+                    const driver = window.driver.js.driver;
+                    const driverObj = driver({
+                        showProgress: true,
+                        steps: validSteps
+                    });
+                    driverObj.drive();
+                }
             };
 
             const tourDone = localStorage.getItem('onboardingTourCompleted');
@@ -575,19 +572,30 @@
             }
             
             // Global Auto-Ribuan Formatter
+            window.formatRibuanInput = function(rawVal, isInitialLoad = false) {
+                let str = String(rawVal ?? '').trim();
+                if (!str) return '';
+                // Prevent Python float strings like "500000.0" from becoming "5.000.000"
+                if (isInitialLoad || /^\d+\.0+$/.test(str)) {
+                    str = str.replace(/^(\d+)\.0+$/, '$1');
+                }
+                let value = str.replace(/[^,\d]/g, '');
+                let parts = value.split(',');
+                let intPart = parts[0].replace(/^0+(?=\d)/, '');
+                let sisa = intPart.length % 3;
+                let rupiah = intPart.substr(0, sisa);
+                let ribuan = intPart.substr(sisa).match(/\d{3}/gi);
+                if (ribuan) {
+                    let separator = sisa ? '.' : '';
+                    rupiah += separator + ribuan.join('.');
+                }
+                return parts[1] !== undefined ? rupiah + ',' + parts[1].slice(0, 2) : rupiah;
+            };
+
             document.body.addEventListener('input', function(e) {
                 if (e.target && e.target.tagName === 'INPUT' && (e.target.classList.contains('auto-ribuan') || e.target.name === 'amount' || e.target.name === 'initial_balance' || e.target.name === 'limit_amount' || e.target.name === 'purchase_price' || e.target.name === 'total_amount' || e.target.name === 'amount_paid' || e.target.name === 'amount_per_cycle' || e.target.name === 'target_amount' || e.target.name === 'current_amount' || e.target.name === 'saving_amount')) {
                     if (e.target.type !== 'number') {
-                        let value = e.target.value.replace(/[^,\d]/g, '');
-                        let parts = value.split(',');
-                        let sisa = parts[0].length % 3;
-                        let rupiah = parts[0].substr(0, sisa);
-                        let ribuan = parts[0].substr(sisa).match(/\d{3}/gi);
-                        if (ribuan) {
-                            let separator = sisa ? '.' : '';
-                            rupiah += separator + ribuan.join('.');
-                        }
-                        e.target.value = parts[1] !== undefined ? rupiah + ',' + parts[1] : rupiah;
+                        e.target.value = window.formatRibuanInput(e.target.value, false);
                     }
                 }
             });
@@ -596,16 +604,7 @@
             const autoInputs = document.querySelectorAll('input.auto-ribuan, input[name="amount"], input[name="initial_balance"], input[name="limit_amount"], input[name="purchase_price"], input[name="total_amount"], input[name="amount_paid"], input[name="amount_per_cycle"], input[name="target_amount"], input[name="current_amount"], input[name="saving_amount"]');
             autoInputs.forEach(input => {
                 if (input.value && input.type !== 'number') {
-                    let value = input.value.replace(/[^,\d]/g, '');
-                    let parts = value.split(',');
-                    let sisa = parts[0].length % 3;
-                    let rupiah = parts[0].substr(0, sisa);
-                    let ribuan = parts[0].substr(sisa).match(/\d{3}/gi);
-                    if (ribuan) {
-                        let separator = sisa ? '.' : '';
-                        rupiah += separator + ribuan.join('.');
-                    }
-                    input.value = parts[1] !== undefined ? rupiah + ',' + parts[1] : rupiah;
+                    input.value = window.formatRibuanInput(input.value, true);
                 }
             });
             

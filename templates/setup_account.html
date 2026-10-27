@@ -54,7 +54,7 @@
                         {% endif %}
                     </div>
                     <div class="flex gap-1">
-                        <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ account.initial_balance|abs }}', limit: '{{ account.limit_amount if account.account_type == "liability" else "" }}', billingDueDay: '{{ account.billing_due_day|default("", true) }}', isLiability: '{{ account.account_type }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors" title="Edit">
+                        <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ "{:,.0f}".format((account.initial_balance or 0)|abs).replace(",", ".") }}', limit: '{{ "{:,.0f}".format(account.limit_amount or 0).replace(",", ".") if account.account_type == "liability" and account.limit_amount else "" }}', billingDueDay: '{{ account.billing_due_day|default("", true) }}', isLiability: '{{ account.account_type }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors" title="Edit">
                             <i data-lucide="edit-2" class="w-4 h-4"></i>
                         </button>
                         <button type="button" @click="$dispatch('open-delete-modal', {id: '{{ account.id }}'})" class="text-muted-foreground hover:text-destructive p-1.5 rounded-md hover:bg-muted transition-colors" title="Delete Account">

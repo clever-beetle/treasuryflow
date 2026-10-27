@@ -383,12 +383,23 @@ def financial_performance():
     assets_list = db.execute("SELECT * FROM assets WHERE user_id = ? ORDER BY purchase_date DESC", (user_id,)).fetchall()
     total_asset_value = sum((asset['purchase_price'] or 0) for asset in assets_list)
 
-    asset_alloc_raw = db.execute("SELECT category, COALESCE(SUM(purchase_price), 0) as total FROM assets WHERE user_id = ? GROUP BY category", (user_id,)).fetchall()
+    asset_alloc_raw = db.execute("SELECT category, COALESCE(SUM(purchase_price), 0) as total FROM assets WHERE user_id = ? GROUP BY category ORDER BY total DESC", (user_id,)).fetchall()
     import json
     asset_alloc = {
         'labels': [a['category'] for a in asset_alloc_raw],
         'data': [float(a['total']) for a in asset_alloc_raw]
     }
+    asset_colors = ['bg-purple-500', 'bg-blue-500', 'bg-emerald-500', 'bg-amber-500', 'bg-rose-500', 'bg-indigo-500', 'bg-cyan-500']
+    asset_allocation_breakdown = []
+    for idx, a in enumerate(asset_alloc_raw):
+        cat_total = float(a['total'] or 0)
+        pct = (cat_total / total_asset_value * 100) if total_asset_value > 0 else 0
+        asset_allocation_breakdown.append({
+            'category': a['category'] or 'Lainnya',
+            'total': cat_total,
+            'pct': round(pct, 1),
+            'color': asset_colors[idx % len(asset_colors)]
+        })
 
     goals_list = db.execute('''
         SELECT id, name, target_amount, current_amount, due_date, status,
@@ -521,7 +532,7 @@ def financial_performance():
                            max_expense=max_expense, min_expense=min_expense, days_range=days_range,
                            distribution_list=distribution_list, records_active=records_active, records_history=records_history, 
                            accounts=clean_accounts, liability_accounts=liability_accounts, installments=installments, installments_completed=installments_completed,
-                           assets_list=assets_list, total_asset_value=total_asset_value, goals_list=goals_list,
+                           assets_list=assets_list, total_asset_value=total_asset_value, asset_allocation_breakdown=asset_allocation_breakdown, goals_list=goals_list,
                            savings_rate=savings_rate, smart_insight=smart_insight, insight_type=insight_type,
                            credit_cards=credit_cards, net_worth=net_worth, total_saldo=total_saldo,
                            total_debt=total_debt, total_cc_usage=total_cc_usage, total_cc_limit=total_cc_limit,

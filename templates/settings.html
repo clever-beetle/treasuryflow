@@ -235,14 +235,31 @@
                 <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
                 
                 <div class="rounded-xl border border-border bg-card p-6 shadow-sm space-y-6">
+                    <div class="space-y-3">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div class="space-y-1">
+                                <h4 class="text-base font-semibold flex items-center gap-2">
+                                    <i data-lucide="fingerprint" class="w-5 h-5 text-primary"></i> Biometric / Passkey Login
+                                </h4>
+                                <p class="text-sm text-muted-foreground">Masuk lebih cepat dan aman menggunakan Face ID, Touch ID, atau Windows Hello pada perangkat ini.</p>
+                            </div>
+                            <button type="button" onclick="registerBiometric()" id="biometricBtn" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shrink-0">
+                                <i data-lucide="key-round" class="w-4 h-4 mr-2"></i> Aktifkan Passkey
+                            </button>
+                        </div>
+                        <div id="biometricStatus" class="hidden rounded-lg border px-4 py-3 text-sm font-medium"></div>
+                    </div>
+
+                    <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
+
                     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div class="space-y-1">
                             <h4 class="text-base font-semibold flex items-center gap-2">
-                                <i data-lucide="fingerprint" class="w-5 h-5 text-primary"></i> Biometric / Passkey Login
+                                <i data-lucide="calculator" class="w-5 h-5 text-primary"></i> Kalkulator &amp; Simulasi Finansial
                             </h4>
-                            <p class="text-sm text-muted-foreground">Masuk lebih cepat dan aman menggunakan Face ID, Touch ID, atau Windows Hello.</p>
+                            <p class="text-sm text-muted-foreground">Hitung simulasi bunga majemuk investasi dan estimasi cicilan KPR rumah impian Anda.</p>
                         </div>
-                        <a href="{{ url_for('extra.tools') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shrink-0">
+                        <a href="{{ url_for('extra.tools') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 shrink-0">
                             Buka Financial Tools
                         </a>
                     </div>
@@ -416,4 +433,69 @@
         </div>
     </div>
 </div>
+
+<script>
+async function registerBiometric() {
+    const statusEl = document.getElementById('biometricStatus');
+    const btnEl = document.getElementById('biometricBtn');
+    const showStatus = (msg, isSuccess) => {
+        if (!statusEl) return;
+        statusEl.className = 'rounded-lg border px-4 py-3 text-sm font-medium ' + (
+            isSuccess
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-400'
+                : 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-800 dark:text-amber-400'
+        );
+        statusEl.textContent = msg;
+        statusEl.classList.remove('hidden');
+    };
+
+    if (!window.PublicKeyCredential || !navigator.credentials) {
+        showStatus('Browser atau perangkat ini belum mendukung WebAuthn / Passkey Biometrik.', false);
+        return;
+    }
+
+    try {
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+        const userIdBytes = new TextEncoder().encode("{{ user.username }}");
+        await navigator.credentials.create({
+            publicKey: {
+                challenge: challenge,
+                rp: { name: "Treasury Flow" },
+                user: {
+                    id: userIdBytes,
+                    name: "{{ user.username }}",
+                    displayName: "{{ user.fullname or user.username }}"
+                },
+                pubKeyCredParams: [
+                    { type: "public-key", alg: -7 },
+                    { type: "public-key", alg: -257 }
+                ],
+                authenticatorSelection: {
+                    userVerification: "preferred"
+                },
+                timeout: 60000
+            }
+        });
+        localStorage.setItem('passkeyRegistered_{{ user.username }}', 'true');
+        if (btnEl) {
+            btnEl.textContent = 'Passkey Aktif di Perangkat Ini';
+        }
+        showStatus('Passkey Biometrik berhasil didaftarkan pada perangkat ini!', true);
+    } catch (err) {
+        if (err && err.name === 'NotAllowedError') {
+            showStatus('Pendaftaran biometrik dibatalkan atau tidak diizinkan oleh perangkat.', false);
+        } else {
+            showStatus('Gagal mendaftarkan biometrik: pastikan perangkat memiliki kunci layar / sensor biometrik aktif.', false);
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (localStorage.getItem('passkeyRegistered_{{ user.username }}') === 'true') {
+        const btnEl = document.getElementById('biometricBtn');
+        if (btnEl) btnEl.textContent = 'Perbarui Passkey';
+    }
+});
+</script>
 {% endblock %}

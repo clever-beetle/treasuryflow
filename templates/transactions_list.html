@@ -381,7 +381,7 @@
     editOpen: false, 
     tx: {id: '', amount: '', description: '', date: '', category: '', account_id: '', type: ''} 
 }" 
-@open-edit-modal.window="tx = { ...$event.detail, account_id: String($event.detail.account_id || ''), date: String($event.detail.date || '').slice(0, 10) }; editOpen = true;" 
+@open-edit-modal.window="tx = { ...$event.detail, amount: window.formatRibuanInput ? window.formatRibuanInput($event.detail.amount, true) : String(Math.round(Number($event.detail.amount || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'), account_id: String($event.detail.account_id || ''), date: String($event.detail.date || '').slice(0, 10) }; editOpen = true;" 
 x-cloak>
     
     <div x-show="editOpen" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -401,7 +401,7 @@ x-cloak>
                             <div class="space-y-4">
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Amount (Rp)</label>
-                                    <input type="number" step="any" min="0" name="amount" x-model="tx.amount" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                    <input type="text" inputmode="decimal" name="amount" x-model="tx.amount" @input="tx.amount = window.formatRibuanInput ? window.formatRibuanInput($event.target.value, false) : $event.target.value" required class="auto-ribuan flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Description</label>
