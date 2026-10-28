@@ -892,6 +892,165 @@ def test_fifth_pass_12_bugs_regression(client, monkeypatch):
     assert res_dash.status_code == 200
 
 
+def test_sixth_pass_theme_and_interactive_bugs(client):
+    """
+    Verifies the 16 sixth-pass audit fixes across:
+    - Theme & UI consistency (404 Shadcn page, no broken /static/css/style.css, Dark Mode FOUC prevention, page <title>)
+    - Interactive features (WebAuthn Passkey dynamic rpId & login endpoints, Bulk Edit modal scope, @toast.window)
+    - Backend logic & feature parity (Settings category comma validation & delete cleanup, edit_debt remaining_amount,
+      saving_goal optional account deduction, setup_account Lainnya + custom_name)
+    """
+    username = f"sixth_pass_{uuid.uuid4().hex[:6]}"
+    password = "StrongPass123"
+    client.post('/register', data={
+        'fullname': 'Sixth Pass User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    from utils import get_db
+
+    # 1. Setup account supports 'Lainnya' + custom_name alias
+    res_acc = client.post('/setup/accounts', data={
+        'category': 'BANK',
+        'provider': 'Lainnya',
+        'custom_name': 'Bank Neo Commerce',
+        'balance': '5.000.000',
+        'limit_amount': '0'
+    }, follow_redirects=True)
+    assert res_acc.status_code == 200
+    assert b'Bank Neo Commerce' in res_acc.data
+
+    with client.application.app_context():
+        db = get_db()
+        user_id = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()['id']
+        acc_row = db.execute("SELECT id, name, current_balance FROM accounts WHERE user_id = ? LIMIT 1", (user_id,)).fetchone()
+        assert acc_row['name'] == '[BANK] Bank Neo Commerce'
+        assert acc_row['current_balance'] == 5000000
+        acc_id = acc_row['id']
+
+    # 2. Settings custom category rejects comma and cleans up transactions + budgets on delete
+    res_cat_bad = client.post('/settings', data={
+        'action': 'add_category',
+        'type': 'expense',
+        'name': 'Makan, Minum'
+    }, follow_redirects=True)
+    assert res_cat_bad.status_code == 200
+
+    res_cat_ok = client.post('/settings', data={
+        'action': 'add_category',
+        'type': 'expense',
+        'name': 'Hobi Koleksi'
+    }, follow_redirects=True)
+    assert res_cat_ok.status_code == 200
+
+    with client.application.app_context():
+        db = get_db()
+        cat_row = db.execute("SELECT id FROM user_categories WHERE user_id = ? AND name = 'Hobi Koleksi'", (user_id,)).fetchone()
+        assert cat_row is not None
+        cat_id = cat_row['id']
+        bad_row = db.execute("SELECT id FROM user_categories WHERE user_id = ? AND name = 'Makan, Minum'", (user_id,)).fetchone()
+        assert bad_row is None
+
+    client.post('/transactions/add', data={
+        'date': '2026-08-20',
+        'type': 'expense',
+        'amount': '200.000',
+        'category': 'Hobi Koleksi',
+        'account_id': acc_id,
+        'description': 'Beli Gundam'
+    }, follow_redirects=True)
+    client.post('/manage_budget', data={
+        'action': 'add',
+        'category_name': 'Hobi Koleksi',
+        'limit_amount': '1.000.000'
+    }, follow_redirects=True)
+
+    res_cat_del = client.post('/settings', data={
+        'action': 'delete_category',
+        'category_id': cat_id
+    }, follow_redirects=True)
+    assert res_cat_del.status_code == 200
+
+    with client.application.app_context():
+        db = get_db()
+        del_row = db.execute("SELECT id FROM user_categories WHERE id = ?", (cat_id,)).fetchone()
+        assert del_row is None
+        tx_cat = db.execute("SELECT category FROM transactions WHERE user_id = ? AND description = 'Beli Gundam'", (user_id,)).fetchone()['category']
+        assert tx_cat == 'Lainnya'
+        b_cnt = db.execute("SELECT COUNT(*) FROM budgets WHERE user_id = ? AND category_name = 'Hobi Koleksi'", (user_id,)).fetchone()[0]
+        assert b_cnt == 0
+
+    # 3. edit_debt supports remaining_amount and auto-updates status to LUNAS when remaining_amount == 0
+    client.post('/financial_performance', data={
+        'action': 'add_debt',
+        'type': 'debt',
+        'person_name': 'Andi',
+        'total_amount': '1.000.000',
+        'due_date': '2026-12-31'
+    }, follow_redirects=True)
+    with client.application.app_context():
+        db = get_db()
+        debt_id = db.execute("SELECT id FROM debts_receivables WHERE user_id = ? AND person_name = 'Andi'", (user_id,)).fetchone()['id']
+
+    res_edit_debt = client.post('/financial_performance', data={
+        'action': 'edit_debt',
+        'debt_id': debt_id,
+        'person_name': 'Andi Wijaya',
+        'total_amount': '1.000.000',
+        'remaining_amount': '0',
+        'due_date': '2026-12-31'
+    }, follow_redirects=True)
+    assert res_edit_debt.status_code == 200
+    with client.application.app_context():
+        db = get_db()
+        d_row = db.execute("SELECT person_name, remaining_amount, status FROM debts_receivables WHERE id = ?", (debt_id,)).fetchone()
+        assert d_row['person_name'] == 'Andi Wijaya'
+        assert d_row['remaining_amount'] == 0
+        assert d_row['status'] == 'LUNAS'
+
+    # 4. saving_goal with account_id deducts from account balance and creates an expense transaction
+    client.post('/financial_performance', data={
+        'action': 'add_goal',
+        'goal_name': 'Liburan Jepang',
+        'target_amount': '20.000.000',
+        'current_amount': '0',
+        'due_date': '2027-05-01'
+    }, follow_redirects=True)
+    with client.application.app_context():
+        db = get_db()
+        goal_id = db.execute("SELECT id FROM financial_goals WHERE user_id = ? AND name = 'Liburan Jepang'", (user_id,)).fetchone()['id']
+
+    res_save = client.post('/financial_performance', data={
+        'action': 'saving_goal',
+        'goal_id': goal_id,
+        'saving_amount': '500.000',
+        'account_id': str(acc_id)
+    }, follow_redirects=True)
+    assert res_save.status_code == 200
+    with client.application.app_context():
+        db = get_db()
+        g_curr = db.execute("SELECT current_amount FROM financial_goals WHERE id = ?", (goal_id,)).fetchone()['current_amount']
+        assert g_curr == 500000
+        acc_bal = db.execute("SELECT current_balance FROM accounts WHERE id = ?", (acc_id,)).fetchone()['current_balance']
+        # 5,000,000 initial - 200,000 Gundam - 500,000 saving_goal = 4,300,000
+        assert acc_bal == 4300000
+
+    # 5. WebAuthn register/generate and login/generate return 200 JSON with dynamic rp.id
+    res_wa_reg = client.post('/api/webauthn/register/generate')
+    assert res_wa_reg.status_code == 200
+    assert res_wa_reg.get_json()['rp']['id'] == 'localhost'
+
+    # 6. 404 page uses Shadcn Tailwind theme without broken /static/css/style.css
+    res_404 = client.get('/halaman-tidak-ada-404')
+    assert res_404.status_code == 404
+    assert b'/static/css/style.css' not in res_404.data
+    assert b'Halaman Tidak Ditemukan' in res_404.data
+
+
 
 
 

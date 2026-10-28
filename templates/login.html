@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome Back - Treasury Flow</title>
+    <title>Masuk Akun - Treasury Flow</title>
     <link rel="manifest" href="{{ url_for('static', filename='manifest_light.json') }}">
     <meta name="theme-color" content="#11237e">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/brand/apple-touch-icon.png') }}">
@@ -77,8 +77,8 @@
         <div class="flex justify-center mb-6">
             <img src="{{ url_for('static', filename='img/brand/logo.png') }}" alt="Treasury Flow" class="h-20 w-20 object-contain drop-shadow-md">
         </div>
-        <h1 class="text-2xl font-bold text-center mb-2">Welcome Back</h1>
-        <p class="text-muted-foreground text-center text-sm mb-6">Sign in to your Treasury Flow account</p>
+        <h1 class="text-2xl font-bold text-center mb-2">Selamat Datang Kembali</h1>
+        <p class="text-muted-foreground text-center text-sm mb-6">Masuk ke akun Treasury Flow Anda</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -98,20 +98,22 @@
             </div>
         {% endif %}
 
+        <div id="biometricStatus" class="hidden mb-4 p-3 rounded-lg text-sm font-medium"></div>
+
         <form method="POST" action="{{ url_for('auth.login') }}" class="space-y-4">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <input type="hidden" name="next" value="{{ request.args.get('next', '') or request.form.get('next', '') }}"/>
             <div class="space-y-2">
-                <label for="username" class="text-sm font-medium leading-none">Username or Email</label>
-                <input type="text" id="username" name="username" value="{{ request.form.get('username', '') }}" autocomplete="username" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Enter username or email" required>
+                <label for="username" class="text-sm font-medium leading-none">Username atau Email</label>
+                <input type="text" id="username" name="username" value="{{ request.form.get('username', '') }}" autocomplete="username" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Masukkan username atau email" required>
             </div>
             <div class="space-y-2">
                 <div class="flex items-center justify-between">
                     <label for="password" class="text-sm font-medium leading-none">Password</label>
-                    <a href="{{ url_for('auth.forgot_password') }}" class="text-sm text-primary hover:underline">Forgot password?</a>
+                    <a href="{{ url_for('auth.forgot_password') }}" class="text-sm text-primary hover:underline">Lupa password?</a>
                 </div>
                 <div class="relative">
-                    <input :type="showPass ? 'text' : 'password'" id="password" name="password" autocomplete="current-password" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Enter password" required>
+                    <input :type="showPass ? 'text' : 'password'" id="password" name="password" autocomplete="current-password" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Masukkan password" required>
                     <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                         <i data-lucide="eye" x-show="!showPass" class="h-4 w-4"></i>
                         <i data-lucide="eye-off" x-show="showPass" class="h-4 w-4"></i>
@@ -119,18 +121,118 @@
                 </div>
             </div>
             <button type="submit" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full mt-2">
-                Sign In
+                Masuk
+            </button>
+            <button type="button" onclick="loginWithBiometric()" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full transition-colors">
+                <i data-lucide="fingerprint" class="h-4 w-4"></i> Masuk dengan Passkey / Biometrik
             </button>
         </form>
 
-                <div class="mt-6 text-center text-sm">
-            <span class="text-muted-foreground">Don't have an account? </span>
-            <a href="{{ url_for('auth.register') }}" class="font-medium text-primary hover:underline">Sign up</a>
+        <div class="mt-6 text-center text-sm">
+            <span class="text-muted-foreground">Belum punya akun? </span>
+            <a href="{{ url_for('auth.register') }}" class="font-medium text-primary hover:underline">Daftar sekarang</a>
         </div>
 
     </div>
     <script>
         lucide.createIcons();
+
+        function base64urlToUint8Array(base64url) {
+            const padding = '='.repeat((4 - (base64url.length % 4)) % 4);
+            const base64 = (base64url + padding).replace(/-/g, '+').replace(/_/g, '/');
+            const rawData = window.atob(base64);
+            const outputArray = new Uint8Array(rawData.length);
+            for (let i = 0; i < rawData.length; ++i) {
+                outputArray[i] = rawData.charCodeAt(i);
+            }
+            return outputArray;
+        }
+
+        function bufferToBase64url(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return window.btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+        }
+
+        async function loginWithBiometric() {
+            const statusEl = document.getElementById('biometricStatus');
+            const showMsg = (msg, ok) => {
+                if (!statusEl) return;
+                statusEl.textContent = msg;
+                statusEl.className = 'mb-4 p-3 rounded-lg text-sm font-medium border ' + (ok ? 'bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : 'bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800');
+                statusEl.classList.remove('hidden');
+            };
+
+            if (!window.PublicKeyCredential || !navigator.credentials) {
+                showMsg('Perangkat atau browser ini belum mendukung login Passkey / Biometrik.', false);
+                return;
+            }
+
+            try {
+                const csrfToken = "{{ csrf_token() }}";
+                const usernameVal = (document.getElementById('username') || {}).value || '';
+                const genRes = await fetch('/api/webauthn/login/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify({ username: usernameVal })
+                });
+                if (!genRes.ok) {
+                    showMsg('Gagal memulai autentikasi Passkey.', false);
+                    return;
+                }
+                const opts = await genRes.json();
+                const publicKey = {
+                    ...opts,
+                    challenge: base64urlToUint8Array(opts.challenge)
+                };
+                if (opts.allowCredentials && opts.allowCredentials.length > 0) {
+                    publicKey.allowCredentials = opts.allowCredentials.map(c => ({
+                        ...c,
+                        id: base64urlToUint8Array(c.id)
+                    }));
+                }
+
+                const assertion = await navigator.credentials.get({ publicKey });
+                if (!assertion || !assertion.response) {
+                    showMsg('Autentikasi dibatalkan.', false);
+                    return;
+                }
+
+                const payload = {
+                    id: assertion.id,
+                    rawId: bufferToBase64url(assertion.rawId),
+                    type: assertion.type,
+                    response: {
+                        authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
+                        clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),
+                        signature: bufferToBase64url(assertion.response.signature),
+                        userHandle: assertion.response.userHandle ? bufferToBase64url(assertion.response.userHandle) : null
+                    }
+                };
+
+                const verifyRes = await fetch('/api/webauthn/login/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                    body: JSON.stringify(payload)
+                });
+                const verifyData = await verifyRes.json().catch(() => ({}));
+                if (verifyRes.ok && verifyData.status === 'ok') {
+                    showMsg('Login biometrik berhasil! Mengalihkan...', true);
+                    window.location.href = verifyData.redirect || '/dashboard';
+                } else {
+                    showMsg(verifyData.message || 'Passkey belum terdaftar atau tidak cocok.', false);
+                }
+            } catch (err) {
+                if (err && err.name === 'NotAllowedError') {
+                    showMsg('Verifikasi biometrik dibatalkan atau tidak menemukan Passkey terdaftar.', false);
+                } else {
+                    showMsg('Gagal memverifikasi Passkey: ' + (err.message || err), false);
+                }
+            }
+        }
     </script>
 
     <!-- PWA Install Banner -->

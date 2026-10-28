@@ -118,9 +118,10 @@ def transactions_list():
     
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     
-    # Calendar data
+    # Calendar data (WIB UTC+7)
     import calendar
-    now = datetime.now()
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc) + timedelta(hours=7)
     now_date = now.date()
     cal_year = request.args.get('cal_year', now.year, type=int)
     cal_month = request.args.get('cal_month', now.month, type=int)
@@ -260,7 +261,7 @@ def add_transaction():
         db.commit()
         from routes.dashboard import recalculate_account_balances
         recalculate_account_balances(db, user_id)
-        flash('Transaction added', 'success')
+        flash('Transaksi berhasil dicatat.', 'success')
         return redirect(url_for('transactions.transactions_list'))
         
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
@@ -270,7 +271,8 @@ def add_transaction():
         if uc['type'] in custom_categories:
             custom_categories[uc['type']].append(uc['name'])
 
-    return render_template('add_transaction.html', accounts=accounts, categories=CATEGORIES, custom_categories=custom_categories, now=datetime.now())
+    from datetime import timedelta, timezone
+    return render_template('add_transaction.html', accounts=accounts, categories=CATEGORIES, custom_categories=custom_categories, now=datetime.now(timezone.utc) + timedelta(hours=7))
 
 @transactions_bp.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -472,14 +474,16 @@ def bulk_edit_transactions():
     category = request.form.get('bulk_category') or request.form.get('category')
     
     if category and tx_ids:
+        updated_count = 0
         for tid in tx_ids:
             try:
                 valid_id = int(tid.strip())
             except (ValueError, TypeError):
                 continue
             db.execute("UPDATE transactions SET category = ? WHERE id = ? AND user_id = ? AND COALESCE(category, '') != 'Transfer'", (category, valid_id, user_id))
+            updated_count += 1
         db.commit()
-        flash('Transactions updated', 'success')
+        flash(f'Kategori untuk {updated_count} transaksi berhasil diperbarui.', 'success')
     return redirect(url_for('transactions.transactions_list'))
 
 @transactions_bp.route('/export_csv')

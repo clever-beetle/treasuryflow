@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create an Account - Treasury Flow</title>
+    <title>Daftar Akun Baru - Treasury Flow</title>
     <link rel="manifest" href="{{ url_for('static', filename='manifest_light.json') }}">
     <meta name="theme-color" content="#11237e">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/brand/apple-touch-icon.png') }}">
@@ -78,8 +78,8 @@
         <div class="flex justify-center mb-6">
             <img src="{{ url_for('static', filename='img/brand/logo.png') }}" alt="Treasury Flow" class="h-20 w-20 object-contain drop-shadow-md">
         </div>
-        <h1 class="text-2xl font-bold text-center mb-2">Create an Account</h1>
-        <p class="text-muted-foreground text-center text-sm mb-6">Join Treasury Flow today</p>
+        <h1 class="text-2xl font-bold text-center mb-2">Buat Akun Baru</h1>
+        <p class="text-muted-foreground text-center text-sm mb-6">Mulai kelola keuangan Anda bersama Treasury Flow</p>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
@@ -102,22 +102,22 @@
         <form method="POST" action="{{ url_for('auth.register') }}" class="space-y-4" x-data="{ submitting: false }" @pageshow.window="submitting = false" @submit="if (submitting) { $event.preventDefault(); return; } submitting = true">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="space-y-2">
-                <label for="fullname" class="text-sm font-medium leading-none">Full Name</label>
-                <input type="text" id="fullname" name="fullname" value="{{ request.form.get('fullname', '') }}" autocomplete="name" maxlength="100" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="John Doe" required>
+                <label for="fullname" class="text-sm font-medium leading-none">Nama Lengkap</label>
+                <input type="text" id="fullname" name="fullname" value="{{ request.form.get('fullname', '') }}" autocomplete="name" maxlength="100" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Masukkan nama lengkap" required>
             </div>
             <div class="space-y-2">
                 <label for="username" class="text-sm font-medium leading-none">Username</label>
-                <input type="text" id="username" name="username" value="{{ request.form.get('username', '') }}" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" minlength="3" maxlength="30" pattern="[A-Za-z0-9._]+" title="3–30 karakter: huruf, angka, titik (.) atau underscore (_), tanpa spasi." class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="johndoe123" required>
+                <input type="text" id="username" name="username" value="{{ request.form.get('username', '') }}" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" minlength="3" maxlength="30" pattern="[A-Za-z0-9._]+" title="3–30 karakter: huruf, angka, titik (.) atau underscore (_), tanpa spasi." class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="contoh: budi_santoso" required>
                 <p class="text-xs text-muted-foreground">3–30 karakter: huruf, angka, titik (.) atau underscore (_).</p>
             </div>
             <div class="space-y-2">
-                <label for="email" class="text-sm font-medium leading-none">Email Address</label>
-                <input type="email" id="email" name="email" value="{{ request.form.get('email', '') }}" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="254" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="john@example.com" required>
+                <label for="email" class="text-sm font-medium leading-none">Alamat Email</label>
+                <input type="email" id="email" name="email" value="{{ request.form.get('email', '') }}" autocomplete="email" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="254" class="flex h-10 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="nama@email.com" required>
             </div>
             <div class="space-y-2">
                 <label for="password" class="text-sm font-medium leading-none">Password</label>
                 <div class="relative">
-                    <input :type="showPass ? 'text' : 'password'" id="password" name="password" autocomplete="new-password" minlength="6" maxlength="128" class="flex h-10 w-full rounded-md border border-input bg-transparent pl-3 pr-10 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Create a secure password" required>
+                    <input :type="showPass ? 'text' : 'password'" id="password" name="password" autocomplete="new-password" minlength="6" maxlength="128" class="flex h-10 w-full rounded-md border border-input bg-transparent pl-3 pr-10 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="Buat password yang aman" required>
                     <button type="button" @click="showPass = !showPass" class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" :aria-label="showPass ? 'Sembunyikan password' : 'Tampilkan password'">
                         <i data-lucide="eye" x-show="!showPass" class="h-4 w-4"></i>
                         <i data-lucide="eye-off" x-show="showPass" class="h-4 w-4"></i>
@@ -126,13 +126,13 @@
                 <p class="text-xs text-muted-foreground">Minimal 6 karakter.</p>
             </div>
             <button type="submit" :disabled="submitting" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60 disabled:cursor-not-allowed h-10 px-4 py-2 w-full mt-2">
-                <span x-show="!submitting">Sign Up</span>
+                <span x-show="!submitting">Daftar Sekarang</span>
                 <span x-show="submitting" x-cloak>Memproses...</span>
             </button>
         </form>
         <div class="mt-6 text-center text-sm">
-            <span class="text-muted-foreground">Already have an account? </span>
-            <a href="{{ url_for('auth.login') }}" class="font-medium text-primary hover:underline">Sign in</a>
+            <span class="text-muted-foreground">Sudah punya akun? </span>
+            <a href="{{ url_for('auth.login') }}" class="font-medium text-primary hover:underline">Masuk di sini</a>
         </div>
 
     </div>

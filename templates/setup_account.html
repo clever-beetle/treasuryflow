@@ -1,15 +1,15 @@
 {% extends 'base_shadcn.html' %}
 {% import 'macros.html' as macros %}
-{% block page_title %}Setup Accounts{% endblock %}
+{% block page_title %}Kelola Akun & Dompet{% endblock %}
 {% block content %}
 <div class="max-w-3xl mx-auto space-y-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h2 class="text-2xl font-bold tracking-tight">Manage Accounts</h2>
-            <p class="text-muted-foreground">Add and manage your cash, bank, and e-wallet accounts.</p>
+            <h2 class="text-2xl font-bold tracking-tight">Kelola Akun & Dompet</h2>
+            <p class="text-muted-foreground">Tambah dan kelola rekening bank, e-wallet, uang tunai, dan kartu kredit Anda.</p>
         </div>
-        <button @click="$dispatch('open-modal', 'addAccountModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shadow-sm">
-            <i data-lucide="plus" class="mr-2 h-4 w-4"></i> Add Account
+        <button id="btn-add-account" data-tour="add-account" @click="$dispatch('open-modal', 'addAccountModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shadow-sm">
+            <i data-lucide="plus" class="mr-2 h-4 w-4"></i> Tambah Akun
         </button>
     </div>
 
@@ -67,14 +67,14 @@
                           <p class="text-sm text-muted-foreground mb-1">Terpakai (Utang)</p>
                           <p class="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400">Rp {{ "{:,.0f}".format(account.current_balance|abs).replace(',', '.') }}</p>
                           {% else %}
-                          <p class="text-sm text-muted-foreground mb-1">Current Balance</p>
+                          <p class="text-sm text-muted-foreground mb-1">Saldo Saat Ini</p>
                           <p class="text-2xl font-bold tracking-tight">Rp {{ "{:,.0f}".format(account.current_balance).replace(',', '.') }}</p>
                           {% endif %}
                       </div>
                       <div class="text-right space-y-1">
                           {% if account.limit_amount %}
                           <div>
-                              <p class="text-xs text-muted-foreground">Credit Limit</p>
+                              <p class="text-xs text-muted-foreground">Limit Kredit</p>
                               <p class="text-sm font-semibold text-muted-foreground">Rp {{ "{:,.0f}".format(account.limit_amount).replace(',', '.') }}</p>
                           </div>
                           {% endif %}
@@ -97,10 +97,10 @@
         <div class="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
             <i data-lucide="wallet" class="w-8 h-8 text-muted-foreground"></i>
         </div>
-        <h3 class="text-lg font-semibold tracking-tight">No accounts yet</h3>
-        <p class="text-sm text-muted-foreground mt-1 mb-6 max-w-sm">You haven't set up any accounts yet. Create your first account to start tracking your finances.</p>
+        <h3 class="text-lg font-semibold tracking-tight">Belum Ada Akun</h3>
+        <p class="text-sm text-muted-foreground mt-1 mb-6 max-w-sm">Anda belum memiliki akun atau dompet. Tambahkan akun pertama Anda untuk mulai mencatat keuangan.</p>
         <button @click="$dispatch('open-modal', 'addAccountModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-6">
-            Create First Account
+            Buat Akun Pertama
         </button>
     </div>
     {% endif %}
@@ -113,25 +113,25 @@
         <div class="bg-card text-card-foreground rounded-2xl shadow-2xl shadow-primary/10 border border-border w-full max-w-lg overflow-hidden relative z-10 sm:max-w-[425px]" @click.stop>
             <div class="flex flex-col space-y-2 p-6 pb-4 relative overflow-hidden">
                 <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50"></div>
-                <h3 class="font-bold text-xl tracking-tight relative z-10">Add New Account</h3>
-                <p class="text-sm text-muted-foreground relative z-10">Select an account category and enter the starting balance.</p>
+                <h3 class="font-bold text-xl tracking-tight relative z-10">Tambah Akun Baru</h3>
+                <p class="text-sm text-muted-foreground relative z-10">Pilih jenis akun/dompet dan masukkan saldo awalnya.</p>
                 <button @click="$dispatch('close-modal')" class="absolute right-4 top-4 rounded-full p-2 bg-background/50 backdrop-blur hover:bg-muted text-muted-foreground hover:text-foreground transition-colors z-20">
                     <i data-lucide="x" class="h-4 w-4"></i>
-                    <span class="sr-only">Close</span>
+                    <span class="sr-only">Tutup</span>
                 </button>
             </div>
             
-            <form method="POST" action="{{ url_for('settings.setup_account') }}" class="p-6 pt-2 space-y-5" x-data="{ selectedCategory: 'BANK' }">
+            <form method="POST" action="{{ url_for('settings.setup_account') }}" class="p-6 pt-2 space-y-4" x-data="{ selectedCategory: 'BANK' }">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="action" value="add"/>
                 
                 <div class="space-y-2">
-                    <label class="text-sm font-medium leading-none">Category</label>
+                    <label class="text-sm font-medium leading-none">Kategori Akun</label>
                     <div class="relative">
                         <select name="category_key" id="accountCategory" x-model="selectedCategory" class="flex h-11 w-full items-center justify-between rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                            <option value="BANK">Bank Account</option>
+                            <option value="BANK">Rekening Bank</option>
                             <option value="E-WALLET">E-Wallet</option>
-                            <option value="CASH">Cash</option>
+                            <option value="CASH">Uang Tunai (Cash)</option>
                             <option value="KARTU KREDIT">Kartu Kredit</option>
                             <option value="PAYLATER">Paylater</option>
                             <option value="PINJOL">Pinjaman Online (Pinjol)</option>
@@ -140,18 +140,18 @@
                 </div>
 
                 <div class="space-y-2" x-show="selectedCategory !== 'CASH'" x-transition>
-                    <label class="text-sm font-medium leading-none">Institution Name</label>
+                    <label class="text-sm font-medium leading-none">Nama Institusi / Layanan</label>
                     <div class="relative">
                         <select name="name_detail" class="flex h-11 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
                             <template x-if="selectedCategory === 'BANK'">
-                                <optgroup label="Banks">
+                                <optgroup label="Bank">
                                     {% for bank in categories['BANK'] %}
                                     <option value="{{ bank }}">{{ bank }}</option>
                                     {% endfor %}
                                 </optgroup>
                             </template>
                             <template x-if="selectedCategory === 'E-WALLET'">
-                                <optgroup label="E-Wallets">
+                                <optgroup label="E-Wallet">
                                     {% for ewallet in categories['E-WALLET'] %}
                                     <option value="{{ ewallet }}">{{ ewallet }}</option>
                                     {% endfor %}
@@ -183,7 +183,12 @@
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-sm font-medium leading-none" x-text="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? 'Tagihan Saat Ini (jika sudah ada utang)' : 'Initial Balance'">Initial Balance</label>
+                    <label class="text-sm font-medium leading-none">Nama Kustom / Alias <span class="text-xs text-muted-foreground font-normal">(Opsional)</span></label>
+                    <input type="text" name="custom_name" placeholder="Contoh: Tabungan Gaji, Dompet Harian..." class="flex h-11 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-sm font-medium leading-none" x-text="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? 'Tagihan Saat Ini (jika sudah ada utang)' : 'Saldo Awal'">Saldo Awal</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
                         <input type="text" name="initial_balance" id="balanceInput" required class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0" :value="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? '0' : ''">
@@ -192,7 +197,7 @@
                 </div>
 
                 <div class="space-y-2" x-show="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL'" x-transition>
-                    <label class="text-sm font-medium leading-none">Credit Limit</label>
+                    <label class="text-sm font-medium leading-none">Limit Kredit</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
                         <input type="text" name="limit_amount" id="limitInput" class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0">
@@ -211,8 +216,8 @@
                 </div>
 
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 pt-4">
-                    <button type="button" @click="$dispatch('close-modal')" class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-5">Cancel</button>
-                    <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-md shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11 px-5">Save Account</button>
+                    <button type="button" @click="$dispatch('close-modal')" class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-5">Batal</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-md shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11 px-5">Simpan Akun</button>
                 </div>
             </form>
         </div>

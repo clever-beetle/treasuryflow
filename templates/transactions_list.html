@@ -1,12 +1,12 @@
 {% extends 'base_shadcn.html' %}
 {% import 'macros.html' as macros %}
-{% block page_title %}Transactions{% endblock %}
+{% block page_title %}Riwayat Transaksi{% endblock %}
 {% block content %}
 <div class="space-y-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <h2 class="text-2xl font-bold tracking-tight">Transaction History</h2>
+        <h2 class="text-2xl font-bold tracking-tight">Riwayat Transaksi</h2>
         <a href="{{ url_for('transactions.add_transaction') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shadow-sm">
-            <i data-lucide="plus" class="mr-2 h-4 w-4"></i> Add Transaction
+            <i data-lucide="plus" class="mr-2 h-4 w-4"></i> Catat Transaksi
         </a>
     </div>
 
@@ -15,21 +15,21 @@
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
             <div class="flex items-center space-x-2">
                 <i data-lucide="arrow-down-circle" class="h-4 w-4 text-emerald-500"></i>
-                <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Filtered Income</h3>
+                <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Pemasukan Tersaring</h3>
             </div>
             <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Rp {{ "{:,.0f}".format(total_income).replace(',', '.') }}</div>
         </div>
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
             <div class="flex items-center space-x-2">
                 <i data-lucide="arrow-up-circle" class="h-4 w-4 text-destructive"></i>
-                <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Filtered Expense</h3>
+                <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Pengeluaran Tersaring</h3>
             </div>
             <div class="text-2xl font-bold text-destructive">Rp {{ "{:,.0f}".format(total_expense).replace(',', '.') }}</div>
         </div>
         <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1">
             <div class="flex items-center space-x-2">
                 <i data-lucide="wallet" class="h-4 w-4 text-blue-500"></i>
-                <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Net Flow</h3>
+                <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Arus Kas Bersih</h3>
             </div>
             <div class="text-2xl font-bold {% if net_flow >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-destructive{% endif %}">
                 Rp {{ "{:,.0f}".format(net_flow).replace(',', '.') }}
@@ -46,13 +46,14 @@
             <!-- View Toggle -->
             <div class="flex w-full sm:w-auto items-center p-1 border border-border rounded-md bg-muted/50">
                 <a href="{{ clean_url('transactions.transactions_list', view='list', cal_year=cal_year, cal_month=cal_month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="flex-1 sm:flex-none inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'list' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
-                    <i data-lucide="list" class="w-4 h-4 mr-1.5"></i> List
+                    <i data-lucide="list" class="w-4 h-4 mr-1.5"></i> Daftar
                 </a>
                 <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=cal_year, cal_month=cal_month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="flex-1 sm:flex-none inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium rounded-sm transition-all {% if view == 'calendar' %}bg-background shadow-sm text-foreground{% else %}text-muted-foreground hover:text-foreground{% endif %}">
-                    <i data-lucide="calendar-days" class="w-4 h-4 mr-1.5"></i> Calendar
+                    <i data-lucide="calendar-days" class="w-4 h-4 mr-1.5"></i> Kalender
                 </a>
             </div>
-            <div class="grid grid-cols-3 gap-2 w-full sm:flex sm:items-center sm:w-auto">
+            <div class="grid {% if view == 'list' %}grid-cols-3{% else %}grid-cols-1{% endif %} gap-2 w-full sm:flex sm:items-center sm:w-auto">
+                {% if view == 'list' %}
                 <!-- Bulk Edit Category Button -->
                 <button type="button" @click="
                     const checkedBoxes = Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value);
@@ -61,7 +62,7 @@
                         return; 
                     }
                     selectedRows = checkedBoxes;
-                    $dispatch('open-bulk-edit-modal');
+                    $dispatch('open-bulk-edit-modal', { ids: checkedBoxes });
                 " class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 sm:h-8 px-3 transition-colors">
                     <i data-lucide="tag" class="w-3.5 h-3.5"></i> 
                     <span class="inline">Ubah Kategori</span>
@@ -107,6 +108,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
 
                 <div x-data="{ showDeleteAll: false }">
                 <button @click="showDeleteAll = true" class="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-md text-xs font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 sm:h-8 px-3 transition-colors">
@@ -147,7 +149,7 @@
                         <i data-lucide="chevron-left" class="w-4 h-4"></i>
                     </a>
                     <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=now.year, cal_month=now.month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="px-3 py-2 border border-border rounded-md hover:bg-muted text-sm font-medium text-muted-foreground">
-                        Today
+                        Hari Ini
                     </a>
                     <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=(cal_year if cal_month < 12 else cal_year + 1), cal_month=(cal_month + 1 if cal_month < 12 else 1), start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
                         <i data-lucide="chevron-right" class="w-4 h-4"></i>
@@ -202,7 +204,7 @@
                 <!-- Search -->
                 <div class="relative">
                     <i data-lucide="search" class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground"></i>
-                    <input type="text" name="search" placeholder="Search description..." value="{{ search_query }}" class="h-9 w-full md:w-[180px] rounded-md border border-input bg-background pl-8 pr-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
+                    <input type="text" name="search" placeholder="Cari deskripsi..." value="{{ search_query }}" class="h-9 w-full md:w-[180px] rounded-md border border-input bg-background pl-8 pr-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
                 </div>
                 <!-- Date Pickers -->
                 <div class="flex items-center h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm transition-colors focus-within:ring-1 focus-within:ring-ring">
@@ -213,7 +215,7 @@
                 </div>
                 <!-- Category -->
                 <select name="category" class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                    <option value="">All Categories</option>
+                    <option value="">Semua Kategori</option>
                     <option value="Transfer" {% if selected_category == 'Transfer' %}selected{% endif %}>Transfer</option>
                     {% for group, cats in categories.items() %}
                         <optgroup label="{{ group }}">
@@ -225,7 +227,7 @@
                 </select>
                 <!-- Account -->
                 <select name="account_id" class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
-                    <option value="">All Accounts</option>
+                    <option value="">Semua Akun</option>
                     {% for acc in accounts %}
                         <option value="{{ acc.id }}" {% if selected_account|string == acc.id|string %}selected{% endif %}>{{ acc.name }}</option>
                     {% endfor %}
@@ -238,7 +240,7 @@
                 <!-- Export Dropdown -->
                 <div x-data="{ exportOpen: false }" class="relative ml-auto">
                     <button type="button" @click="exportOpen = !exportOpen" @click.outside="exportOpen = false" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 shadow-sm">
-                        <i data-lucide="download" class="w-4 h-4 mr-2"></i> Export <i data-lucide="chevron-down" class="w-4 h-4 ml-2 opacity-50"></i>
+                        <i data-lucide="download" class="w-4 h-4 mr-2"></i> Ekspor <i data-lucide="chevron-down" class="w-4 h-4 ml-2 opacity-50"></i>
                     </button>
                     <div x-show="exportOpen" x-transition.opacity class="absolute right-0 top-full mt-1 w-32 rounded-md border border-border bg-popover text-popover-foreground shadow-md z-50 p-1" x-cloak>
                         {% set query_params = 'start_date=' + start_date + '&end_date=' + end_date + '&category=' + selected_category|urlencode + '&account_id=' + selected_account|string + '&search=' + search_query|urlencode + '&tx_type=' + (tx_type or '') + '&min_amount=' + (min_amount|string if min_amount else '') %}
@@ -255,19 +257,19 @@
                 </div>
             </form>
             <div class="w-full flex flex-wrap gap-2 pt-4 mt-4 border-t border-border">
-                <span class="text-xs font-semibold text-muted-foreground mr-1 self-center uppercase tracking-wider">Quick Filters:</span>
+                <span class="text-xs font-semibold text-muted-foreground mr-1 self-center uppercase tracking-wider">Filter Cepat:</span>
                 {% set tm_start = now.replace(day=1).strftime('%Y-%m-%d') %}
                 <a href="?view={{ view }}&start_date={{ tm_start }}&end_date=" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-secondary {% if start_date == tm_start and not end_date and not tx_type and not min_amount %}bg-secondary text-secondary-foreground{% else %}border-transparent bg-muted text-muted-foreground hover:text-foreground{% endif %}">
-                    This Month
+                    Bulan Ini
                 </a>
                 <a href="?view={{ view }}&tx_type=income" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-secondary {% if tx_type == 'income' %}bg-secondary text-secondary-foreground{% else %}border-transparent bg-muted text-muted-foreground hover:text-foreground{% endif %}">
-                    <i data-lucide="arrow-down-circle" class="w-3 h-3 mr-1"></i> Income Only
+                    <i data-lucide="arrow-down-circle" class="w-3 h-3 mr-1"></i> Hanya Pemasukan
                 </a>
                 <a href="?view={{ view }}&tx_type=expense" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-secondary {% if tx_type == 'expense' and not min_amount %}bg-secondary text-secondary-foreground{% else %}border-transparent bg-muted text-muted-foreground hover:text-foreground{% endif %}">
-                    <i data-lucide="arrow-up-circle" class="w-3 h-3 mr-1"></i> Expense Only
+                    <i data-lucide="arrow-up-circle" class="w-3 h-3 mr-1"></i> Hanya Pengeluaran
                 </a>
                 <a href="?view={{ view }}&tx_type=expense&min_amount=500000" class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:bg-secondary {% if min_amount == 500000.0 %}bg-secondary text-secondary-foreground{% else %}border-transparent bg-muted text-muted-foreground hover:text-foreground{% endif %}">
-                    <i data-lucide="flame" class="w-3 h-3 mr-1 text-orange-500"></i> High Expenses (>500k)
+                    <i data-lucide="flame" class="w-3 h-3 mr-1 text-orange-500"></i> Pengeluaran Besar (&gt;500rb)
                 </a>
             </div>
         </div>
@@ -290,14 +292,25 @@
                                 </th>
                             {% endmacro %}
                             <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-[40px]">
-                                <!-- Empty header for checkbox column -->
+                                <input type="checkbox"
+                                       title="Pilih Semua di Halaman Ini"
+                                       @change="
+                                           const allCbs = Array.from(document.querySelectorAll('.row-checkbox'));
+                                           if ($event.target.checked) {
+                                               selectedRows = allCbs.map(cb => cb.value);
+                                           } else {
+                                               selectedRows = [];
+                                           }
+                                       "
+                                       :checked="selectedRows.length > 0 && selectedRows.length === document.querySelectorAll('.row-checkbox').length"
+                                       class="w-4 h-4 rounded border-input text-primary focus:ring-primary bg-background cursor-pointer">
                             </th>
-                            {{ sort_link('date', 'Date', 'text-left') }}
-                            {{ sort_link('category', 'Category', 'text-left') }}
-                            {{ sort_link('account_name', 'Account', 'text-left') }}
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Description</th>
-                            {{ sort_link('amount', 'Amount', 'text-right justify-end w-full') }}
-                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground w-[100px]">Actions</th>
+                            {{ sort_link('date', 'Tanggal', 'text-left') }}
+                            {{ sort_link('category', 'Kategori', 'text-left') }}
+                            {{ sort_link('account_name', 'Akun', 'text-left') }}
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Deskripsi</th>
+                            {{ sort_link('amount', 'Nominal', 'text-right justify-end w-full') }}
+                            <th class="h-12 px-4 text-center align-middle font-medium text-muted-foreground w-[100px]">Aksi</th>
                         </tr>
                     </thead>
                     <tbody class="[&_tr:last-child]:border-0">
@@ -353,7 +366,7 @@
                 </table>
                 {% if total_pages > 1 %}
                 <div class="p-4 border-t border-border flex items-center justify-between bg-card text-card-foreground">
-                    <p class="text-sm text-muted-foreground">Page {{ page }} of {{ total_pages }}</p>
+                    <p class="text-sm text-muted-foreground">Halaman {{ page }} dari {{ total_pages }}</p>
                     <div class="flex gap-2">
                         {% if page > 1 %}
                         <a href="{{ clean_url('transactions.transactions_list', view=view, page=page - 1, sort_by=sort_by, sort_order=sort_order, search=search_query, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, tx_type=tx_type, min_amount=min_amount) }}" class="inline-flex items-center justify-center h-8 w-8 rounded-md border border-input bg-background hover:bg-muted text-sm font-medium transition-colors">
@@ -376,22 +389,20 @@
                     <circle cx="12" cy="12" r="10" stroke-dasharray="2 4"/>
                     <path d="M3 12h2M19 12h2M12 3V1M12 23v-2M5.6 5.6l-1.4-1.4M18.4 18.4l1.4 1.4M5.6 18.4l-1.4 1.4M18.4 5.6l1.4-1.4"/>
                 </svg>
-                <h3 class="text-2xl font-bold tracking-tight text-foreground">No transactions found</h3>
-                <p class="text-muted-foreground mt-2 mb-8 max-w-md mx-auto text-base">We couldn't find any transactions matching your current filters. Try adjusting them or record a new entry to get started.</p>
+                <h3 class="text-2xl font-bold tracking-tight text-foreground">Belum Ada Transaksi</h3>
+                <p class="text-muted-foreground mt-2 mb-8 max-w-md mx-auto text-base">Tidak ada transaksi yang cocok dengan filter saat ini. Coba sesuaikan filter atau catat transaksi baru.</p>
                 <div class="flex gap-4">
                     <a href="{{ url_for('transactions.transactions_list') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-8 shadow-sm">
-                        Clear Filters
+                        Reset Filter
                     </a>
                     <a href="{{ url_for('transactions.add_transaction') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 shadow-sm">
-                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add Transaction
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Catat Transaksi
                     </a>
                 </div>
             </div>
             {% endif %}
         </div>
     </div>
-
-</div>
 
 <!-- Edit Modal -->
 <div x-data="{ 
@@ -412,24 +423,24 @@ x-cloak>
                         <input type="hidden" name="next" :value="window.location.pathname + window.location.search">
                         <div class="px-6 py-6 pb-4">
                             <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold leading-6">Edit Transaction</h3>
+                                <h3 class="text-lg font-semibold leading-6">Edit Transaksi</h3>
                                 <button type="button" @click="editOpen = false" class="text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
                             </div>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium mb-1">Amount (Rp)</label>
+                                    <label class="block text-sm font-medium mb-1">Nominal (Rp)</label>
                                     <input type="text" inputmode="decimal" name="amount" x-model="tx.amount" @input="tx.amount = window.formatRibuanInput ? window.formatRibuanInput($event.target.value, false) : $event.target.value" required class="auto-ribuan flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-1">Description</label>
+                                    <label class="block text-sm font-medium mb-1">Deskripsi</label>
                                     <input type="text" name="description" x-model="tx.description" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-1">Date</label>
+                                    <label class="block text-sm font-medium mb-1">Tanggal</label>
                                     <input type="date" name="date" x-model="tx.date" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-1">Category</label>
+                                    <label class="block text-sm font-medium mb-1">Kategori</label>
                                     <select name="category" x-model="tx.category" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                         <option value="Transfer" x-show="tx.category === 'Transfer'">Transfer</option>
                                         {% for group, cats in categories.items() %}
@@ -442,7 +453,7 @@ x-cloak>
                                     </select>
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium mb-1">Account</label>
+                                    <label class="block text-sm font-medium mb-1">Akun / Dompet</label>
                                     <select name="account_id" x-model="tx.account_id" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                         {% for acc in accounts %}
                                             <option value="{{ acc.id }}">{{ acc.name }}</option>
@@ -452,8 +463,8 @@ x-cloak>
                             </div>
                         </div>
                         <div class="bg-muted/50 px-6 py-4 flex flex-row-reverse sm:px-6">
-                            <button type="submit" class="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto">Save Changes</button>
-                            <button type="button" @click="editOpen = false" class="mt-3 inline-flex w-full justify-center rounded-md bg-background px-3 py-2 text-sm font-medium shadow-sm ring-1 ring-inset ring-border hover:bg-muted sm:mt-0 sm:w-auto">Cancel</button>
+                            <button type="submit" class="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto">Simpan Perubahan</button>
+                            <button type="button" @click="editOpen = false" class="mt-3 inline-flex w-full justify-center rounded-md bg-background px-3 py-2 text-sm font-medium shadow-sm ring-1 ring-inset ring-border hover:bg-muted sm:mt-0 sm:w-auto">Batal</button>
                         </div>
                     </form>
                 </div>
@@ -463,7 +474,7 @@ x-cloak>
 </div>
 
 <!-- Bulk Edit Modal -->
-<div x-data="{ bulkEditOpen: false }" @open-bulk-edit-modal.window="bulkEditOpen = true" x-cloak>
+<div x-data="{ bulkEditOpen: false, bulkEditIds: '', bulkEditCount: 0 }" @open-bulk-edit-modal.window="const rows = ($event.detail && $event.detail.ids) ? $event.detail.ids : selectedRows; bulkEditIds = rows.join(','); bulkEditCount = rows.length; bulkEditOpen = true" x-cloak>
     <div x-show="bulkEditOpen" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div x-show="bulkEditOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm transition-opacity" @click="bulkEditOpen = false"></div>
         <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
@@ -471,18 +482,18 @@ x-cloak>
                 <div x-show="bulkEditOpen" x-transition.scale.origin.bottom.duration.300 class="relative transform overflow-hidden rounded-xl bg-background text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-border">
                     <form action="{{ url_for('transactions.bulk_edit_transactions') }}" method="POST">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                        <input type="hidden" name="transaction_ids" :value="selectedRows.join(',')"/>
+                        <input type="hidden" name="transaction_ids" :value="bulkEditIds || selectedRows.join(',')"/>
                         <div class="px-6 py-6 pb-4">
                             <div class="flex items-center justify-between mb-4">
-                                <h3 class="text-lg font-semibold leading-6">Bulk Edit Category</h3>
+                                <h3 class="text-lg font-semibold leading-6">Ubah Kategori Massal</h3>
                                 <button type="button" @click="bulkEditOpen = false" class="text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
                             </div>
-                            <p class="text-sm text-muted-foreground mb-4">You are about to change the category for <span class="font-bold text-foreground" x-text="selectedRows.length"></span> selected transaction(s).</p>
+                            <p class="text-sm text-muted-foreground mb-4">Anda akan mengubah kategori untuk <span class="font-bold text-foreground" x-text="bulkEditCount || selectedRows.length"></span> transaksi yang dipilih.</p>
                             <div class="space-y-4">
                                 <div>
-                                    <label class="block text-sm font-medium mb-1">New Category</label>
+                                    <label class="block text-sm font-medium mb-1">Kategori Baru</label>
                                     <select name="category" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                        <option value="">-- Select Category --</option>
+                                        <option value="">-- Pilih Kategori --</option>
                                         {% for group, cats in categories.items() %}
                                             <optgroup label="{{ group }}">
                                                 {% for cat in cats %}
@@ -495,8 +506,8 @@ x-cloak>
                             </div>
                         </div>
                         <div class="bg-muted/50 px-6 py-4 flex flex-row-reverse sm:px-6">
-                            <button type="submit" class="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto">Apply Change</button>
-                            <button type="button" @click="bulkEditOpen = false" class="mt-3 inline-flex w-full justify-center rounded-md bg-background px-3 py-2 text-sm font-medium shadow-sm ring-1 ring-inset ring-border hover:bg-muted sm:mt-0 sm:w-auto">Cancel</button>
+                            <button type="submit" class="inline-flex w-full justify-center rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary/90 sm:ml-3 sm:w-auto">Terapkan Perubahan</button>
+                            <button type="button" @click="bulkEditOpen = false" class="mt-3 inline-flex w-full justify-center rounded-md bg-background px-3 py-2 text-sm font-medium shadow-sm ring-1 ring-inset ring-border hover:bg-muted sm:mt-0 sm:w-auto">Batal</button>
                         </div>
                     </form>
                 </div>

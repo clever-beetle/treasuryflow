@@ -137,11 +137,11 @@
             <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm overflow-hidden">
         <div class="flex items-center justify-between p-6 border-b border-border">
             <div class="space-y-1">
-                <h3 class="font-semibold leading-none tracking-tight">Recent Transactions</h3>
-                <p class="text-sm text-muted-foreground">Your latest financial activities</p>
+                <h3 class="font-semibold leading-none tracking-tight">Transaksi Terbaru</h3>
+                <p class="text-sm text-muted-foreground">Aktivitas keuangan terakhir Anda</p>
             </div>
             <a href="{{ url_for('transactions.transactions_list') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-3">
-                View All
+                Lihat Semua
             </a>
         </div>
         <div class="p-0">
@@ -150,10 +150,10 @@
                 <table class="w-full caption-bottom text-sm">
                     <thead class="[&_tr]:border-b">
                         <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Date</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Category</th>
-                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Account</th>
-                            <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Amount</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Tanggal</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Kategori</th>
+                            <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Akun</th>
+                            <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Nominal</th>
                         </tr>
                     </thead>
                     <tbody class="[&_tr:last-child]:border-0">
@@ -186,10 +186,10 @@
                 <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
                     <i data-lucide="inbox" class="w-6 h-6 text-muted-foreground"></i>
                 </div>
-                <h3 class="font-medium">No transactions found</h3>
-                <p class="text-sm text-muted-foreground mt-1">Start by adding a new transaction.</p>
+                <h3 class="font-medium">Belum ada transaksi</h3>
+                <p class="text-sm text-muted-foreground mt-1">Mulai dengan mencatat transaksi pertama Anda.</p>
                 <a href="{{ url_for('transactions.add_transaction') }}" class="mt-4 inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2">
-                    Add Transaction
+                    Catat Transaksi
                 </a>
             </div>
             {% endif %}
@@ -574,7 +574,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const gridColor = isDark ? '#334155' : '#e2e8f0';
 
     if (cashFlowEl && chartData) {
-        new Chart(cashFlowEl.getContext('2d'), {
+        window._dashCashFlowChart = new Chart(cashFlowEl.getContext('2d'), {
             type: 'line',
             data: {
                 labels: chartData.labels || [],
@@ -664,7 +664,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const catDataInput = {{ category_chart_data|default({'labels': [], 'data': []})|tojson }};
         const catDataRaw = typeof catDataInput === 'string' ? JSON.parse(catDataInput) : catDataInput;
         if (catDataRaw && catDataRaw.data && catDataRaw.data.length > 0) {
-            new Chart(categoryCtx.getContext('2d'), {
+            window._dashCategoryChart = new Chart(categoryCtx.getContext('2d'), {
                 type: 'doughnut',
                 data: {
                     labels: catDataRaw.labels,
@@ -713,6 +713,25 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
     }
+
+    window.addEventListener('theme-changed', function(e) {
+        const dark = e.detail && e.detail.dark;
+        const newText = dark ? '#94a3b8' : '#64748b';
+        const newGrid = dark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
+        if (window._dashCashFlowChart) {
+            window._dashCashFlowChart.options.plugins.legend.labels.color = newText;
+            window._dashCashFlowChart.options.scales.x.ticks.color = newText;
+            window._dashCashFlowChart.options.scales.x.grid.color = newGrid;
+            window._dashCashFlowChart.options.scales.y.ticks.color = newText;
+            window._dashCashFlowChart.options.scales.y.grid.color = newGrid;
+            window._dashCashFlowChart.update();
+        }
+        if (window._dashCategoryChart) {
+            window._dashCategoryChart.data.datasets[0].borderColor = dark ? '#1e293b' : '#ffffff';
+            window._dashCategoryChart.options.plugins.legend.labels.color = newText;
+            window._dashCategoryChart.update();
+        }
+    });
 });
 </script>
 
@@ -732,6 +751,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         cal.paint({
             itemSelector: '#cal-heatmap',
+            theme: document.documentElement.classList.contains('dark') ? 'dark' : 'light',
             domain: { type: 'month' },
             subDomain: { type: 'day', width: 12, height: 12, radius: 2 },
             data: { source: rawData, x: 'date', y: 'value' },

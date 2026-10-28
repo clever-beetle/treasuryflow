@@ -135,7 +135,9 @@ def settings():
         elif action == 'add_category':
             cat_type = request.form.get('type')
             cat_name = (request.form.get('name') or '').strip()
-            if cat_type in ['income', 'expense'] and cat_name:
+            if ',' in cat_name:
+                error = "Nama kategori tidak boleh mengandung tanda koma (,)."
+            elif cat_type in ['income', 'expense'] and cat_name:
                 default_cats = [c.lower() for c in CATEGORIES.get(cat_type, [])] + ['transfer']
                 existing = db.execute("SELECT id FROM user_categories WHERE user_id = ? AND LOWER(name) = LOWER(?) AND type = ?", (user_id, cat_name, cat_type)).fetchone()
                 if existing or cat_name.lower() in default_cats:
@@ -150,9 +152,18 @@ def settings():
         elif action == 'delete_category':
             cat_id = request.form.get('category_id')
             if cat_id:
-                db.execute("DELETE FROM user_categories WHERE id = ? AND user_id = ?", (cat_id, user_id))
-                db.commit()
-                message = "Kategori berhasil dihapus."
+                row = db.execute("SELECT id, name, type FROM user_categories WHERE id = ? AND user_id = ?", (cat_id, user_id)).fetchone()
+                if row:
+                    cat_name = row['name']
+                    cat_type = row['type']
+                    db.execute("DELETE FROM user_categories WHERE id = ? AND user_id = ?", (cat_id, user_id))
+                    db.execute("UPDATE transactions SET category = 'Lainnya' WHERE user_id = ? AND LOWER(category) = LOWER(?) AND type = ?", (user_id, cat_name, cat_type))
+                    try:
+                        db.execute("DELETE FROM budgets WHERE user_id = ? AND LOWER(category_name) = LOWER(?)", (user_id, cat_name))
+                    except Exception:
+                        pass
+                    db.commit()
+                    message = f"Kategori '{cat_name}' berhasil dihapus."
 
         elif action == 'reset_data':
             password_check = request.form.get('password_check')
@@ -232,7 +243,9 @@ def setup_account():
     }
     
     ACCOUNT_TYPES['E-WALLET'].sort()
+    ACCOUNT_TYPES['E-WALLET'].append('Lainnya')
     ACCOUNT_TYPES['BANK'].sort()
+    ACCOUNT_TYPES['BANK'].append('Lainnya')
 
     if delete_id and request.method == 'POST':
         account_row = db.execute('SELECT name FROM accounts WHERE id = ? AND user_id = ?', (delete_id, user_id)).fetchone()
@@ -260,10 +273,10 @@ def setup_account():
         account_to_edit = db.execute('SELECT * FROM accounts WHERE id = ? AND user_id = ?', (edit_id, user_id)).fetchone()
 
     if request.method == 'POST':
-        action = request.form.get('action')
+        action = request.form.get('action') or 'add'
         
         try:
-            balance = parse_amount(request.form.get('initial_balance', '0'))
+            balance = parse_amount(request.form.get('initial_balance') or request.form.get('balance') or '0')
             
             if action == 'edit':
                 edit_account_id = request.form.get('edit_account_id')
@@ -298,15 +311,23 @@ def setup_account():
                 return redirect(url_for('settings.setup_account', message=message))
 
             elif action == 'add':
-                category_key = (request.form.get('category_key') or '').strip()
+                category_key = (request.form.get('category_key') or request.form.get('category') or '').strip()
+                custom_name = (request.form.get('custom_name') or '').strip()
                 if category_key == 'CASH':
                     name_detail = 'Cash' 
-                    final_name = "Cash"
+                    final_name = f"Cash ({custom_name})" if custom_name else "Cash"
                 else:
-                    name_detail = (request.form.get('name_detail') or '').strip()
-                    final_name = f"[{category_key}] {name_detail}"
+                    name_detail = (request.form.get('name_detail') or request.form.get('provider') or '').strip()
+                    if not category_key or category_key not in ACCOUNT_TYPES or not name_detail or name_detail not in ACCOUNT_TYPES[category_key]:
+                        raise ValueError("Pilihan kategori atau nama institusi tidak valid.")
+                    if name_detail == 'Lainnya' and custom_name:
+                        final_name = f"[{category_key}] {custom_name}"
+                    elif custom_name:
+                        final_name = f"[{category_key}] {name_detail} ({custom_name})"
+                    else:
+                        final_name = f"[{category_key}] {name_detail}"
                 
-                if not category_key or category_key not in ACCOUNT_TYPES or not name_detail or name_detail not in ACCOUNT_TYPES[category_key]:
+                if not category_key or category_key not in ACCOUNT_TYPES:
                      raise ValueError("Pilihan kategori atau nama institusi tidak valid.")
                 
                 # Check if it's a liability type

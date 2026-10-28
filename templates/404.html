@@ -1,44 +1,81 @@
-{% extends 'base_auth.html' %}
-{% block title %}404 - Halaman Tidak Ditemukan{% endblock %}
-{% block styles %}
-<script src="https://cdn.tailwindcss.com"></script>
-{% endblock %}
-{% block content %}
-<div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-    <div class="max-w-md w-full space-y-8 glass-card p-10 text-center relative overflow-hidden">
-        
-        <!-- Animated Background Element -->
-        <div class="absolute -top-20 -right-20 w-40 h-40 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-        <div class="absolute -bottom-20 -left-20 w-40 h-40 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-
-        <div class="relative z-10">
-            <h1 class="text-9xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-600 drop-shadow-lg">
-                404
-            </h1>
-            <h2 class="mt-6 text-3xl font-bold text-white tracking-tight">
-                Oops! Nyasar ya?
-            </h2>
-            <p class="mt-4 text-slate-400">
-                Halaman yang Anda cari sepertinya tidak ada di sistem kami. Mungkin URL-nya salah atau halamannya sudah dihapus.
+<!DOCTYPE html>
+<html lang="id" class="light" x-data="{ darkMode: localStorage.getItem('theme') === 'dark' }" :class="{ 'dark': darkMode, 'light': !darkMode }">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 - Halaman Tidak Ditemukan — Treasury Flow</title>
+    <script>
+        (function() {
+            const isDark = localStorage.getItem('theme') === 'dark';
+            document.documentElement.classList.toggle('dark', isDark);
+            document.documentElement.classList.toggle('light', !isDark);
+        })();
+    </script>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 47.4% 11.2%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --border: 214.3 31.8% 91.4%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 47.4% 11.2%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --radius: 0.5rem;
+        }
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --border: 217.2 32.6% 17.5%;
+            --card: 222.2 84% 4.9%;
+            --card-foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        border: "hsl(var(--border))",
+                        background: "hsl(var(--background))",
+                        foreground: "hsl(var(--foreground))",
+                        primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+                        muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+                        card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-foreground antialiased min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full rounded-2xl border border-border bg-card text-card-foreground p-10 text-center shadow-xl relative overflow-hidden space-y-6">
+        <div class="mx-auto w-16 h-16 rounded-full bg-[#11237e]/10 dark:bg-indigo-500/20 flex items-center justify-center text-[#11237e] dark:text-indigo-400">
+            <i data-lucide="compass" class="w-8 h-8"></i>
+        </div>
+        <div>
+            <h1 class="text-7xl font-extrabold tracking-tight text-[#11237e] dark:text-indigo-400">404</h1>
+            <h2 class="mt-3 text-2xl font-bold tracking-tight text-foreground">Oops! Nyasar ya? — Halaman Tidak Ditemukan</h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+                Maaf, halaman yang Anda tuju tidak tersedia atau telah dipindahkan.
             </p>
-            
-            <div class="mt-8 flex flex-col space-y-4">
-                <a href="{{ url_for('dashboard.dashboard') }}" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-xl text-white bg-primary hover:bg-blue-600 hover:shadow-lg hover:shadow-primary/30 transition-all duration-300 transform hover:-translate-y-1">
-                    <i class="fa-solid fa-house mr-2"></i> Kembali ke Dashboard
-                </a>
-            </div>
+        </div>
+        <div class="pt-2">
+            <a href="{{ url_for('dashboard.dashboard') }}" class="inline-flex w-full items-center justify-center rounded-lg bg-[#11237e] dark:bg-primary px-6 py-3 text-sm font-semibold text-white dark:text-primary-foreground shadow-sm hover:opacity-90 transition-all">
+                <i data-lucide="home" class="w-4 h-4 mr-2"></i> Kembali ke Dashboard
+            </a>
         </div>
     </div>
-</div>
-
-<style>
-@keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
-  100% { transform: translate(0px, 0px) scale(1); }
-}
-.animate-blob { animation: blob 7s infinite; }
-.animation-delay-2000 { animation-delay: 2s; }
-</style>
-{% endblock %}
+    <script>lucide.createIcons();</script>
+</body>
+</html>

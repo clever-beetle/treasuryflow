@@ -1,9 +1,16 @@
 <!DOCTYPE html>
-<html lang="id" class="light" x-data="{ mobileMenuOpen: false, darkMode: localStorage.getItem('theme') === 'dark' }" x-init="$watch('darkMode', val => localStorage.setItem('theme', val ? 'dark' : 'light'))" :class="{ 'dark': darkMode }">
+<html lang="id" class="light" x-data="{ mobileMenuOpen: false, darkMode: localStorage.getItem('theme') === 'dark' }" x-init="$watch('darkMode', val => { localStorage.setItem('theme', val ? 'dark' : 'light'); document.documentElement.classList.toggle('dark', val); document.documentElement.classList.toggle('light', !val); window.dispatchEvent(new CustomEvent('theme-changed', { detail: { dark: val } })); })" :class="{ 'dark': darkMode, 'light': !darkMode }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Treasury Flow</title>
+    <title>{% block title %}{% block page_title %}Dashboard{% endblock %} — Treasury Flow{% endblock %}</title>
+    <script>
+        (function() {
+            const isDark = localStorage.getItem('theme') === 'dark';
+            document.documentElement.classList.toggle('dark', isDark);
+            document.documentElement.classList.toggle('light', !isDark);
+        })();
+    </script>
     <link rel="manifest" href="{{ url_for('static', filename='manifest_light.json') }}">
     <meta name="theme-color" content="#ffffff">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
@@ -91,9 +98,38 @@
     
     <!-- Driver.js for Onboarding Tour -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/driver.js@1.0.1/dist/driver.css"/>
+    <style>
+        html.dark .driver-popover {
+            background-color: hsl(var(--card));
+            color: hsl(var(--card-foreground));
+            border: 1px solid hsl(var(--border));
+        }
+        html.dark .driver-popover .driver-popover-title,
+        html.dark .driver-popover .driver-popover-description,
+        html.dark .driver-popover .driver-popover-progress-text {
+            color: hsl(var(--card-foreground));
+        }
+        html.dark .driver-popover button {
+            background-color: hsl(var(--secondary));
+            color: hsl(var(--secondary-foreground));
+            text-shadow: none;
+            border: 1px solid hsl(var(--border));
+        }
+    </style>
 
 </head>
-<body class="bg-background text-foreground antialiased min-h-screen flex flex flex-col min-h-screen" x-data="{ mobileMenuOpen: false, modalOpen: false, modalId: null }" @open-modal.window="modalOpen = true; modalId = $event.detail" @close-modal.window="modalOpen = false; modalId = null">
+<body class="bg-background text-foreground antialiased min-h-screen flex flex-col" x-data="{ mobileMenuOpen: false, modalOpen: false, modalId: null, toasts: [] }" @open-modal.window="modalOpen = true; modalId = $event.detail" @close-modal.window="modalOpen = false; modalId = null" @toast.window="const id = Date.now() + Math.random(); toasts.push({ id, type: ($event.detail && $event.detail.type) || 'info', message: ($event.detail && $event.detail.message) || '' }); setTimeout(() => { toasts = toasts.filter(t => t.id !== id); }, 4000)">
+
+    <!-- Global Toast Notification Container -->
+    <div class="fixed top-20 right-4 z-[80] space-y-2 max-w-sm w-full pointer-events-none px-4 sm:px-0" x-cloak>
+        <template x-for="t in toasts" :key="t.id">
+            <div x-transition.opacity.duration.200ms class="pointer-events-auto flex items-center justify-between gap-3 p-4 rounded-xl border shadow-lg text-sm font-medium bg-card text-card-foreground"
+                 :class="t.type === 'error' || t.type === 'danger' ? 'border-destructive/40 bg-destructive/10 text-destructive' : (t.type === 'success' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'border-border bg-card text-card-foreground')">
+                <span x-text="t.message"></span>
+                <button type="button" @click="toasts = toasts.filter(item => item.id !== t.id)" class="text-muted-foreground hover:text-foreground p-1 rounded-md">✕</button>
+            </div>
+        </template>
+    </div>
 
     <!-- Mobile Sidebar Backdrop handled inside Offcanvas Menu -->
 
@@ -148,41 +184,41 @@
                                     </li>
                                     <li>
                                         <a href="{{ url_for('settings.setup_account') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'settings.setup_account' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="wallet" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'settings.setup_account' else 'text-green-500' }}"></i> Manage Accounts
+                                            <i data-lucide="wallet" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'settings.setup_account' else 'text-green-500' }}"></i> Kelola Akun & Dompet
                                         </a>
                                     </li>
                                     <li>
                                         <a href="{{ url_for('transactions.transactions_list') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint in ['transactions.transactions_list', 'transactions.transactions_calendar'] else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="list-ordered" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint in ['transactions.transactions_list', 'transactions.transactions_calendar'] else 'text-indigo-500' }}"></i> Transaction History
+                                            <i data-lucide="list-ordered" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint in ['transactions.transactions_list', 'transactions.transactions_calendar'] else 'text-indigo-500' }}"></i> Riwayat Transaksi
                                         </a>
                                     </li>
                                     <li>
                                         <a href="{{ url_for('transactions.add_transaction') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'transactions.add_transaction' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="plus-circle" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'transactions.add_transaction' else 'text-blue-500' }}"></i> Add Transaction
+                                            <i data-lucide="plus-circle" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'transactions.add_transaction' else 'text-blue-500' }}"></i> Catat Transaksi
                                         </a>
                                     </li>
                                     <li>
                                         <a href="{{ url_for('performance.financial_performance') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'performance.financial_performance' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="pie-chart" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'performance.financial_performance' else 'text-amber-500' }}"></i> Financial Performance
+                                            <i data-lucide="pie-chart" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'performance.financial_performance' else 'text-amber-500' }}"></i> Performa Keuangan
                                         </a>
                                     </li>
                                     <li>
                                         <a href="{{ url_for('extra.calendar_view') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'extra.calendar_view' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="calendar" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'extra.calendar_view' else 'text-sky-500' }}"></i> Financial Calendar
+                                            <i data-lucide="calendar" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'extra.calendar_view' else 'text-sky-500' }}"></i> Kalender Finansial
                                         </a>
                                     </li>
                                     <li>
                                         <a href="{{ url_for('extra.tools') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'extra.tools' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }}">
-                                            <i data-lucide="calculator" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'extra.tools' else 'text-emerald-500' }}"></i> Financial Tools
+                                            <i data-lucide="calculator" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'extra.tools' else 'text-emerald-500' }}"></i> Alat Finansial
                                         </a>
                                     </li>
                                 </ul>
                                 <div class="mt-8 pt-6 border-t border-border">
                                     <a href="{{ url_for('settings.settings') }}" class="flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-all duration-200 hover:scale-[1.02] active:scale-95 {{ 'bg-[#11237e] text-white shadow-md' if request.endpoint == 'settings.settings' else 'text-foreground hover:bg-accent hover:text-accent-foreground' }} mb-4">
-                                        <i data-lucide="settings" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'settings.settings' else 'text-slate-500' }}"></i> Settings
+                                        <i data-lucide="settings" class="h-5 w-5 mr-3 {{ 'text-white' if request.endpoint == 'settings.settings' else 'text-slate-500' }}"></i> Pengaturan
                                     </a>
                                     <button @click="$dispatch('open-modal', 'logoutModal'); mobileMenuOpen = false" class="flex w-full items-center justify-center rounded-md bg-destructive px-3 py-3 text-sm font-semibold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all duration-200 hover:scale-[1.02] active:scale-95">
-                                        <i data-lucide="log-out" class="h-4 w-4 mr-2"></i> Sign Out
+                                        <i data-lucide="log-out" class="h-4 w-4 mr-2"></i> Keluar Akun
                                     </button>
                                 </div>
                             </div>
@@ -235,11 +271,11 @@
             <div class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-sm overflow-hidden relative z-10">
                 <div class="p-6 text-center space-y-4">
 
-                    <h3 class="font-semibold text-lg tracking-tight">Sign Out</h3>
-                    <p class="text-sm text-muted-foreground">Are you sure you want to sign out from Treasury Flow?</p>
+                    <h3 class="font-semibold text-lg tracking-tight">Keluar dari Akun?</h3>
+                    <p class="text-sm text-muted-foreground">Apakah Anda yakin ingin keluar dari sesi Treasury Flow Anda?</p>
                     <div class="flex gap-3 w-full pt-2">
-                        <button @click="$dispatch('close-modal')" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">Cancel</button>
-                        <a href="{{ url_for('auth.logout') }}" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">Sign Out</a>
+                        <button @click="$dispatch('close-modal')" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">Batal</button>
+                        <a href="{{ url_for('auth.logout') }}" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">Keluar</a>
                     </div>
                 </div>
             </div>
@@ -401,7 +437,8 @@
                     if (!this.inputText.trim()) return;
                     
                     const userMsg = this.inputText.trim();
-                    this.messages.push({ role: 'user', text: userMsg });
+                    const escapeHtml = (str) => String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                    this.messages.push({ role: 'user', text: escapeHtml(userMsg) });
                     this.inputText = '';
                     this.isLoading = true;
                     this.scrollToBottom();
@@ -417,9 +454,10 @@
                         });
                         
                         const data = await response.json();
-                        
-                        // Format response text bolding
-                        let formattedText = data.reply.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        const rawReply = (data && data.reply) ? data.reply : ((data && data.error) ? data.error : 'Maaf, sistem AI sedang sibuk.');
+                        let formattedText = escapeHtml(rawReply)
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\n/g, '<br>');
                         
                         this.messages.push({ role: 'assistant', text: formattedText });
                     } catch (error) {
@@ -481,7 +519,7 @@
                     customSteps = [
                         { element: 'nav button:last-child', popover: { title: 'Menu Utama', description: 'Di sini Anda dapat berpindah antar halaman seperti Dashboard, Transaksi, dan Performa Keuangan.', side: "bottom", align: 'end' }},
                         { element: 'nav button[title="Toggle Theme"]', popover: { title: 'Tema Layar & Tutorial', description: 'Ganti tema gelap/terang, dan putar ulang tutorial ini kapan saja Anda butuhkan.', side: "bottom", align: 'end' }},
-                        { element: 'a[href*="/transactions/add"]', popover: { title: 'Catat Transaksi', description: 'Akses cepat untuk mencatat setiap pemasukan atau pengeluaran Anda.', side: "bottom", align: 'center' }},
+                        { element: 'a[href*="/transactions/add"], a[href*="/add_transaction"]', popover: { title: 'Catat Transaksi', description: 'Akses cepat untuk mencatat setiap pemasukan atau pengeluaran Anda.', side: "bottom", align: 'center' }},
                         { element: 'select', popover: { title: 'Filter Waktu', description: 'Ubah rentang waktu untuk melihat tren ringkasan keuangan pada periode tertentu.', side: "bottom", align: 'start' }},
                         { element: '.grid.gap-4 > div:nth-child(1)', popover: { title: 'Kartu Total Saldo', description: 'Jumlah gabungan dari semua rekening dan dompet aset Anda. Angka ini adalah kekayaan likuid Anda saat ini.', side: "bottom", align: 'center' }},
                         { element: '.grid.gap-4 > div:nth-child(2)', popover: { title: 'Kartu Pemasukan', description: 'Akumulasi seluruh uang yang masuk (Gaji, Bonus, dll) dalam periode yang Anda pilih.', side: "bottom", align: 'center' }},
@@ -492,7 +530,7 @@
                         { element: 'table', popover: { title: 'Aktivitas Terakhir', description: 'Daftar riwayat mutasi atau transaksi terbaru yang baru saja Anda catat.', side: "top", align: 'center' }},
                         { element: '.fixed.bottom-6.right-6', popover: { title: 'Treasury Flow AI', description: 'Punya pertanyaan tentang dompet Anda? Chat dengan AI cerdas kami kapan saja di sini!', side: "left", align: 'end' }}
                     ];
-                } else if (path.includes('transactions/add')) {
+                } else if (path.includes('transactions/add') || path.includes('add_transaction')) {
                     customSteps = [
                         { element: 'form', popover: { title: 'Formulir Pencatatan', description: 'Isi detail transaksi Anda di sini. Mulai dari jenis, tanggal, hingga nominalnya.', side: "top", align: 'center' }},
                         { element: 'input[name="amount"]', popover: { title: 'Nominal Uang', description: 'Masukkan jumlah uangnya. Sistem akan menata titik ribuan secara otomatis!', side: "bottom", align: 'start' }},
@@ -517,7 +555,7 @@
                     ];
                 } else if (path.includes('setup/accounts') || path.includes('setup_account')) {
                     customSteps = [
-                        { element: 'button[\\@click*="addAccountModal"]', popover: { title: 'Tambah Rekening (Dompet)', description: 'Buat dompet baru (misalnya BCA, GoPay, Uang Tunai, atau Kartu Kredit) untuk memisahkan pelacakan saldo Anda secara rapi dan akurat.', side: "bottom", align: 'end' }},
+                        { element: '#btn-add-account, [data-tour="add-account"], main button', popover: { title: 'Tambah Rekening (Dompet)', description: 'Buat dompet baru (misalnya BCA, GoPay, Uang Tunai, atau Kartu Kredit) untuk memisahkan pelacakan saldo Anda secara rapi dan akurat.', side: "bottom", align: 'end' }},
                         { element: '.grid.gap-6', popover: { title: 'Daftar Dompet Aktif', description: 'Ini adalah daftar seluruh rekening dan dompet yang Anda miliki beserta saldo terkininya. Anda dapat mengedit atau menghapusnya.', side: "top", align: 'center' }}
                     ];
                 } else if (path.includes('settings')) {
@@ -581,7 +619,7 @@
             };
 
             document.body.addEventListener('input', function(e) {
-                if (e.target && e.target.tagName === 'INPUT' && (e.target.classList.contains('auto-ribuan') || e.target.name === 'amount' || e.target.name === 'initial_balance' || e.target.name === 'limit_amount' || e.target.name === 'purchase_price' || e.target.name === 'total_amount' || e.target.name === 'amount_paid' || e.target.name === 'amount_per_cycle' || e.target.name === 'target_amount' || e.target.name === 'current_amount' || e.target.name === 'saving_amount')) {
+                if (e.target && e.target.tagName === 'INPUT' && (e.target.classList.contains('auto-ribuan') || e.target.name === 'amount' || e.target.name === 'initial_balance' || e.target.name === 'limit_amount' || e.target.name === 'purchase_price' || e.target.name === 'total_amount' || e.target.name === 'remaining_amount' || e.target.name === 'amount_paid' || e.target.name === 'amount_per_cycle' || e.target.name === 'target_amount' || e.target.name === 'current_amount' || e.target.name === 'saving_amount')) {
                     if (e.target.type !== 'number') {
                         e.target.value = window.formatRibuanInput(e.target.value, false);
                     }
@@ -589,7 +627,7 @@
             });
             
             // Reformat all on load
-            const autoInputs = document.querySelectorAll('input.auto-ribuan, input[name="amount"], input[name="initial_balance"], input[name="limit_amount"], input[name="purchase_price"], input[name="total_amount"], input[name="amount_paid"], input[name="amount_per_cycle"], input[name="target_amount"], input[name="current_amount"], input[name="saving_amount"]');
+            const autoInputs = document.querySelectorAll('input.auto-ribuan, input[name="amount"], input[name="initial_balance"], input[name="limit_amount"], input[name="purchase_price"], input[name="total_amount"], input[name="remaining_amount"], input[name="amount_paid"], input[name="amount_per_cycle"], input[name="target_amount"], input[name="current_amount"], input[name="saving_amount"]');
             autoInputs.forEach(input => {
                 if (input.value && input.type !== 'number') {
                     input.value = window.formatRibuanInput(input.value, true);

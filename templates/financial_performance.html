@@ -1,9 +1,9 @@
 {% extends "base_shadcn.html" %}
 {% import 'macros.html' as macros %}
+{% block page_title %}Performa Keuangan{% endblock %}
 
 {% block content %}
 <div x-data="{ activeTab: '{{ active_tab|default('analytics') }}' }">
-<main class="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         <div class="space-y-6">
             
             <!-- NEW: Net Worth Hero Card -->
@@ -112,18 +112,8 @@
                 
                 <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div class="flex flex-col">
-                        <h2 class="text-2xl font-bold tracking-tight">Financial Analytics</h2>
-                        <p class="text-sm text-muted-foreground mt-1">Deep dive into your financial performance over time</p>
-                    </div>
-                    <div class="relative">
-                        <select onchange="window.location.href='?period=' + this.value" class="h-10 px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring">
-                            <option value="3" {% if analytics_period == 3 %}selected{% endif %}>Last 3 Days</option>
-                            <option value="7" {% if analytics_period == 7 %}selected{% endif %}>Last 7 Days</option>
-                            <option value="30" {% if analytics_period == 30 %}selected{% endif %}>Last 30 Days</option>
-                            <option value="90" {% if analytics_period == 90 %}selected{% endif %}>Last 3 Months</option>
-                            <option value="180" {% if analytics_period == 180 %}selected{% endif %}>Last 6 Months</option>
-                            <option value="365" {% if analytics_period == 365 %}selected{% endif %}>Last 1 Year</option>
-                        </select>
+                        <h2 class="text-xl font-bold tracking-tight">Ringkasan Analitik Periode ({{ days_range }} Hari Terakhir)</h2>
+                        <p class="text-sm text-muted-foreground mt-1">Evaluasi mendalam arus kas, rasio tabungan, dan distribusi pengeluaran Anda</p>
                     </div>
                 </div>
 
@@ -131,21 +121,21 @@
                     <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1 hover:shadow-md transition-shadow">
                         <div class="flex items-center space-x-2">
                             <i data-lucide="arrow-down-circle" class="h-4 w-4 text-emerald-500"></i>
-                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Total Income</h3>
+                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Total Pemasukan</h3>
                         </div>
                         <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Rp {{ "{:,.0f}".format(analytics_total_income).replace(',', '.') }}</div>
                     </div>
                     <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1 hover:shadow-md transition-shadow">
                         <div class="flex items-center space-x-2">
                             <i data-lucide="arrow-up-circle" class="h-4 w-4 text-destructive"></i>
-                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Total Expense</h3>
+                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Total Pengeluaran</h3>
                         </div>
                         <div class="text-2xl font-bold text-destructive">Rp {{ "{:,.0f}".format(analytics_total_expense).replace(',', '.') }}</div>
                     </div>
                     <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1 hover:shadow-md transition-shadow">
                         <div class="flex items-center space-x-2">
                             <i data-lucide="wallet" class="h-4 w-4 text-blue-500"></i>
-                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Net Flow</h3>
+                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Arus Kas Bersih</h3>
                         </div>
                         <div class="text-2xl font-bold {% if analytics_net_flow >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-destructive{% endif %}">
                             Rp {{ "{:,.0f}".format(analytics_net_flow).replace(',', '.') }}
@@ -154,7 +144,7 @@
                     <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1 hover:shadow-md transition-shadow">
                         <div class="flex items-center space-x-2">
                             <i data-lucide="piggy-bank" class="h-4 w-4 text-amber-500"></i>
-                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Savings Rate</h3>
+                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Rasio Tabungan</h3>
                         </div>
                         <div class="text-2xl font-bold {% if analytics_savings_rate >= 20 %}text-emerald-600 dark:text-emerald-400{% elif analytics_savings_rate > 0 %}text-blue-500{% else %}text-destructive{% endif %}">
                             {{ "{:,.1f}".format(analytics_savings_rate) }}%
@@ -200,7 +190,7 @@
                             {% else %}
                             <div class="flex flex-col items-center justify-center text-center text-muted-foreground h-full">
                                 <i data-lucide="pie-chart" class="h-10 w-10 mb-2 opacity-20"></i>
-                                <p class="text-sm">No expenses found for this period.</p>
+                                <p class="text-sm">Belum ada pengeluaran pada periode ini.</p>
                             </div>
                             {% endif %}
                         </div>
@@ -713,7 +703,6 @@
             </div>
 
         </div>
-    </main>
 
     <!-- Base Modal Component logic handled via window events in alpine -->
     <div>
@@ -972,9 +961,15 @@
                                 <option value="receivable" {% if row.type == 'receivable' %}selected{% endif %}>Piutang (Saya meminjamkan)</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="text-sm font-medium mb-1 block">Total Nominal</label>
-                            <input type="text" name="total_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ '{:,.0f}'.format(row.total_amount or 0).replace(',', '.') }}" required>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="text-sm font-medium mb-1 block">Total Nominal</label>
+                                <input type="text" name="total_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ '{:,.0f}'.format(row.total_amount or 0).replace(',', '.') }}" required>
+                            </div>
+                            <div>
+                                <label class="text-sm font-medium mb-1 block">Sisa Belum Lunas</label>
+                                <input type="text" name="remaining_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ '{:,.0f}'.format(row.remaining_amount if row.remaining_amount is not none else (row.total_amount or 0)).replace(',', '.') }}" required>
+                            </div>
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Jatuh Tempo</label>
@@ -1199,6 +1194,15 @@
                             <input type="text" name="saving_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
                             <p class="text-xs text-muted-foreground mt-2">Dana saat ini: {{ g.current_amount | rupiah }}</p>
                         </div>
+                        <div>
+                            <label class="text-sm font-medium mb-1 block">Potong dari Akun / Dompet (Opsional)</label>
+                            <select name="account_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                <option value="">-- Hanya Catat Progres (Tanpa Potong Saldo) --</option>
+                                {% for acc in accounts %}
+                                    <option value="{{ acc.id }}">{{ acc.clean }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
                         <div class="pt-2 flex gap-2">
                             <button type="button" @click="$dispatch('close-modal')" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-10">Batal</button>
                             <button type="submit" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10">Simpan</button>
@@ -1378,11 +1382,11 @@
 
                 const ctx = document.getElementById('timeSeriesChart');
                 if (ctx) {
-                    new Chart(ctx, buildCashFlowConfig());
+                    window._perfTimeSeriesChart = new Chart(ctx, buildCashFlowConfig());
                 }
                 const ctxCashflowTab = document.getElementById('cashflowTabChart');
                 if (ctxCashflowTab) {
-                    new Chart(ctxCashflowTab, buildCashFlowConfig());
+                    window._perfCashflowTabChart = new Chart(ctxCashflowTab, buildCashFlowConfig());
                 }
             }
 
@@ -1393,7 +1397,7 @@
                 if (donutData && donutData.labels && donutData.labels.length > 0) {
                     const ctxDonut = document.getElementById('expenseDonutChart');
                     if (ctxDonut) {
-                        new Chart(ctxDonut, {
+                        window._perfDonutChart = new Chart(ctxDonut, {
                             type: 'doughnut',
                             data: {
                                 labels: donutData.labels,
@@ -1431,6 +1435,25 @@
                     }
                 }
             }
+
+            window.addEventListener('theme-changed', function(e) {
+                const dark = e.detail && e.detail.dark;
+                const newText = dark ? '#9ca3af' : '#4b5563';
+                const newGrid = dark ? '#374151' : '#e5e7eb';
+                [window._perfTimeSeriesChart, window._perfCashflowTabChart].forEach(ch => {
+                    if (!ch) return;
+                    ch.options.plugins.legend.labels.color = newText;
+                    ch.options.scales.x.ticks.color = newText;
+                    ch.options.scales.y.ticks.color = newText;
+                    ch.options.scales.y.grid.color = newGrid;
+                    ch.update();
+                });
+                if (window._perfDonutChart) {
+                    window._perfDonutChart.data.datasets[0].borderColor = dark ? '#020817' : '#ffffff';
+                    window._perfDonutChart.options.plugins.legend.labels.color = newText;
+                    window._perfDonutChart.update();
+                }
+            });
         });
     </script>
 </div>

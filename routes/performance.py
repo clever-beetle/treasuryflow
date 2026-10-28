@@ -51,6 +51,7 @@ def financial_performance():
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 ''', (user_id, person_name, type_record, total_amount, total_amount, due_date, notes))
                 db.commit()
+                flash('Catatan utang/piutang berhasil ditambahkan.', 'success')
             
         elif action == 'pay_debt':
             try:
@@ -87,6 +88,7 @@ def financial_performance():
                 db.commit()
                 from routes.dashboard import recalculate_account_balances
                 recalculate_account_balances(db, user_id)
+                flash('Pembayaran utang/piutang berhasil dicatat.', 'success')
 
         elif action == 'edit_debt':
             try:
@@ -96,27 +98,31 @@ def financial_performance():
             person_name = (request.form.get('person_name') or '').strip()
             type_record = request.form.get('type') if request.form.get('type') in ('debt', 'receivable') else 'debt'
             total_amount = parse_amount(request.form.get('total_amount', '0'))
+            raw_remaining = request.form.get('remaining_amount')
             due_date = request.form.get('due_date')
             notes = request.form.get('notes')
             
-            # Get current debt to recalculate remaining proportionally
             debt = db.execute("SELECT * FROM debts_receivables WHERE id = ? AND user_id = ?", (debt_id, user_id)).fetchone()
             if debt and person_name and total_amount > 0:
-                old_total = float(debt['total_amount']) or 1
-                old_remaining = float(debt['remaining_amount'])
-                # Proportional: if total changes, adjust remaining by same ratio
-                if old_total > 0:
-                    ratio = old_remaining / old_total
-                    new_remaining = total_amount * ratio
+                if raw_remaining is not None and str(raw_remaining).strip() != '':
+                    new_remaining = min(max(0.0, parse_amount(raw_remaining)), total_amount)
                 else:
-                    new_remaining = total_amount
+                    old_total = float(debt['total_amount']) or 1
+                    old_remaining = float(debt['remaining_amount'])
+                    if old_total > 0:
+                        ratio = old_remaining / old_total
+                        new_remaining = total_amount * ratio
+                    else:
+                        new_remaining = total_amount
+                new_status = 'LUNAS' if new_remaining <= 0 else 'BELUM LUNAS'
                 
                 db.execute('''
                     UPDATE debts_receivables 
-                    SET person_name = ?, type = ?, total_amount = ?, remaining_amount = ?, due_date = ?, notes = ?
+                    SET person_name = ?, type = ?, total_amount = ?, remaining_amount = ?, status = ?, due_date = ?, notes = ?
                     WHERE id = ? AND user_id = ?
-                ''', (person_name, type_record, total_amount, new_remaining, due_date, notes, debt_id, user_id))
+                ''', (person_name, type_record, total_amount, new_remaining, new_status, due_date, notes, debt_id, user_id))
                 db.commit()
+                flash('Catatan utang/piutang berhasil diperbarui.', 'success')
 
         elif action == 'delete_debt':
             try:
@@ -128,6 +134,7 @@ def financial_performance():
                 db.execute("DELETE FROM debts_receivables WHERE id = ?", (debt_id,))
                 db.execute("DELETE FROM debt_payments WHERE debt_id = ?", (debt_id,))
                 db.commit()
+                flash('Catatan utang/piutang berhasil dihapus.', 'success')
                 
         elif action == 'add_installment':
             name = (request.form.get('name') or '').strip()
@@ -161,6 +168,7 @@ def financial_performance():
                         VALUES (?, ?, ?, ?, ?, ?, 1)
                     ''', (user_id, name, amount_per_cycle, due_day, is_tenor, total_tenor))
                 db.commit()
+                flash('Layanan berlangganan/cicilan berhasil ditambahkan.', 'success')
 
         elif action == 'edit_installment':
             try:
@@ -200,6 +208,7 @@ def financial_performance():
                         WHERE id = ? AND user_id = ?
                     ''', (name, amount_per_cycle, due_day, is_tenor, total_tenor, inst_id, user_id))
                 db.commit()
+                flash('Layanan berlangganan/cicilan berhasil diperbarui.', 'success')
 
         elif action == 'delete_installment':
             try:
@@ -208,6 +217,7 @@ def financial_performance():
                 return redirect(url_for('performance.financial_performance', tab=target_tab))
             db.execute("DELETE FROM recurring_installments WHERE id = ? AND user_id = ?", (inst_id, user_id))
             db.commit()
+            flash('Layanan berlangganan/cicilan berhasil dihapus.', 'success')
 
         elif action == 'pay_installment':
             try:
@@ -304,6 +314,9 @@ def financial_performance():
                         flash(f"Cicilan {inst['name']} sudah LUNAS! 🎉", 'success')
                     else:
                         db.execute("UPDATE recurring_installments SET current_tenor = ? WHERE id = ?", (new_tenor, inst_id))
+                        flash(f"Pembayaran {inst['name']} berhasil dicatat.", 'success')
+                else:
+                    flash(f"Pembayaran {inst['name']} berhasil dicatat.", 'success')
                 
                 db.commit()
                 from routes.dashboard import recalculate_account_balances
@@ -323,6 +336,7 @@ def financial_performance():
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 ''', (user_id, asset_name, category, purchase_date, purchase_price, quantity, notes))
                 db.commit()
+                flash('Aset berhasil ditambahkan ke portofolio.', 'success')
 
         elif action == 'edit_asset':
             try:
@@ -343,6 +357,7 @@ def financial_performance():
                     WHERE id = ? AND user_id = ?
                 ''', (asset_name, category, purchase_date, purchase_price, quantity, notes, asset_id, user_id))
                 db.commit()
+                flash('Data aset berhasil diperbarui.', 'success')
 
         elif action == 'delete_asset':
             try:
@@ -351,6 +366,7 @@ def financial_performance():
                 return redirect(url_for('performance.financial_performance', tab=target_tab))
             db.execute("DELETE FROM assets WHERE id = ? AND user_id = ?", (asset_id, user_id))
             db.commit()
+            flash('Aset berhasil dihapus dari portofolio.', 'success')
 
         elif action == 'add_goal':
             name = (request.form.get('goal_name') or '').strip()
@@ -364,6 +380,7 @@ def financial_performance():
                     VALUES (?, ?, ?, ?, ?, ?)
                 ''', (user_id, name, target, current, due_date, init_status))
                 db.commit()
+                flash('Target finansial berhasil dibuat.', 'success')
 
         elif action == 'edit_goal':
             try:
@@ -382,6 +399,7 @@ def financial_performance():
                     WHERE id = ? AND user_id = ?
                 ''', (name, target, current, due_date, new_status, goal_id, user_id))
                 db.commit()
+                flash('Target finansial berhasil diperbarui.', 'success')
 
         elif action == 'saving_goal':
             try:
@@ -389,18 +407,36 @@ def financial_performance():
             except (ValueError, TypeError):
                 return redirect(url_for('performance.financial_performance', tab=target_tab))
             amount = parse_amount(request.form.get('saving_amount', '0'))
+            source_acc_raw = request.form.get('account_id', '')
             if amount > 0:
-                db.execute('''
-                    UPDATE financial_goals 
-                    SET current_amount = current_amount + ? 
-                    WHERE id = ? AND user_id = ?
-                ''', (amount, goal_id, user_id))
-                
-                goal = db.execute('SELECT target_amount, current_amount FROM financial_goals WHERE id = ? AND user_id = ?', (goal_id, user_id)).fetchone()
-                if goal and goal['current_amount'] >= goal['target_amount']:
-                    db.execute("UPDATE financial_goals SET status = 'Achieved' WHERE id = ? AND user_id = ?", (goal_id, user_id))
+                goal_row = db.execute('SELECT name, target_amount, current_amount FROM financial_goals WHERE id = ? AND user_id = ?', (goal_id, user_id)).fetchone()
+                if goal_row:
+                    db.execute('''
+                        UPDATE financial_goals 
+                        SET current_amount = current_amount + ? 
+                        WHERE id = ? AND user_id = ?
+                    ''', (amount, goal_id, user_id))
                     
-                db.commit()
+                    goal = db.execute('SELECT target_amount, current_amount FROM financial_goals WHERE id = ? AND user_id = ?', (goal_id, user_id)).fetchone()
+                    if goal and goal['current_amount'] >= goal['target_amount']:
+                        db.execute("UPDATE financial_goals SET status = 'Achieved' WHERE id = ? AND user_id = ?", (goal_id, user_id))
+                    
+                    if source_acc_raw and str(source_acc_raw).isdigit():
+                        src_acc = db.execute('SELECT id, name FROM accounts WHERE id = ? AND user_id = ?', (int(source_acc_raw), user_id)).fetchone()
+                        if src_acc:
+                            tx_date = (datetime.now() + timedelta(hours=7)).strftime('%Y-%m-%d')
+                            db.execute('''
+                                INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
+                                VALUES (?, ?, ?, 'expense', ?, ?, 'Investasi')
+                            ''', (user_id, tx_date, src_acc['id'], amount, f"Tabungan Target: {goal_row['name']}"))
+                            db.commit()
+                            from routes.dashboard import recalculate_account_balances
+                            recalculate_account_balances(db, user_id)
+                        else:
+                            db.commit()
+                    else:
+                        db.commit()
+                    flash('Dana tabungan target berhasil ditambahkan.', 'success')
 
         elif action == 'delete_goal':
             try:
@@ -409,6 +445,7 @@ def financial_performance():
                 return redirect(url_for('performance.financial_performance', tab=target_tab))
             db.execute('DELETE FROM financial_goals WHERE id = ? AND user_id = ?', (goal_id, user_id))
             db.commit()
+            flash('Target finansial berhasil dihapus.', 'success')
             
         return redirect(url_for('performance.financial_performance', tab=target_tab))
 
@@ -458,7 +495,7 @@ def financial_performance():
     for acc in raw_accounts:
         acc_dict = dict(acc)
         clean_label = acc_dict['name'].split('] ')[1] if '] ' in acc_dict['name'] else acc_dict['name']
-        clean_accounts.append({'raw': acc_dict['id'], 'clean': clean_label})
+        clean_accounts.append({'id': acc_dict['id'], 'raw': acc_dict['id'], 'clean': clean_label})
         if acc_dict.get('account_type') == 'liability':
             liability_accounts.append({'id': acc_dict['id'], 'name': clean_label})
 
@@ -611,18 +648,19 @@ def financial_performance():
     analytics_insights = []
     if analytics_total_income > 0:
         if analytics_savings_rate >= 20:
-            analytics_insights.append({"icon": "trending-up", "color": "emerald-500", "title": "Great Savings Rate", "desc": f"You saved {analytics_savings_rate:.1f}% of your income this period. Excellent financial discipline!"})
+            analytics_insights.append({"icon": "trending-up", "color": "emerald-500", "title": "Rasio Tabungan Sangat Baik", "desc": f"Anda menabung {analytics_savings_rate:.1f}% dari pemasukan periode ini. Disiplin finansial yang luar biasa!"})
         elif analytics_savings_rate > 0:
-            analytics_insights.append({"icon": "minus-circle", "color": "blue-500", "title": "Positive Cash Flow", "desc": f"You are saving {analytics_savings_rate:.1f}%. Try to aim for 20% by reducing non-essentials."})
+            analytics_insights.append({"icon": "minus-circle", "color": "blue-500", "title": "Arus Kas Positif", "desc": f"Rasio tabungan Anda {analytics_savings_rate:.1f}%. Tingkatkan menuju 20% dengan mengurangi pengeluaran non-esensial."})
         else:
-            analytics_insights.append({"icon": "alert-triangle", "color": "destructive", "title": "Negative Cash Flow", "desc": "You spent more than you earned. Review your top expenses to cut back."})
+            analytics_insights.append({"icon": "alert-triangle", "color": "destructive", "title": "Arus Kas Negatif", "desc": "Pengeluaran melebihi pemasukan pada periode ini. Evaluasi kategori pengeluaran terbesar Anda."})
     else:
-        analytics_insights.append({"icon": "info", "color": "muted-foreground", "title": "No Income Recorded", "desc": "Add income transactions to calculate your savings rate."})
+        analytics_insights.append({"icon": "info", "color": "muted-foreground", "title": "Belum Ada Pemasukan Tercatat", "desc": "Catat transaksi pemasukan untuk menghitung rasio tabungan Anda pada periode ini."})
         
     if sorted_cats:
         top_cat = sorted_cats[0]
         pct = (top_cat[1] / analytics_total_expense * 100) if analytics_total_expense > 0 else 0
-        analytics_insights.append({"icon": "pie-chart", "color": "amber-500", "title": f"Top Expense: {top_cat[0]}", "desc": f"You spent Rp {top_cat[1]:,.0f} on {top_cat[0]}, which is {pct:.1f}% of your total expenses."})
+        fmt_top = f"Rp {top_cat[1]:,.0f}".replace(',', '.')
+        analytics_insights.append({"icon": "pie-chart", "color": "amber-500", "title": f"Pengeluaran Terbesar: {top_cat[0]}", "desc": f"Anda menghabiskan {fmt_top} untuk {top_cat[0]} ({pct:.1f}% dari total pengeluaran)."})
     # --- End Analytics Integration ---
     req_tab = request.args.get('tab', 'analytics')
     active_tab = req_tab if req_tab in ('analytics', 'cashflow', 'liabilities', 'assets', 'goals') else 'analytics'

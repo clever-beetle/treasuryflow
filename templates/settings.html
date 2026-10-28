@@ -529,11 +529,16 @@ async function registerBiometric() {
                     clientDataJSON: bufferToBase64url(cred.response.clientDataJSON)
                 }
             };
-            await fetch('/api/webauthn/register/verify', {
+            const verifyRes = await fetch('/api/webauthn/register/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify(payload)
             });
+            if (!verifyRes.ok) {
+                const errData = await verifyRes.json().catch(() => ({}));
+                showStatus(errData.message || 'Gagal memverifikasi Passkey di server.', false);
+                return;
+            }
         }
 
         localStorage.setItem('passkeyRegistered_{{ user.username }}', 'true');
