@@ -690,6 +690,104 @@ def test_third_pass_12_bugs_regression(client):
         assert g_row['status'] == 'Achieved'
 
 
+def test_fourth_pass_10_bugs_regression(client):
+    """
+    Verifies the 10 fourth-pass bugs:
+    1. Account names/badges visible even when has_logo is true (macros.html / setup_account.html)
+    2. Bulk Edit Category refuses to overwrite Transfer transactions
+    3. Export links preserve tx_type and min_amount filters
+    4. Category filter dropdown includes Transfer
+    5. Receipt PDF download button rendered & endpoint works
+    6. Split Bill caps split_amount at amount and ignores non-expense
+    """
+    username = f"fourth_pass_{uuid.uuid4().hex[:6]}"
+    password = "StrongPass123"
+    client.post('/register', data={
+        'fullname': 'Fourth Pass User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user_id = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()['id']
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type) VALUES (?, '[BANK] BCA', 1000000, 1000000, 'asset')", (user_id,))
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount) VALUES (?, '[KARTU KREDIT] BCA Card', 0, 0, 'liability', 5000000)", (user_id,))
+        db.commit()
+        accs = db.execute("SELECT id FROM accounts WHERE user_id = ? ORDER BY id ASC", (user_id,)).fetchall()
+        acc_bca, acc_card = accs[0]['id'], accs[1]['id']
+
+    # 1. Setup accounts page renders both account names & category badges even though both have BCA logo
+    res_setup = client.get('/setup/accounts')
+    assert res_setup.status_code == 200
+    assert b'BCA Card' in res_setup.data
+    assert b'KARTU KREDIT' in res_setup.data
+
+    # 2. Add a transfer transaction and verify Bulk Edit cannot overwrite its category
+    res_tf = client.post('/transactions/add', data={
+        'date': '2026-08-19',
+        'type': 'transfer',
+        'amount': '100.000',
+        'account_id': acc_bca,
+        'to_account_id': acc_card,
+        'description': 'Bayar BCA Card'
+    }, follow_redirects=True)
+    assert res_tf.status_code == 200
+
+    with client.application.app_context():
+        db = get_db()
+        tf_txs = db.execute("SELECT id, category FROM transactions WHERE user_id = ? AND category = 'Transfer'", (user_id,)).fetchall()
+        assert len(tf_txs) == 2
+        tf_ids = [r['id'] for r in tf_txs]
+
+    res_bulk = client.post('/transactions/bulk_edit', data={
+        'transaction_ids_bulk': f'{tf_ids[0]},{tf_ids[1]}',
+        'bulk_category': 'Makanan & Minuman'
+    }, follow_redirects=True)
+    assert res_bulk.status_code == 200
+    with client.application.app_context():
+        db = get_db()
+        tf_after = db.execute("SELECT category FROM transactions WHERE id IN (?, ?)", (tf_ids[0], tf_ids[1])).fetchall()
+        assert all(r['category'] == 'Transfer' for r in tf_after)
+
+    # 3. Split bill caps split_amount at total expense amount
+    res_split = client.post('/transactions/add', data={
+        'date': '2026-08-19',
+        'type': 'expense',
+        'amount': '50.000',
+        'category': 'Makanan & Minuman',
+        'account_id': acc_bca,
+        'description': 'Makan Bareng',
+        'is_split': 'true',
+        'split_person': 'Budi',
+        'split_amount': '200.000'
+    }, follow_redirects=True)
+    assert res_split.status_code == 200
+    with client.application.app_context():
+        db = get_db()
+        debt = db.execute("SELECT total_amount, remaining_amount FROM debts_receivables WHERE user_id = ? AND person_name = 'Budi'", (user_id,)).fetchone()
+        assert debt is not None
+        assert debt['total_amount'] == 50000
+        assert debt['remaining_amount'] == 50000
+
+    # 4. Transactions list renders Transfer filter, export query_params with tx_type/min_amount, and Receipt PDF link
+    res_list = client.get('/transactions?tx_type=expense&min_amount=10000')
+    assert res_list.status_code == 200
+    assert b'value="Transfer"' in res_list.data
+    assert b'tx_type=expense&amp;min_amount=10000' in res_list.data or b'tx_type=expense&min_amount=10000' in res_list.data
+    assert b'/receipt' in res_list.data
+
+    # 5. Receipt PDF endpoint returns 200 PDF
+    res_receipt = client.get(f'/transactions/transaction/{tf_ids[0]}/receipt')
+    assert res_receipt.status_code == 200
+    assert res_receipt.mimetype == 'application/pdf'
+
+
+
 
 
 

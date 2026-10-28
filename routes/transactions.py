@@ -244,11 +244,12 @@ def add_transaction():
             split_person = (request.form.get('split_person') or '').strip()
             split_amount = parse_amount(request.form.get('split_amount', '0'))
 
-            if is_split and split_person and split_amount > 0:
+            if t_type == 'expense' and is_split and split_person and split_amount > 0:
+                capped_split = min(split_amount, amount)
                 db.execute('''
                     INSERT INTO debts_receivables (user_id, person_name, type, total_amount, remaining_amount, due_date, notes)
                     VALUES (?, ?, 'receivable', ?, ?, ?, ?)
-                ''', (user_id, split_person, split_amount, split_amount, date, f'Split bill: {description or category}'))
+                ''', (user_id, split_person, capped_split, capped_split, date, f'Split bill: {description or category}'))
                 
         db.commit()
         from routes.dashboard import recalculate_account_balances
@@ -470,7 +471,7 @@ def bulk_edit_transactions():
                 valid_id = int(tid.strip())
             except (ValueError, TypeError):
                 continue
-            db.execute('UPDATE transactions SET category = ? WHERE id = ? AND user_id = ?', (category, valid_id, user_id))
+            db.execute("UPDATE transactions SET category = ? WHERE id = ? AND user_id = ? AND COALESCE(category, '') != 'Transfer'", (category, valid_id, user_id))
         db.commit()
         flash('Transactions updated', 'success')
     return redirect(url_for('transactions.transactions_list'))
@@ -1063,7 +1064,7 @@ def download_receipt(id):
         ('Date', str(tx['date'])[:10]),
         ('Prepared For', sanitize_pdf_text(fullname)),
         ('Account', sanitize_pdf_text(acc)),
-        ('Type', tx['type'].upper()),
+        ('Type', (tx['type'] or '').upper()),
         ('Category', sanitize_pdf_text(str(tx['category'] or '-'))),
         ('Description', sanitize_pdf_text(str(tx['description'] or '-'))[:50]),
     ]

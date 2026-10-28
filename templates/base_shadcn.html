@@ -517,7 +517,7 @@
                     ];
                 } else if (path.includes('setup/accounts') || path.includes('setup_account')) {
                     customSteps = [
-                        { element: 'button[\@click*="addAccountModal"]', popover: { title: 'Tambah Rekening (Dompet)', description: 'Buat dompet baru (misalnya BCA, GoPay, Uang Tunai, atau Kartu Kredit) untuk memisahkan pelacakan saldo Anda secara rapi dan akurat.', side: "bottom", align: 'end' }},
+                        { element: 'button[\\@click*="addAccountModal"]', popover: { title: 'Tambah Rekening (Dompet)', description: 'Buat dompet baru (misalnya BCA, GoPay, Uang Tunai, atau Kartu Kredit) untuk memisahkan pelacakan saldo Anda secara rapi dan akurat.', side: "bottom", align: 'end' }},
                         { element: '.grid.gap-6', popover: { title: 'Daftar Dompet Aktif', description: 'Ini adalah daftar seluruh rekening dan dompet yang Anda miliki beserta saldo terkininya. Anda dapat mengedit atau menghapusnya.', side: "top", align: 'center' }}
                     ];
                 } else if (path.includes('settings')) {

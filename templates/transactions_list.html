@@ -214,6 +214,7 @@
                 <!-- Category -->
                 <select name="category" class="h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring">
                     <option value="">All Categories</option>
+                    <option value="Transfer" {% if selected_category == 'Transfer' %}selected{% endif %}>Transfer</option>
                     {% for group, cats in categories.items() %}
                         <optgroup label="{{ group }}">
                             {% for cat in cats %}
@@ -240,7 +241,7 @@
                         <i data-lucide="download" class="w-4 h-4 mr-2"></i> Export <i data-lucide="chevron-down" class="w-4 h-4 ml-2 opacity-50"></i>
                     </button>
                     <div x-show="exportOpen" x-transition.opacity class="absolute right-0 top-full mt-1 w-32 rounded-md border border-border bg-popover text-popover-foreground shadow-md z-50 p-1" x-cloak>
-                        {% set query_params = 'start_date=' + start_date + '&end_date=' + end_date + '&category=' + selected_category|urlencode + '&account_id=' + selected_account|string + '&search=' + search_query|urlencode %}
+                        {% set query_params = 'start_date=' + start_date + '&end_date=' + end_date + '&category=' + selected_category|urlencode + '&account_id=' + selected_account|string + '&search=' + search_query|urlencode + '&tx_type=' + (tx_type or '') + '&min_amount=' + (min_amount|string if min_amount else '') %}
                         <a href="{{ url_for('transactions.export_pdf') }}?{{ query_params }}" class="flex items-center w-full px-2 py-1.5 text-sm rounded-sm hover:bg-accent hover:text-accent-foreground">
                             <i data-lucide="file-text" class="h-4 w-4 mr-2 text-destructive"></i> PDF
                         </a>
@@ -336,6 +337,9 @@
                                 {% endif %}
                             </td>
                             <td class="p-4 align-middle text-center flex justify-center items-center gap-1">
+                                <a href="{{ url_for('transactions.download_receipt', id=tx.id) }}" class="text-muted-foreground hover:text-emerald-600 p-2 rounded-md hover:bg-muted transition-colors" title="Unduh Kwitansi PDF">
+                                    <i data-lucide="file-text" class="w-4 h-4"></i>
+                                </a>
                                 <button type="button" @click='$dispatch("open-edit-modal", { id: {{ tx.id }}, amount: {{ tx.amount }}, description: {{ (tx.description or "")|tojson }}, date: "{{ (tx.date|string)[:10] }}", category: "{{ tx.category }}", account_id: {{ tx.account_id }}, type: "{{ tx.type }}" })' class="text-muted-foreground hover:text-blue-500 p-2 rounded-md hover:bg-muted transition-colors" title="Edit">
                                     <i data-lucide="edit-2" class="w-4 h-4"></i>
                                 </button>

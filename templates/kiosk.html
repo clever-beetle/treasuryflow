@@ -13,7 +13,7 @@
           theme: { extend: { colors: { primary: "hsl(221.2 83.2% 53.3%)" } } }
         }
     </script>
-    <style>
+    <style type="text/tailwindcss">
         body { @apply bg-black text-white h-screen overflow-hidden flex flex-col; }
         .glass-panel { @apply bg-slate-900/40 border border-slate-800 rounded-2xl shadow-2xl; }
         .pulse-text { animation: pulse 2s infinite; }
@@ -24,7 +24,7 @@
         }
     </style>
 </head>
-<body>
+<body class="bg-black text-white h-screen overflow-hidden flex flex-col">
     <div class="flex justify-between items-center p-6 bg-gradient-to-b from-slate-900 to-transparent">
         <div class="text-3xl font-bold flex items-center gap-3">
             <i class="fa-solid fa-wallet text-blue-500"></i> TREASURY FLOW <span class="text-slate-500 text-lg">| KIOSK MODE</span>

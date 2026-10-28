@@ -47,11 +47,9 @@
                         {% set d = account.name.upper().replace(' ', '') %}
                         {% set category = account.name.split(']')[0].replace('[', '') if '[' in account.name else 'Custom' %}
                         {% set has_logo = ('CASH' in d or 'BCA' in d or 'BNI' in d or 'BRI' in d or 'MANDIRI' in d or 'JAGO' in d or 'BSI' in d or 'CIMB' in d or 'SEABANK' in d or 'JENIUS' in d or 'BTPN' in d or 'OCBC' in d or 'MEGA' in d or 'PERMATA' in d or 'BTN' in d or 'HSBC' in d or 'SUPERBANK' in d or 'DKI' in d or 'BJB' in d or 'GOPAY' in d or 'DANA' in d or 'OVO' in d or 'SHOPEEPAY' in d or 'LINKAJA' in d) %}
-                        {% if not has_logo %}
-                        <div class="ml-2">
+                        <div class="ml-1">
                             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{{ category }}</span>
                         </div>
-                        {% endif %}
                     </div>
                     <div class="flex gap-1">
                         <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ "{:,.0f}".format((account.initial_balance or 0)|abs).replace(",", ".") }}', limit: '{{ "{:,.0f}".format(account.limit_amount or 0).replace(",", ".") if account.account_type == "liability" and account.limit_amount else "" }}', billingDueDay: '{{ account.billing_due_day|default("", true) }}', isLiability: '{{ account.account_type }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors" title="Edit">
@@ -205,11 +203,11 @@
                     <label class="text-sm font-medium leading-none">Tanggal Jatuh Tempo (Bulanan)</label>
                     <select name="billing_due_day" class="flex h-11 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm">
                         <option value="">-- Belum diatur --</option>
-                        <template x-for="d in Array.from({length: 28}, (_, i) => i + 1)">
+                        <template x-for="d in Array.from({length: 31}, (_, i) => i + 1)">
                             <option :value="d" x-text="'Tanggal ' + d"></option>
                         </template>
                     </select>
-                    <p class="text-xs text-muted-foreground">Tanggal bayar tagihan setiap bulan (1-28).</p>
+                    <p class="text-xs text-muted-foreground">Tanggal bayar tagihan setiap bulan (1-31).</p>
                 </div>
 
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 pt-4">
@@ -264,7 +262,7 @@
                     <label class="text-sm font-semibold">Tanggal Jatuh Tempo</label>
                     <select name="billing_due_day" class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm" x-model="edit_due_day">
                         <option value="">-- Belum diatur --</option>
-                        <template x-for="d in Array.from({length: 28}, (_, i) => i + 1)">
+                        <template x-for="d in Array.from({length: 31}, (_, i) => i + 1)">
                             <option :value="d" x-text="'Tanggal ' + d" :selected="edit_due_day == d"></option>
                         </template>
                     </select>
