@@ -189,16 +189,26 @@ def financial_performance():
                             tx_desc += f": {notes}"
                         
                         # Transaction 1: Expense on source bank (Transfer category)
-                        db.execute('''
+                        cur1 = db.execute('''
                             INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
                             VALUES (?, ?, ?, 'expense', ?, ?, 'Transfer')
                         ''', (user_id, tx_date, source_account_id, amount_paid, f"{tx_desc} ({clean_src} → {clean_linked})"))
+                        tx1_id = getattr(cur1, 'lastrowid', None)
+                        if not tx1_id:
+                            r1 = db.execute("SELECT MAX(id) as id FROM transactions WHERE user_id = ?", (user_id,)).fetchone()
+                            tx1_id = r1['id'] if r1 else None
                         
                         # Transaction 2: Income on liability account (Transfer category) — reduces debt
-                        db.execute('''
-                            INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
-                            VALUES (?, ?, ?, 'income', ?, ?, 'Transfer')
-                        ''', (user_id, tx_date, linked_id, amount_paid, f"{tx_desc} ({clean_src} → {clean_linked})"))
+                        cur2 = db.execute('''
+                            INSERT INTO transactions (user_id, date, account_id, type, amount, description, category, linked_transaction_id)
+                            VALUES (?, ?, ?, 'income', ?, ?, 'Transfer', ?)
+                        ''', (user_id, tx_date, linked_id, amount_paid, f"{tx_desc} ({clean_src} → {clean_linked})", tx1_id))
+                        tx2_id = getattr(cur2, 'lastrowid', None)
+                        if not tx2_id:
+                            r2 = db.execute("SELECT MAX(id) as id FROM transactions WHERE user_id = ?", (user_id,)).fetchone()
+                            tx2_id = r2['id'] if r2 else None
+                        if tx1_id and tx2_id:
+                            db.execute("UPDATE transactions SET linked_transaction_id = ? WHERE id = ?", (tx2_id, tx1_id))
                         
                         # Update both account balances
                         db.execute("UPDATE accounts SET current_balance = current_balance - ? WHERE id = ? AND user_id = ?", 
@@ -282,11 +292,12 @@ def financial_performance():
             target = parse_amount(request.form.get('target_amount', '0'))
             current = parse_amount(request.form.get('current_amount', '0'))
             due_date = request.form.get('due_date')
+            init_status = 'Achieved' if (target > 0 and current >= target) else 'In Progress'
             
             db.execute('''
-                INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (user_id, name, target, current, due_date))
+                INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status)
+                VALUES (?, ?, ?, ?, ?, ?)
+            ''', (user_id, name, target, current, due_date, init_status))
             db.commit()
 
         elif action == 'saving_goal':
@@ -300,7 +311,7 @@ def financial_performance():
             ''', (amount, goal_id, user_id))
             
             goal = db.execute('SELECT target_amount, current_amount FROM financial_goals WHERE id = ? AND user_id = ?', (goal_id, user_id)).fetchone()
-            if goal['current_amount'] >= goal['target_amount']:
+            if goal and goal['current_amount'] >= goal['target_amount']:
                 db.execute("UPDATE financial_goals SET status = 'Achieved' WHERE id = ? AND user_id = ?", (goal_id, user_id))
                 
             db.commit()
@@ -338,10 +349,10 @@ def financial_performance():
                     'color': theme_colors[index % len(theme_colors)]
                 })
 
-    expense_custom_range = db.execute("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND category != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
-    income_custom_range = db.execute("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'income' AND category != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
-    max_expense = db.execute("SELECT COALESCE(MAX(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND category != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
-    min_expense = db.execute("SELECT COALESCE(MIN(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND category != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
+    expense_custom_range = db.execute("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND COALESCE(category, '') != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
+    income_custom_range = db.execute("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'income' AND COALESCE(category, '') != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
+    max_expense = db.execute("SELECT COALESCE(MAX(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND COALESCE(category, '') != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
+    min_expense = db.execute("SELECT COALESCE(MIN(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND COALESCE(category, '') != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
 
     avg_expense_daily = expense_custom_range / days_range
     avg_income_daily = income_custom_range / days_range
@@ -414,7 +425,7 @@ def financial_performance():
     prev_period_end = (today - timedelta(days=days_range+1)).strftime('%Y-%m-%d')
     prev_expense_row = db.execute('''
         SELECT SUM(amount) as total FROM transactions
-        WHERE user_id = ? AND type = 'expense' AND date >= ? AND date <= ? AND category != 'Transfer'
+        WHERE user_id = ? AND type = 'expense' AND date >= ? AND date <= ? AND COALESCE(category, '') != 'Transfer'
     ''', (user_id, prev_period_start, prev_period_end)).fetchone()
     prev_expense = prev_expense_row['total'] if prev_expense_row['total'] else 0
     
@@ -433,7 +444,7 @@ def financial_performance():
         smart_insight = "Terus catat transaksi Anda agar AI dapat membandingkan pengeluaran periode ini dan sebelumnya."
         insight_type = "neutral"
 
-    credit_cards = db.execute("SELECT id, name, limit_amount, ABS(current_balance) as current_usage FROM accounts WHERE user_id = ? AND account_type = 'liability'", (user_id,)).fetchall()
+    credit_cards = db.execute("SELECT id, name, limit_amount, CASE WHEN current_balance < 0 THEN ABS(current_balance) ELSE 0 END as current_usage FROM accounts WHERE user_id = ? AND account_type = 'liability'", (user_id,)).fetchall()
     total_saldo = sum((acc['current_balance'] or 0) for acc in accounts_data)
     total_debt_records = sum((r['remaining_amount'] or 0) for r in records_active if r['type'] == 'debt')
     total_cc_usage = sum((cc['current_usage'] or 0) for cc in credit_cards)

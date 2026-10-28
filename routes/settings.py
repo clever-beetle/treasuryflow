@@ -18,11 +18,23 @@ def settings():
     user_id = session['user_id']
     error = None
     message = None
+    active_tab = request.args.get('tab', 'profile')
     
     user = db.execute('SELECT fullname, username, email, password FROM users WHERE id = ?', (user_id,)).fetchone()
 
     if request.method == 'POST':
         action = request.form.get('action')
+        tab_map = {
+            'update_fullname': 'profile',
+            'update_username': 'profile',
+            'update_password': 'security',
+            'add_category': 'categories',
+            'delete_category': 'categories',
+            'toggle_auto_sync': 'appearance',
+            'reset_data': 'danger',
+            'delete_account': 'danger',
+        }
+        active_tab = tab_map.get(action, 'profile')
 
         if action == 'update_fullname':
             new_fullname = (request.form.get('fullname') or '').strip()
@@ -35,14 +47,19 @@ def settings():
                 message = "Nama lengkap berhasil diperbarui."
         
         elif action == 'update_username':
+            import re
             new_username = (request.form.get('username') or '').strip()
             if not new_username:
                 error = "Username tidak boleh kosong."
             elif len(new_username) < 3:
                 error = "Username minimal harus 3 karakter."
-            elif ' ' in new_username:
+            elif len(new_username) > 30:
+                error = "Username maksimal 30 karakter."
+            elif any(ch.isspace() for ch in new_username):
                 error = "Username tidak boleh mengandung spasi."
-            elif db.execute('SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND id != ?', (new_username, user_id)).fetchone():
+            elif not re.match(r'^[A-Za-z0-9._]+$', new_username):
+                error = "Username hanya boleh berisi huruf, angka, titik (.), dan underscore (_)."
+            elif db.execute('SELECT id FROM users WHERE (LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)) AND id != ?', (new_username, new_username, user_id)).fetchone():
                 error = "Username sudah digunakan oleh akun lain."
             else:
                 db.execute('UPDATE users SET username = ? WHERE id = ?', (new_username, user_id))
@@ -119,9 +136,9 @@ def settings():
             cat_type = request.form.get('type')
             cat_name = (request.form.get('name') or '').strip()
             if cat_type in ['income', 'expense'] and cat_name:
-                # Check if it already exists to prevent duplicates (case-insensitive)
+                default_cats = [c.lower() for c in CATEGORIES.get(cat_type, [])] + ['transfer']
                 existing = db.execute("SELECT id FROM user_categories WHERE user_id = ? AND LOWER(name) = LOWER(?) AND type = ?", (user_id, cat_name, cat_type)).fetchone()
-                if existing:
+                if existing or cat_name.lower() in default_cats:
                     error = f"Kategori '{cat_name}' sudah ada."
                 else:
                     db.execute("INSERT INTO user_categories (user_id, name, type) VALUES (?, ?, ?)", (user_id, cat_name, cat_type))
@@ -168,10 +185,10 @@ def settings():
             try:
                 existing = db.execute("SELECT * FROM feature_flags WHERE name = 'auto_sync'").fetchone()
                 if existing:
-                    new_val = not existing['is_active']
+                    new_val = not bool(existing['is_active'])
                     db.execute("UPDATE feature_flags SET is_active = ? WHERE name = 'auto_sync'", (new_val,))
                 else:
-                    db.execute("INSERT INTO feature_flags (name, is_active) VALUES ('auto_sync', ?)", (1,))
+                    db.execute("INSERT INTO feature_flags (name, is_active) VALUES ('auto_sync', ?)", (True,))
                 db.commit()
                 message = "Auto Sync berhasil diperbarui."
             except Exception:
@@ -186,11 +203,11 @@ def settings():
     try:
         flag = db.execute("SELECT is_active FROM feature_flags WHERE name = 'auto_sync'").fetchone()
         if flag:
-            auto_sync_enabled = flag['is_active']
+            auto_sync_enabled = bool(flag['is_active'])
     except Exception:
         pass
     
-    return render_template('settings.html', user=user, error=error, message=message, user_categories=user_categories, auto_sync_enabled=auto_sync_enabled)
+    return render_template('settings.html', user=user, error=error, message=message, user_categories=user_categories, auto_sync_enabled=auto_sync_enabled, active_tab=active_tab)
 
 @settings_bp.route('/setup/accounts', methods=['GET', 'POST'])
 @login_required

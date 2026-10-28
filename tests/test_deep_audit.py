@@ -607,5 +607,89 @@ def test_second_pass_10_bugs_regression(client):
         assert inst_row['current_tenor'] == 1
 
 
+def test_third_pass_12_bugs_regression(client):
+    """Verify the 12 edge-case bugs from the third-pass deep audit."""
+    # 1. Custom 404 page should render 404.html with Tailwind and Indonesian message
+    res_404 = client.get('/halaman-tidak-ditemukan-404')
+    assert res_404.status_code == 404
+    assert b'Oops! Nyasar ya?' in res_404.data
+
+    username = f"audit_12_{uuid.uuid4().hex[:8]}"
+    password = "Password123!"
+
+    client.post('/register', data={
+        'fullname': 'Audit 12 User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    # 2. Settings: reject invalid characters (@) in update_username and reject duplicate default category in add_category
+    res_bad_user = client.post('/settings', data={
+        'action': 'update_username',
+        'username': 'bad@username.com'
+    })
+    assert res_bad_user.status_code == 200
+    assert b'Username hanya boleh berisi huruf' in res_bad_user.data
+
+    res_dup_cat = client.post('/settings', data={
+        'action': 'add_category',
+        'type': 'expense',
+        'name': 'Makanan & Minuman'
+    })
+    assert res_dup_cat.status_code == 200
+    assert b'sudah ada' in res_dup_cat.data
+    assert b"activeTab: 'categories'" in res_dup_cat.data
+
+    # 3. Linked installment payment sets linked_transaction_id on both Transfer rows
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user_id = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()['id']
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type) VALUES (?, '[BANK] BCA', 2000000, 2000000, 'asset')", (user_id,))
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount, billing_due_day) VALUES (?, '[KARTU KREDIT] BCA CC', -500000, -500000, 'liability', 5000000, 30)", (user_id,))
+        db.commit()
+        accs = db.execute("SELECT id FROM accounts WHERE user_id = ? ORDER BY id ASC", (user_id,)).fetchall()
+        acc_bca, acc_cc = accs[0]['id'], accs[1]['id']
+        db.execute(
+            "INSERT INTO recurring_installments (user_id, name, amount_per_cycle, due_day_of_month, is_temporary_tenor, total_tenor, current_tenor, linked_account_id) "
+            "VALUES (?, 'Tagihan CC', 500000, 31, 1, 2, 1, ?)",
+            (user_id, acc_cc)
+        )
+        db.commit()
+        inst_id = db.execute("SELECT id FROM recurring_installments WHERE user_id = ?", (user_id,)).fetchone()['id']
+
+    res_pay = client.post('/financial_performance', data={
+        'action': 'pay_installment',
+        'inst_id': inst_id,
+        'account_name': acc_bca,
+        'amount_paid': '500.000'
+    }, follow_redirects=True)
+    assert res_pay.status_code == 200
+    with client.application.app_context():
+        db = get_db()
+        txs = db.execute("SELECT id, linked_transaction_id FROM transactions WHERE user_id = ? AND category = 'Transfer' ORDER BY id ASC", (user_id,)).fetchall()
+        assert len(txs) == 2
+        assert txs[0]['linked_transaction_id'] == txs[1]['id']
+        assert txs[1]['linked_transaction_id'] == txs[0]['id']
+
+    # 4. Adding a goal with current_amount >= target_amount immediately marks it Achieved
+    res_goal = client.post('/financial_performance', data={
+        'action': 'add_goal',
+        'goal_name': 'Dana Darurat',
+        'target_amount': '1.000.000',
+        'current_amount': '1.000.000',
+        'due_date': '2026-12-31'
+    }, follow_redirects=True)
+    assert res_goal.status_code == 200
+    with client.application.app_context():
+        db = get_db()
+        g_row = db.execute("SELECT status FROM financial_goals WHERE user_id = ? AND name = 'Dana Darurat'", (user_id,)).fetchone()
+        assert g_row['status'] == 'Achieved'
+
+
+
 
 

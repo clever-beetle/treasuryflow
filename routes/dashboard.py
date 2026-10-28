@@ -163,7 +163,7 @@ def dashboard():
 
     goals = db.execute('''
         SELECT id, name, target_amount, current_amount, due_date,
-               (current_amount / target_amount * 100) as percentage
+               COALESCE((current_amount / NULLIF(target_amount, 0) * 100), 0) as percentage
         FROM financial_goals 
         WHERE user_id = ? AND status = 'In Progress'
         ORDER BY due_date ASC LIMIT 2
@@ -173,7 +173,7 @@ def dashboard():
     cat_rows = db.execute('''
         SELECT category, SUM(amount) as total
         FROM transactions
-        WHERE user_id = ? AND type = 'expense' AND date >= ? AND category != 'Transfer'
+        WHERE user_id = ? AND type = 'expense' AND date >= ? AND COALESCE(category, '') != 'Transfer'
         GROUP BY category
         ORDER BY total DESC
     ''', (user_id, days_ago_str)).fetchall()
@@ -203,9 +203,12 @@ def dashboard():
             'percentage': pct
         })
 
+    total_budget_spent = sum(b['current_spent'] for b in budgets_data)
+    budget_usage = (total_budget_spent / total_budget * 100) if total_budget > 0 else 0
+
     total_assets = sum(asset['purchase_price'] for asset in db.execute('SELECT purchase_price FROM assets WHERE user_id = ?', (user_id,)).fetchall()) + total_balance
     total_debt_records = sum(debt['remaining_amount'] for debt in db.execute("SELECT remaining_amount FROM debts_receivables WHERE user_id = ? AND type='debt' AND status='BELUM LUNAS'", (user_id,)).fetchall())
-    total_liability_accounts = db.execute("SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND account_type = 'liability'", (user_id,)).fetchone()[0] or 0
+    total_liability_accounts = db.execute("SELECT SUM(ABS(current_balance)) FROM accounts WHERE user_id = ? AND account_type = 'liability' AND current_balance < 0", (user_id,)).fetchone()[0] or 0
     total_debt = total_debt_records + abs(total_liability_accounts)
     
     # Financial Health Score Algorithm
@@ -249,9 +252,10 @@ def dashboard():
                     account = db.execute("SELECT id FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL) LIMIT 1", (user_id,)).fetchone()
                     if account:
                         try:
-                            date_str = f"{current_month_str}-{inst['due_day_of_month']:02d}"
+                            safe_day = min(max(1, int(inst['due_day_of_month'] or 1)), last_day)
+                            date_str = f"{current_month_str}-{safe_day:02d}"
                             db.execute('''INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
-                                          VALUES (?, ?, ?, 'expense', ?, ?, 'Bills')''', 
+                                          VALUES (?, ?, ?, 'expense', ?, ?, 'Langganan & Cicilan')''', 
                                        (user_id, date_str, account['id'], inst['amount_per_cycle'], desc))
                             db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (inst['amount_per_cycle'], account['id']))
                             db.commit()
@@ -311,7 +315,7 @@ def dashboard():
         if a.get('account_type') != 'liability':
             asset_accounts.append(a)
         else:
-            a['usage'] = abs(a.get('current_balance', 0) or 0)
+            a['usage'] = abs(min(0, a.get('current_balance', 0) or 0))
             a['limit'] = a.get('limit_amount', 0) or 0
             a['available'] = max(0, a['limit'] - a['usage']) if a['limit'] > 0 else 0
             a['usage_pct'] = (a['usage'] / a['limit'] * 100) if a['limit'] > 0 else 0
@@ -319,13 +323,14 @@ def dashboard():
             # Compute days until due
             due_day = a.get('billing_due_day')
             if due_day:
-                next_due = today.replace(day=min(due_day, 28))
+                max_curr = cal_mod.monthrange(today.year, today.month)[1]
+                next_due = today.replace(day=min(max(1, int(due_day)), max_curr))
                 if next_due <= today:
                     # Move to next month
-                    if today.month == 12:
-                        next_due = next_due.replace(year=today.year + 1, month=1)
-                    else:
-                        next_due = next_due.replace(month=today.month + 1)
+                    next_y = today.year + 1 if today.month == 12 else today.year
+                    next_m = 1 if today.month == 12 else today.month + 1
+                    max_next = cal_mod.monthrange(next_y, next_m)[1]
+                    next_due = today.replace(year=next_y, month=next_m, day=min(max(1, int(due_day)), max_next))
                 a['days_until_due'] = (next_due - today).days
             else:
                 a['days_until_due'] = None
@@ -361,8 +366,8 @@ def data_kalender():
     db = get_db()
     query = '''
         SELECT date, 
-               SUM(CASE WHEN type = 'income' AND category != 'Transfer' THEN amount ELSE 0 END) as total_in,
-               SUM(CASE WHEN type = 'expense' AND category != 'Transfer' THEN amount ELSE 0 END) as total_out
+               SUM(CASE WHEN type = 'income' AND COALESCE(category, '') != 'Transfer' THEN amount ELSE 0 END) as total_in,
+               SUM(CASE WHEN type = 'expense' AND COALESCE(category, '') != 'Transfer' THEN amount ELSE 0 END) as total_out
         FROM transactions WHERE user_id = ? GROUP BY date
     '''
     rows = db.execute(query, (user_id,)).fetchall()

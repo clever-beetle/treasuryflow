@@ -161,14 +161,14 @@ def logout():
 @limiter.limit("15 per minute", methods=["POST"])
 def forgot_password():
     if request.method == 'POST':
-        email_input = request.form.get('username') or request.form.get('email')
+        email_input = (request.form.get('username') or request.form.get('email') or '').strip()
         if not email_input:
             flash('Please enter your email address.', 'danger')
             return render_template('forgot_password.html')
         db = get_db()
-        user = db.execute('SELECT id, fullname FROM users WHERE email = ?', (email_input,)).fetchone()
+        user = db.execute('SELECT id, fullname, email FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)', (email_input, email_input)).fetchone()
         
-        if user:
+        if user and user['email']:
             token = secrets.token_urlsafe(32)
             expiry = (datetime.now() + timedelta(minutes=2)).strftime('%Y-%m-%d %H:%M:%S')
             
@@ -177,7 +177,7 @@ def forgot_password():
             
             from utils import send_reset_email
             reset_url = url_for('auth.reset_password', token=token, _external=True)
-            send_reset_email(email_input, user['fullname'], reset_url)
+            send_reset_email(user['email'], user['fullname'], reset_url)
             flash('Password reset link is being sent to your email. It may take a moment to arrive.', 'success')
         else:
             flash('Email address not found in our system.', 'danger')
@@ -203,9 +203,12 @@ def reset_password(token):
         return redirect(url_for('auth.login'))
         
     if request.method == 'POST':
-        new_password = request.form['password']
-        confirm_password = request.form['confirm_password']
+        new_password = request.form.get('password') or ''
+        confirm_password = request.form.get('confirm_password') or ''
         
+        if len(new_password.strip()) < 6:
+            flash('Password minimal harus 6 karakter.', 'danger')
+            return render_template('reset_password.html', token=token)
         if new_password != confirm_password:
             flash('Passwords do not match.', 'danger')
             return render_template('reset_password.html', token=token)

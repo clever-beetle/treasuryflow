@@ -224,6 +224,15 @@ def init_db(force=False):
             pass
             
         is_pg = bool(utils.DATABASE_URL)
+        if not is_pg:
+            try:
+                cursor.execute("ALTER TABLE accounts ADD COLUMN billing_due_day INTEGER")
+            except Exception:
+                pass
+            try:
+                cursor.execute("ALTER TABLE recurring_installments ADD COLUMN linked_account_id INTEGER")
+            except Exception:
+                pass
         if not force:
             try:
                 # Fast cold-start path: if schema already exists, avoid 50+ DDL queries over network
@@ -769,21 +778,23 @@ def page_not_found(e):
 @app.errorhandler(Exception)
 def handle_500(e):
     from werkzeug.exceptions import HTTPException
+    if isinstance(e, HTTPException):
+        if e.code == 404:
+            return render_template('404.html'), 404
+        return e
     import traceback
     err_str = f"Internal Server Error: {str(e)}\n{traceback.format_exc()}"
     print(err_str)
     
     try:
-        db = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
-        db.autocommit = True
-        cursor = db.cursor()
-        cursor.execute("CREATE TABLE IF NOT EXISTS error_logs (id SERIAL PRIMARY KEY, error TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
-        cursor.execute("INSERT INTO error_logs (error) VALUES (%s)", (err_str,))
+        if utils.DATABASE_URL:
+            db = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
+            db.autocommit = True
+            cursor = db.cursor()
+            cursor.execute("CREATE TABLE IF NOT EXISTS error_logs (id SERIAL PRIMARY KEY, error TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
+            cursor.execute("INSERT INTO error_logs (error) VALUES (%s)", (err_str,))
     except Exception as db_err:
         pass
-        
-    if isinstance(e, HTTPException):
-        return e
 
     # Instead of full crashing, return a friendly flash or 500
     try:
