@@ -204,7 +204,7 @@ def dashboard():
         })
 
     total_assets = sum(asset['purchase_price'] for asset in db.execute('SELECT purchase_price FROM assets WHERE user_id = ?', (user_id,)).fetchall()) + total_balance
-    total_debt_records = sum(debt['remaining_amount'] for debt in db.execute("SELECT remaining_amount FROM debts_receivables WHERE user_id = ? AND status='BELUM LUNAS'", (user_id,)).fetchall())
+    total_debt_records = sum(debt['remaining_amount'] for debt in db.execute("SELECT remaining_amount FROM debts_receivables WHERE user_id = ? AND type='debt' AND status='BELUM LUNAS'", (user_id,)).fetchall())
     total_liability_accounts = db.execute("SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND account_type = 'liability'", (user_id,)).fetchone()[0] or 0
     total_debt = total_debt_records + abs(total_liability_accounts)
     
@@ -331,7 +331,11 @@ def dashboard():
                 a['days_until_due'] = None
             liability_accounts_info.append(a)
 
+    user_exp_cats = [r['name'] for r in db.execute("SELECT name FROM user_categories WHERE user_id = ? AND type = 'expense'", (user_id,)).fetchall()]
+    expense_categories = list(CATEGORIES.get('expense', [])) + [c for c in user_exp_cats if c not in CATEGORIES.get('expense', [])]
+
     return render_template('dashboard.html', ach=ach,
+                           expense_categories=expense_categories,
                            total_balance=total_balance, 
                            total_income=total_income,
                            total_expense=total_expense, 

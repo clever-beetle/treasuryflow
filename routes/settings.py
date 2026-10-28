@@ -223,7 +223,7 @@ def setup_account():
             error = "Akun tidak ditemukan atau Anda tidak memiliki akses."
         else:
             account_name = account_row['name']
-            has_transactions = db.execute('SELECT COUNT(id) FROM transactions WHERE (account_id = ? OR transfer_to_account_id = ?) AND user_id = ?', (delete_id, delete_id, user_id)).fetchone()[0]
+            has_transactions = db.execute('SELECT COUNT(id) FROM transactions WHERE account_id = ? AND user_id = ?', (delete_id, user_id)).fetchone()[0]
 
             if has_transactions > 0:
                 error = f"Gagal menghapus {account_name}. Akun ini masih memiliki {has_transactions} riwayat transaksi. Hapus transaksinya terlebih dahulu."

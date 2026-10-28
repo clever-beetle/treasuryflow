@@ -739,13 +739,9 @@
     </main>
 
     <!-- Base Modal Component logic handled via window events in alpine -->
-    <div x-data="{ modalOpen: false, modalId: null }" 
-         @open-modal.window="modalOpen = true; modalId = $event.detail;"
-         @close-modal.window="modalOpen = false; modalId = null;"
-         @keydown.escape.window="modalOpen = false; modalId = null;">
-        
-        <!-- Backdrop -->
-        <div x-show="modalOpen" x-transition.opacity class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" x-cloak @click="modalOpen = false; modalId = null;"></div>
+    <div>
+        <!-- Backdrop (excludes logoutModal which has its own overlay in base_shadcn.html) -->
+        <div x-show="modalOpen && modalId !== 'logoutModal'" x-transition.opacity class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm" x-cloak @click="$dispatch('close-modal')"></div>
 
         <!-- ADD DEBT MODAL -->
         <template x-teleport="body">
@@ -1119,7 +1115,9 @@
                             <label class="text-sm font-medium mb-1 block">Sumber Akun</label>
                             <select name="account_name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
                                 {% for acc in accounts %}
+                                    {% if not inst.linked_account_id or acc.raw != inst.linked_account_id %}
                                     <option value="{{ acc.raw }}">{{ acc.clean }}</option>
+                                    {% endif %}
                                 {% endfor %}
                             </select>
                         </div>

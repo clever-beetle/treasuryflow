@@ -471,8 +471,13 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="action" value="add">
                 <div>
-                    <label class="text-sm font-medium mb-1 block">Kategori</label>
-                    <input type="text" name="category_name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Misal: Makan & Minum" required>
+                    <label class="text-sm font-medium mb-1 block">Kategori Pengeluaran</label>
+                    <select name="category_name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
+                        <option value="">-- Pilih Kategori --</option>
+                        {% for cat in (expense_categories or ['Makanan & Minuman', 'Transportasi', 'Belanja', 'Tagihan', 'Hiburan', 'Kesehatan', 'Pendidikan', 'Cicilan & Utang', 'Lainnya (Pengeluaran)']) %}
+                        <option value="{{ cat }}">{{ cat }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
                 <div>
                     <label class="text-sm font-medium mb-1 block">Batas Maksimal Pengeluaran (Bulan Ini)</label>

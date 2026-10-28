@@ -242,11 +242,7 @@ def add_transaction():
             # Handle split bill if requested
             is_split = request.form.get('is_split') == 'true'
             split_person = (request.form.get('split_person') or '').strip()
-            raw_split_amt = request.form.get('split_amount', '0').replace('.', '').replace(',', '.')
-            try:
-                split_amount = float(raw_split_amt) if raw_split_amt else 0.0
-            except ValueError:
-                split_amount = 0.0
+            split_amount = parse_amount(request.form.get('split_amount', '0'))
 
             if is_split and split_person and split_amount > 0:
                 db.execute('''
@@ -525,7 +521,7 @@ def export_excel():
         amount = tx['amount']
         type_cap = tx['type'].capitalize() if tx['type'] else ''
         ws.append([str(tx['date'])[:10] if tx['date'] else '', type_cap, amount, tx['description'], tx['category'], tx['account_name']])
-        if tx['type'] == 'expense':
+        if tx['type'] == 'expense' and (tx['category'] or '') != 'Transfer':
             cat = tx['category']
             cat_totals[cat] = cat_totals.get(cat, 0) + amount
         ws.cell(row=row_idx, column=3).number_format = '#,##0'

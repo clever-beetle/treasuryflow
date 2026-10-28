@@ -63,7 +63,9 @@ def api_chat():
                 
         # 3. Utang Check
         elif 'utang' in message or 'hutang' in message:
-            total_debt = db.execute("SELECT SUM(remaining_amount) FROM debts_receivables WHERE user_id = ? AND type = 'debt' AND status = 'BELUM LUNAS'", (user_id,)).fetchone()[0] or 0
+            debt_rec = db.execute("SELECT SUM(remaining_amount) FROM debts_receivables WHERE user_id = ? AND type = 'debt' AND status = 'BELUM LUNAS'", (user_id,)).fetchone()[0] or 0
+            cc_debt = db.execute("SELECT SUM(ABS(current_balance)) FROM accounts WHERE user_id = ? AND account_type = 'liability' AND current_balance < 0", (user_id,)).fetchone()[0] or 0
+            total_debt = float(debt_rec) + float(cc_debt)
             total_piutang = db.execute("SELECT SUM(remaining_amount) FROM debts_receivables WHERE user_id = ? AND type = 'receivable' AND status = 'BELUM LUNAS'", (user_id,)).fetchone()[0] or 0
             
             if total_debt == 0 and total_piutang == 0:
@@ -94,7 +96,7 @@ def api_forecast():
         expenses = db.execute("""
             SELECT substr(CAST(date AS TEXT), 1, 7) as month, SUM(amount) as total
             FROM transactions 
-            WHERE user_id = ? AND type = 'expense'
+            WHERE user_id = ? AND type = 'expense' AND COALESCE(category, '') != 'Transfer'
             GROUP BY substr(CAST(date AS TEXT), 1, 7)
             ORDER BY month ASC
             LIMIT 6
@@ -198,7 +200,7 @@ def predict_future():
     txs = db.execute('''
         SELECT date, SUM(amount) as total 
         FROM transactions 
-        WHERE user_id = ? AND type = 'expense'
+        WHERE user_id = ? AND type = 'expense' AND COALESCE(category, '') != 'Transfer'
         GROUP BY date
         ORDER BY date ASC
     ''', (user_id,)).fetchall()

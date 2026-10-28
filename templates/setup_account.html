@@ -314,17 +314,10 @@
 <script>
     // Format Rupiah for Modal via event delegation
     document.addEventListener('input', function(e) {
-        if (e.target && (e.target.id === 'balanceInput' || e.target.classList.contains('input-rupiah-modal'))) {
-            let value = e.target.value.replace(/[^,\d]/g, '');
-            let parts = value.split(',');
-            let sisa = parts[0].length % 3;
-            let rupiah = parts[0].substr(0, sisa);
-            let ribuan = parts[0].substr(sisa).match(/\d{3}/gi);
-            if (ribuan) {
-                let separator = sisa ? '.' : '';
-                rupiah += separator + ribuan.join('.');
+        if (e.target && (e.target.id === 'balanceInput' || e.target.id === 'limitInput' || e.target.classList.contains('input-rupiah-modal'))) {
+            if (window.formatRibuanInput) {
+                e.target.value = window.formatRibuanInput(e.target.value, false);
             }
-            e.target.value = parts[1] !== undefined ? rupiah + ',' + parts[1] : rupiah;
         }
     });
 </script>

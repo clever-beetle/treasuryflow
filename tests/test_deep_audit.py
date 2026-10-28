@@ -518,4 +518,94 @@ def test_remaining_14_bugs_regression(client, monkeypatch):
     assert b'Beban: Rp 200.000' in res_perf.data
 
 
+def test_second_pass_10_bugs_regression(client):
+    """Verify all 10 remaining bugs from the second-pass comprehensive audit."""
+    username = f"audit_10_{uuid.uuid4().hex[:8]}"
+    password = "Password123!"
+
+    client.post('/register', data={
+        'fullname': 'Audit 10 User',
+        'username': username,
+        'email': f"{username}@test.com",
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()
+        user_id = user['id']
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type) VALUES (?, '[BANK] BCA', 1000000, 1000000, 'asset')", (user_id,))
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type) VALUES (?, '[BANK] EmptyAccount', 0, 0, 'asset')", (user_id,))
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount) VALUES (?, '[KARTU KREDIT] Mandiri CC', -250000, -250000, 'liability', 5000000)", (user_id,))
+        db.commit()
+        accs = db.execute("SELECT id, name FROM accounts WHERE user_id = ? ORDER BY id ASC", (user_id,)).fetchall()
+        acc_bca, acc_empty, acc_cc = accs[0]['id'], accs[1]['id'], accs[2]['id']
+
+    # 1. Deleting an empty account in /setup/accounts should succeed without SQL error on transfer_to_account_id
+    res_del = client.post(f'/setup/accounts?delete_id={acc_empty}', follow_redirects=True)
+    assert res_del.status_code == 200
+    with client.application.app_context():
+        db = get_db()
+        assert db.execute("SELECT id FROM accounts WHERE id = ?", (acc_empty,)).fetchone() is None
+
+    # 2. Adding a Receivable (Piutang) should NOT inflate user's total_debt or Beban
+    res_rec = client.post('/financial_performance', data={
+        'action': 'add_debt',
+        'person_name': 'Budi',
+        'type': 'receivable',
+        'total_amount': '500.000',
+        'due_date': '2026-11-15',
+        'notes': 'Pinjam uang makan'
+    }, follow_redirects=True)
+    assert res_rec.status_code == 200
+    # Only Mandiri CC (-250.000) is debt; Budi's 500.000 receivable must NOT make Beban Rp 750.000
+    assert b'Beban: Rp 250.000' in res_rec.data
+
+    # 3. AI Chat "berapa utang saya?" should include liability account usage (Rp 250.000)
+    res_chat = client.post('/api/chat', json={'message': 'berapa utang saya?'})
+    assert res_chat.status_code == 200
+    chat_reply = res_chat.get_json()['reply']
+    assert '250,000' in chat_reply or '250.000' in chat_reply
+
+    # 4. Achieved Financial Goal should NOT appear in /api/calendar_events
+    with client.application.app_context():
+        db = get_db()
+        db.execute(
+            "INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status) VALUES (?, 'Beli Laptop', 10000000, 10000000, '2026-10-20', 'Achieved')",
+            (user_id,)
+        )
+        db.commit()
+    res_cal = client.get('/api/calendar_events?month=10&year=2026')
+    assert res_cal.status_code == 200
+    events = res_cal.get_json()
+    assert not any('Beli Laptop' in ev.get('title', '') for ev in events)
+
+    # 5. Linked Installment payment should reject selecting the destination liability account as source
+    with client.application.app_context():
+        db = get_db()
+        db.execute(
+            "INSERT INTO recurring_installments (user_id, name, amount_per_cycle, due_day_of_month, is_temporary_tenor, total_tenor, current_tenor, linked_account_id) "
+            "VALUES (?, 'Cicilan HP', 250000, 15, 1, 2, 1, ?)",
+            (user_id, acc_cc)
+        )
+        db.commit()
+        inst_id = db.execute("SELECT id FROM recurring_installments WHERE user_id = ?", (user_id,)).fetchone()['id']
+
+    res_bad_pay = client.post('/financial_performance', data={
+        'action': 'pay_installment',
+        'inst_id': inst_id,
+        'account_name': acc_cc,
+        'amount_paid': '250.000'
+    }, follow_redirects=True)
+    assert res_bad_pay.status_code == 200
+    with client.application.app_context():
+        db = get_db()
+        inst_row = db.execute("SELECT current_tenor FROM recurring_installments WHERE id = ?", (inst_id,)).fetchone()
+        assert inst_row['current_tenor'] == 1
+
+
+
 

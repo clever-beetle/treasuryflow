@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, url_for, redirect, session, g, flash, Response, jsonify
-from utils import get_db, login_required, format_rupiah, format_rupiah_input, CATEGORIES, cache
+from utils import get_db, login_required, format_rupiah, format_rupiah_input, parse_amount, CATEGORIES, cache
 from models import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -23,8 +23,7 @@ def financial_performance():
         if action == 'add_debt':
             person_name = request.form.get('person_name')
             type_record = request.form.get('type')
-            raw_amount = request.form.get('total_amount', '0').replace('.', '').replace(',', '.')
-            total_amount = float(raw_amount)
+            total_amount = parse_amount(request.form.get('total_amount', '0'))
             due_date = request.form.get('due_date')
             notes = request.form.get('notes')
             
@@ -37,8 +36,7 @@ def financial_performance():
         elif action == 'pay_debt':
             debt_id = int(request.form.get('debt_id'))
             target_account_id = int(request.form.get('account_name'))
-            raw_paid = request.form.get('amount_paid', '0').replace('.', '').replace(',', '.')
-            amount_paid = float(raw_paid)
+            amount_paid = parse_amount(request.form.get('amount_paid', '0'))
             notes = request.form.get('notes')
             
             debt = db.execute("SELECT * FROM debts_receivables WHERE id = ? AND user_id = ?", (debt_id, user_id)).fetchone()
@@ -72,8 +70,7 @@ def financial_performance():
             debt_id = int(request.form.get('debt_id'))
             person_name = request.form.get('person_name')
             type_record = request.form.get('type')
-            raw_amount = request.form.get('total_amount', '0').replace('.', '').replace(',', '.')
-            total_amount = float(raw_amount)
+            total_amount = parse_amount(request.form.get('total_amount', '0'))
             due_date = request.form.get('due_date')
             notes = request.form.get('notes')
             
@@ -106,8 +103,7 @@ def financial_performance():
                 
         elif action == 'add_installment':
             name = request.form.get('name')
-            raw_cycle_amount = request.form.get('amount_per_cycle', '0').replace('.', '').replace(',', '.')
-            amount_per_cycle = float(raw_cycle_amount)
+            amount_per_cycle = parse_amount(request.form.get('amount_per_cycle', '0'))
             due_day = int(request.form.get('due_day_of_month', 1))
             is_tenor = int(request.form.get('is_temporary_tenor', 0))
             total_tenor = request.form.get('total_tenor')
@@ -131,8 +127,7 @@ def financial_performance():
         elif action == 'edit_installment':
             inst_id = int(request.form.get('inst_id'))
             name = request.form.get('name')
-            raw_cycle_amount = request.form.get('amount_per_cycle', '0').replace('.', '').replace(',', '.')
-            amount_per_cycle = float(raw_cycle_amount)
+            amount_per_cycle = parse_amount(request.form.get('amount_per_cycle', '0'))
             due_day = int(request.form.get('due_day_of_month', 1))
             is_tenor = int(request.form.get('is_temporary_tenor', 0))
             total_tenor = request.form.get('total_tenor')
@@ -163,8 +158,7 @@ def financial_performance():
         elif action == 'pay_installment':
             inst_id = int(request.form.get('inst_id'))
             source_account_id = int(request.form.get('account_name'))
-            raw_paid = request.form.get('amount_paid', '0').replace('.', '').replace(',', '.')
-            amount_paid = float(raw_paid)
+            amount_paid = parse_amount(request.form.get('amount_paid', '0'))
             notes = request.form.get('notes', '')
             
             inst = db.execute("SELECT * FROM recurring_installments WHERE id = ? AND user_id = ?", (inst_id, user_id)).fetchone()
@@ -181,6 +175,10 @@ def financial_performance():
                 except (KeyError, TypeError):
                     linked_id = None
                 
+                if linked_id and int(linked_id) == int(source_account_id):
+                    flash('Akun sumber pembayaran tidak boleh sama dengan akun kewajiban tujuan.', 'danger')
+                    return redirect(url_for('performance.financial_performance'))
+
                 if linked_id:
                     # LINKED: Create transfer (bank → liability)
                     linked_acc = db.execute("SELECT * FROM accounts WHERE id = ? AND user_id = ?", (linked_id, user_id)).fetchone()
@@ -248,8 +246,7 @@ def financial_performance():
             asset_name = request.form.get('asset_name')
             category = request.form.get('category')
             purchase_date = request.form.get('purchase_date')
-            raw_price = request.form.get('purchase_price', '0').replace('.', '').replace(',', '.')
-            purchase_price = float(raw_price)
+            purchase_price = parse_amount(request.form.get('purchase_price', '0'))
             quantity = request.form.get('quantity')
             notes = request.form.get('notes')
             
@@ -264,8 +261,7 @@ def financial_performance():
             asset_name = request.form.get('asset_name')
             category = request.form.get('category')
             purchase_date = request.form.get('purchase_date')
-            raw_price = request.form.get('purchase_price', '0').replace('.', '').replace(',', '.')
-            purchase_price = float(raw_price)
+            purchase_price = parse_amount(request.form.get('purchase_price', '0'))
             quantity = request.form.get('quantity')
             notes = request.form.get('notes')
             
@@ -283,9 +279,8 @@ def financial_performance():
 
         elif action == 'add_goal':
             name = request.form.get('goal_name')
-            target = float(request.form.get('target_amount', '0').replace('.', '').replace(',', '.'))
-            current = request.form.get('current_amount', '0').replace('.', '').replace(',', '.')
-            current = float(current) if current else 0.0
+            target = parse_amount(request.form.get('target_amount', '0'))
+            current = parse_amount(request.form.get('current_amount', '0'))
             due_date = request.form.get('due_date')
             
             db.execute('''
@@ -296,7 +291,7 @@ def financial_performance():
 
         elif action == 'saving_goal':
             goal_id = int(request.form.get('goal_id'))
-            amount = float(request.form.get('saving_amount', '0').replace('.', '').replace(',', '.'))
+            amount = parse_amount(request.form.get('saving_amount', '0'))
             
             db.execute('''
                 UPDATE financial_goals 
@@ -440,7 +435,7 @@ def financial_performance():
 
     credit_cards = db.execute("SELECT id, name, limit_amount, ABS(current_balance) as current_usage FROM accounts WHERE user_id = ? AND account_type = 'liability'", (user_id,)).fetchall()
     total_saldo = sum((acc['current_balance'] or 0) for acc in accounts_data)
-    total_debt_records = sum((r['remaining_amount'] or 0) for r in records_active)
+    total_debt_records = sum((r['remaining_amount'] or 0) for r in records_active if r['type'] == 'debt')
     total_cc_usage = sum((cc['current_usage'] or 0) for cc in credit_cards)
     total_cc_limit = sum((cc['limit_amount'] or 0) for cc in credit_cards)
     total_debt = total_debt_records + total_cc_usage
@@ -554,8 +549,7 @@ def manage_budget():
     
     if action == 'add':
         category_name = request.form.get('category_name')
-        raw_limit = request.form.get('limit_amount', '0').replace('.', '').replace(',', '.')
-        limit_amount = float(raw_limit)
+        limit_amount = parse_amount(request.form.get('limit_amount', '0'))
         
         try:
             db.execute('INSERT INTO budgets (user_id, category_name, limit_amount) VALUES (?, ?, ?)', 

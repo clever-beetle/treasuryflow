@@ -34,7 +34,7 @@ def api_calendar_events():
     events = []
     
     # Add Financial Goals due dates
-    goals = db.execute("SELECT name, due_date, target_amount FROM financial_goals WHERE user_id = ? AND status != 'Completed'", (user_id,)).fetchall()
+    goals = db.execute("SELECT name, due_date, target_amount FROM financial_goals WHERE user_id = ? AND status NOT IN ('Achieved', 'Completed')", (user_id,)).fetchall()
     for g in goals:
         if g['due_date']:
             target_val = float(g['target_amount'] or 0)
