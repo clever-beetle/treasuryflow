@@ -188,7 +188,13 @@ def add_transaction():
     user_id = session['user_id']
     if request.method == 'POST':
         t_type = request.form.get('type')
-        date = request.form.get('date')
+        raw_date = (request.form.get('date') or '').strip()[:10]
+        try:
+            datetime.strptime(raw_date, '%Y-%m-%d')
+            date = raw_date
+        except ValueError:
+            from datetime import timedelta
+            date = (datetime.now() + timedelta(hours=7)).strftime('%Y-%m-%d')
         amount = parse_amount(request.form.get('amount'))
             
         if amount <= 0:
@@ -835,7 +841,8 @@ def export_pdf():
             # Category name
             pdf.set_font('Arial', '', 7)
             pdf.set_text_color(*TreasuryPDF.BLACK)
-            pdf.cell(38, 5, f'{ci+1}. {cat_name[:20]}', 0, 0, 'L')
+            safe_cat_name = sanitize_pdf_text(cat_name or 'Uncategorized')[:20]
+            pdf.cell(38, 5, f'{ci+1}. {safe_cat_name}', 0, 0, 'L')
             
             # Bar background
             pdf.set_fill_color(235, 235, 240)
@@ -1095,6 +1102,7 @@ def download_receipt(id):
     pdf.cell(120, 12, f'{sign}Rp {amount:,.0f}', 0, 0, 'R')
 
     # Footer
+    pdf.set_auto_page_break(auto=False)
     pdf.set_y(-40)
     pdf.set_fill_color(200, 200, 210)
     pdf.rect(10, pdf.get_y(), 190, 0.3, 'F')

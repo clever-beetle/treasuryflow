@@ -1,11 +1,10 @@
-const CACHE_VERSION = 'treasuryflow-v11';
+const CACHE_VERSION = 'treasuryflow-v12';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_VERSION).then((cache) => {
       return cache.addAll([
-        '/',
         '/static/img/brand/icon_192.png',
         '/static/img/brand/icon_512.png',
         '/static/img/brand/logo_128.png',
@@ -15,10 +14,15 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+  if (event.request.method !== 'GET' || !event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+  const url = new URL(event.request.url);
+  const isStaticAsset = url.pathname.startsWith('/static/') || url.pathname === '/favicon.ico';
   event.respondWith(
     fetch(event.request)
       .then((networkResponse) => {
-        if (event.request.method === 'GET' && networkResponse.status === 200) {
+        if (isStaticAsset && networkResponse.status === 200) {
           const responseClone = networkResponse.clone();
           caches.open(CACHE_VERSION + '-dynamic').then((cache) => {
             cache.put(event.request, responseClone);
@@ -27,9 +31,7 @@ self.addEventListener('fetch', (event) => {
         return networkResponse;
       })
       .catch(() => {
-        return caches.match(event.request).then((response) => {
-          return response || caches.match('/');
-        });
+        return caches.match(event.request);
       })
   );
 });

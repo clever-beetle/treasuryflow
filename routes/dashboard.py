@@ -29,6 +29,47 @@ def dashboard():
     db = get_db()
     user_id = session['user_id']
     
+    wib_now = datetime.now() + timedelta(hours=7)
+    today = wib_now.date()
+    today_str = today.strftime('%Y-%m-%d')
+
+    # AUTO RECURRING SYNC — run before balance sync & stats queries so synced items appear immediately
+    auto_sync_enabled = False
+    try:
+        flag = db.execute("SELECT is_active FROM feature_flags WHERE name = 'auto_sync'").fetchone()
+        if flag:
+            auto_sync_enabled = flag['is_active']
+    except Exception:
+        pass
+
+    if auto_sync_enabled:
+        import calendar as cal_mod
+        current_month_str = today.strftime('%Y-%m')
+        first_day_of_month = today.replace(day=1).strftime('%Y-%m-%d')
+        last_day = cal_mod.monthrange(today.year, today.month)[1]
+        last_day_of_month = today.replace(day=last_day).strftime('%Y-%m-%d')
+        installments_sync = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 1", (user_id,)).fetchall()
+        for inst in installments_sync:
+            if today.day >= (inst['due_day_of_month'] or 1):
+                desc = f"Auto-Sync: {inst['name']}"
+                existing = db.execute("SELECT id FROM transactions WHERE user_id = ? AND description = ? AND date >= ? AND date <= ?", (user_id, desc, first_day_of_month, last_day_of_month)).fetchone()
+                if not existing:
+                    account = db.execute("SELECT id FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL) LIMIT 1", (user_id,)).fetchone()
+                    if account:
+                        try:
+                            safe_day = min(max(1, int(inst['due_day_of_month'] or 1)), last_day)
+                            date_str = f"{current_month_str}-{safe_day:02d}"
+                            db.execute('''INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
+                                          VALUES (?, ?, ?, 'expense', ?, ?, 'Langganan & Cicilan')''', 
+                                       (user_id, date_str, account['id'], inst['amount_per_cycle'], desc))
+                            db.commit()
+                        except Exception as e:
+                            try:
+                                db.rollback()
+                            except Exception:
+                                pass
+                            logger.error(f"Error sync recurring: {e}")
+
     # Sync balances before loading dashboard
     recalculate_account_balances(db, user_id)
     
@@ -36,10 +77,6 @@ def dashboard():
     filter_type = request.args.get('type', type=str)
     
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
-    
-    wib_now = datetime.now() + timedelta(hours=7)
-    today = wib_now.date()
-    today_str = today.strftime('%Y-%m-%d')
     period = request.args.get('period', type=int, default=30)
     if period not in [3, 7, 30, 90, 365]:
         period = 30
@@ -150,8 +187,12 @@ def dashboard():
     params = [user_id]
     
     if filter_account_id and filter_account_id != 'all':
-        query += ' AND t.account_id = ?'
-        params.append(filter_account_id)
+        try:
+            acc_id_int = int(filter_account_id)
+            query += ' AND t.account_id = ?'
+            params.append(acc_id_int)
+        except (ValueError, TypeError):
+            pass
         
     if filter_type and filter_type != 'all':
         query += ' AND t.type = ?'
@@ -185,14 +226,15 @@ def dashboard():
 
     # Fetch active budgets & compute monthly usage
     first_day_current_month = today.replace(day=1).strftime('%Y-%m-%d')
+    last_day_current_month = today.replace(day=cal_mod.monthrange(today.year, today.month)[1]).strftime('%Y-%m-%d')
     budgets_raw = db.execute('SELECT id, category_name, limit_amount FROM budgets WHERE user_id = ?', (user_id,)).fetchall()
     
     budgets_data = []
     for b in budgets_raw:
         spent_row = db.execute('''
             SELECT SUM(amount) as total FROM transactions
-            WHERE user_id = ? AND type = 'expense' AND category = ? AND date >= ?
-        ''', (user_id, b['category_name'], first_day_current_month)).fetchone()
+            WHERE user_id = ? AND type = 'expense' AND category = ? AND date >= ? AND date <= ?
+        ''', (user_id, b['category_name'], first_day_current_month, last_day_current_month)).fetchone()
         spent = spent_row['total'] if spent_row['total'] else 0
         pct = (spent / b['limit_amount']) * 100 if b['limit_amount'] > 0 else 0
         budgets_data.append({
@@ -228,48 +270,8 @@ def dashboard():
 
     health_status = 'Excellent' if health_score >= 80 else 'Good' if health_score >= 50 else 'Warning'
 
-    # AUTO RECURRING SYNC — only if enabled in feature_flags
-    auto_sync_enabled = False
-    try:
-        flag = db.execute("SELECT is_active FROM feature_flags WHERE name = 'auto_sync'").fetchone()
-        if flag:
-            auto_sync_enabled = flag['is_active']
-    except Exception:
-        pass
-
-    if auto_sync_enabled:
-        current_month_str = today.strftime('%Y-%m')
-        first_day_of_month = today.replace(day=1).strftime('%Y-%m-%d')
-        import calendar as cal_mod
-        last_day = cal_mod.monthrange(today.year, today.month)[1]
-        last_day_of_month = today.replace(day=last_day).strftime('%Y-%m-%d')
-        installments_sync = db.execute("SELECT * FROM recurring_installments WHERE user_id = ? AND is_active = 1", (user_id,)).fetchall()
-        for inst in installments_sync:
-            if today.day >= inst['due_day_of_month']:
-                desc = f"Auto-Sync: {inst['name']}"
-                existing = db.execute("SELECT id FROM transactions WHERE user_id = ? AND description = ? AND date >= ? AND date <= ?", (user_id, desc, first_day_of_month, last_day_of_month)).fetchone()
-                if not existing:
-                    account = db.execute("SELECT id FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL) LIMIT 1", (user_id,)).fetchone()
-                    if account:
-                        try:
-                            safe_day = min(max(1, int(inst['due_day_of_month'] or 1)), last_day)
-                            date_str = f"{current_month_str}-{safe_day:02d}"
-                            db.execute('''INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
-                                          VALUES (?, ?, ?, 'expense', ?, ?, 'Langganan & Cicilan')''', 
-                                       (user_id, date_str, account['id'], inst['amount_per_cycle'], desc))
-                            db.execute('UPDATE accounts SET current_balance = current_balance - ? WHERE id = ?', (inst['amount_per_cycle'], account['id']))
-                            db.commit()
-                            recalculate_account_balances(db, user_id)
-                        except Exception as e:
-                            try:
-                                db.rollback()
-                            except:
-                                pass
-                            logger.error(f"Error sync recurring: {e}")
-
-
     # Fetch heatmap data
-    days_ago_365 = (datetime.now() - timedelta(days=365)).strftime('%Y-%m-%d')
+    days_ago_365 = (today - timedelta(days=365)).strftime('%Y-%m-%d')
     heatmap_raw = db.execute('''
         SELECT date, SUM(amount) as total 
         FROM transactions 
@@ -340,6 +342,7 @@ def dashboard():
     expense_categories = list(CATEGORIES.get('expense', [])) + [c for c in user_exp_cats if c not in CATEGORIES.get('expense', [])]
 
     return render_template('dashboard.html', ach=ach,
+                           today_str=today_str,
                            expense_categories=expense_categories,
                            total_balance=total_balance, 
                            total_income=total_income,

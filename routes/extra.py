@@ -60,7 +60,7 @@ def api_calendar_events():
     # Add Active Recurring Installments / Subscriptions
     import calendar as cal_mod
     from datetime import datetime, timedelta
-    today = datetime.now().date()
+    today = (datetime.now() + timedelta(hours=7)).date()
     months_to_check = [
         today,
         (today.replace(day=1) + timedelta(days=32)).replace(day=1)

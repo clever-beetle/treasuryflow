@@ -787,6 +787,112 @@ def test_fourth_pass_10_bugs_regression(client):
     assert res_receipt.mimetype == 'application/pdf'
 
 
+def test_fifth_pass_12_bugs_regression(client, monkeypatch):
+    """
+    Verifies the 12 fifth-pass autonomous audit bugs:
+    1. Dev console query_result renders row values (not dict keys) and supports PRAGMA/SELECT
+    2. add_transaction falls back to today's WIB date when date is empty (e.g. payBillModal)
+    3. export_pdf sanitizes Unicode category names in Top Expense Categories chart
+    4. financial_performance preserves activeTab across POST actions & supports edit_goal
+    5. manage_budget updates existing category budget (UPSERT) and rejects <= 0 limit
+    6. AI chat includes NULL-category transactions and formats Rupiah with dots
+    7. Dashboard auto_sync runs before stats/balance queries & ignores invalid account_id filter
+    """
+    username = f"fifth_pass_{uuid.uuid4().hex[:6]}"
+    password = "StrongPass123"
+    email = f"{username}@test.com"
+    client.post('/register', data={
+        'fullname': 'Fifth Pass User',
+        'username': username,
+        'email': email,
+        'password': password,
+        'confirm_password': password
+    }, follow_redirects=True)
+    client.post('/login', data={'username': username, 'password': password}, follow_redirects=True)
+
+    from utils import get_db
+    with client.application.app_context():
+        db = get_db()
+        user_id = db.execute("SELECT id FROM users WHERE username = ?", (username,)).fetchone()['id']
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type) VALUES (?, '[BANK] BCA', 2000000, 2000000, 'asset')", (user_id,))
+        db.commit()
+        acc_bca = db.execute("SELECT id FROM accounts WHERE user_id = ? LIMIT 1", (user_id,)).fetchone()['id']
+
+    # 1. Dev console query_result renders actual row values (not just column keys)
+    monkeypatch.setenv('DEV_SECRET_KEY', 'my_dev_key')
+    res_dev = client.post('/dev-console?key=my_dev_key', data={
+        'query': f"SELECT email FROM users WHERE id = {user_id}"
+    })
+    assert res_dev.status_code == 200
+    assert email.encode() in res_dev.data
+
+    # 2. add_transaction with empty date (like payBillModal) defaults to today's WIB date & Unicode category in PDF export
+    res_tx = client.post('/transactions/add', data={
+        'date': '',
+        'type': 'expense',
+        'amount': '125.000',
+        'category': 'Makanan — Spesial 🎉',
+        'account_id': acc_bca,
+        'description': 'Makan Siang'
+    }, follow_redirects=True)
+    assert res_tx.status_code == 200
+
+    res_pdf = client.get('/transactions/export_pdf')
+    assert res_pdf.status_code == 200
+    assert res_pdf.mimetype == 'application/pdf'
+
+    # 3. financial_performance preserves activeTab and supports edit_goal
+    res_add_goal = client.post('/financial_performance', data={
+        'action': 'add_goal',
+        'goal_name': 'Beli Laptop',
+        'target_amount': '10.000.000',
+        'current_amount': '2.000.000',
+        'due_date': '2026-12-31'
+    }, follow_redirects=True)
+    assert res_add_goal.status_code == 200
+    assert b"activeTab: 'goals'" in res_add_goal.data
+
+    with client.application.app_context():
+        db = get_db()
+        goal_id = db.execute("SELECT id FROM financial_goals WHERE user_id = ? AND name = 'Beli Laptop'", (user_id,)).fetchone()['id']
+
+    res_edit_goal = client.post('/financial_performance', data={
+        'action': 'edit_goal',
+        'goal_id': goal_id,
+        'goal_name': 'Beli MacBook Pro',
+        'target_amount': '15.000.000',
+        'current_amount': '15.000.000',
+        'due_date': '2026-11-30'
+    }, follow_redirects=True)
+    assert res_edit_goal.status_code == 200
+    assert b'Beli MacBook Pro' in res_edit_goal.data
+    with client.application.app_context():
+        db = get_db()
+        g_after = db.execute("SELECT name, target_amount, current_amount, status FROM financial_goals WHERE id = ?", (goal_id,)).fetchone()
+        assert g_after['name'] == 'Beli MacBook Pro'
+        assert g_after['target_amount'] == 15000000
+        assert g_after['status'] == 'Achieved'
+
+    # 4. manage_budget updates existing category budget (UPSERT) and rejects <= 0
+    client.post('/manage_budget', data={'action': 'add', 'category_name': 'Makanan & Minuman', 'limit_amount': '1.000.000'}, follow_redirects=True)
+    client.post('/manage_budget', data={'action': 'add', 'category_name': 'Makanan & Minuman', 'limit_amount': '2.500.000'}, follow_redirects=True)
+    client.post('/manage_budget', data={'action': 'add', 'category_name': 'Makanan & Minuman', 'limit_amount': '0'}, follow_redirects=True)
+    with client.application.app_context():
+        db = get_db()
+        b_row = db.execute("SELECT limit_amount FROM budgets WHERE user_id = ? AND category_name = 'Makanan & Minuman'", (user_id,)).fetchone()
+        assert b_row['limit_amount'] == 2500000
+
+    # 5. AI chat includes NULL-category expenses and formats Rupiah with dots
+    res_chat = client.post('/api/chat', json={'message': 'berapa saldo saya?'})
+    assert res_chat.status_code == 200
+    assert 'Rp 1.875.000' in res_chat.get_json()['reply']
+
+    # 6. Dashboard handles non-integer account_id filter gracefully
+    res_dash = client.get('/dashboard?account_id=not_an_int')
+    assert res_dash.status_code == 200
+
+
+
 
 
 

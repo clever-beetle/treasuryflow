@@ -19,30 +19,52 @@ def financial_performance():
 
     if request.method == 'POST':
         action = request.form.get('action')
+        tab_map = {
+            'add_debt': 'liabilities',
+            'pay_debt': 'liabilities',
+            'edit_debt': 'liabilities',
+            'delete_debt': 'liabilities',
+            'add_installment': 'liabilities',
+            'edit_installment': 'liabilities',
+            'delete_installment': 'liabilities',
+            'pay_installment': 'liabilities',
+            'add_asset': 'assets',
+            'edit_asset': 'assets',
+            'delete_asset': 'assets',
+            'add_goal': 'goals',
+            'edit_goal': 'goals',
+            'saving_goal': 'goals',
+            'delete_goal': 'goals',
+        }
+        target_tab = tab_map.get(action, 'analytics')
         
         if action == 'add_debt':
-            person_name = request.form.get('person_name')
-            type_record = request.form.get('type')
+            person_name = (request.form.get('person_name') or '').strip()
+            type_record = request.form.get('type') if request.form.get('type') in ('debt', 'receivable') else 'debt'
             total_amount = parse_amount(request.form.get('total_amount', '0'))
             due_date = request.form.get('due_date')
             notes = request.form.get('notes')
             
-            db.execute('''
-                INSERT INTO debts_receivables (user_id, person_name, type, total_amount, remaining_amount, due_date, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, person_name, type_record, total_amount, total_amount, due_date, notes))
-            db.commit()
+            if person_name and total_amount > 0:
+                db.execute('''
+                    INSERT INTO debts_receivables (user_id, person_name, type, total_amount, remaining_amount, due_date, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, person_name, type_record, total_amount, total_amount, due_date, notes))
+                db.commit()
             
         elif action == 'pay_debt':
-            debt_id = int(request.form.get('debt_id'))
-            target_account_id = int(request.form.get('account_name'))
+            try:
+                debt_id = int(request.form.get('debt_id'))
+                target_account_id = int(request.form.get('account_name'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
             amount_paid = parse_amount(request.form.get('amount_paid', '0'))
             notes = request.form.get('notes')
             
             debt = db.execute("SELECT * FROM debts_receivables WHERE id = ? AND user_id = ?", (debt_id, user_id)).fetchone()
             acc_row = db.execute("SELECT name FROM accounts WHERE id = ? AND user_id = ?", (target_account_id, user_id)).fetchone()
             
-            if debt and acc_row:
+            if debt and acc_row and amount_paid > 0:
                 new_remaining = float(debt['remaining_amount']) - amount_paid
                 if new_remaining < 0: new_remaining = 0.0
                 new_status = 'LUNAS' if new_remaining <= 0 else 'BELUM LUNAS'
@@ -67,16 +89,19 @@ def financial_performance():
                 recalculate_account_balances(db, user_id)
 
         elif action == 'edit_debt':
-            debt_id = int(request.form.get('debt_id'))
-            person_name = request.form.get('person_name')
-            type_record = request.form.get('type')
+            try:
+                debt_id = int(request.form.get('debt_id'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
+            person_name = (request.form.get('person_name') or '').strip()
+            type_record = request.form.get('type') if request.form.get('type') in ('debt', 'receivable') else 'debt'
             total_amount = parse_amount(request.form.get('total_amount', '0'))
             due_date = request.form.get('due_date')
             notes = request.form.get('notes')
             
             # Get current debt to recalculate remaining proportionally
             debt = db.execute("SELECT * FROM debts_receivables WHERE id = ? AND user_id = ?", (debt_id, user_id)).fetchone()
-            if debt:
+            if debt and person_name and total_amount > 0:
                 old_total = float(debt['total_amount']) or 1
                 old_remaining = float(debt['remaining_amount'])
                 # Proportional: if total changes, adjust remaining by same ratio
@@ -94,7 +119,10 @@ def financial_performance():
                 db.commit()
 
         elif action == 'delete_debt':
-            debt_id = int(request.form.get('debt_id'))
+            try:
+                debt_id = int(request.form.get('debt_id'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
             debt = db.execute("SELECT id FROM debts_receivables WHERE id = ? AND user_id = ?", (debt_id, user_id)).fetchone()
             if debt:
                 db.execute("DELETE FROM debts_receivables WHERE id = ?", (debt_id,))
@@ -102,69 +130,98 @@ def financial_performance():
                 db.commit()
                 
         elif action == 'add_installment':
-            name = request.form.get('name')
+            name = (request.form.get('name') or '').strip()
             amount_per_cycle = parse_amount(request.form.get('amount_per_cycle', '0'))
-            due_day = int(request.form.get('due_day_of_month', 1))
-            is_tenor = int(request.form.get('is_temporary_tenor', 0))
-            total_tenor = request.form.get('total_tenor')
-            total_tenor = int(total_tenor) if total_tenor else None
-            linked_account_id = request.form.get('linked_account_id', '')
-            linked_account_id = int(linked_account_id) if linked_account_id else None
-            
             try:
-                db.execute('''
-                    INSERT INTO recurring_installments (user_id, name, amount_per_cycle, due_day_of_month, is_temporary_tenor, total_tenor, current_tenor, linked_account_id)
-                    VALUES (?, ?, ?, ?, ?, ?, 1, ?)
-                ''', (user_id, name, amount_per_cycle, due_day, is_tenor, total_tenor, linked_account_id))
-            except Exception:
-                db.rollback()
-                db.execute('''
-                    INSERT INTO recurring_installments (user_id, name, amount_per_cycle, due_day_of_month, is_temporary_tenor, total_tenor, current_tenor)
-                    VALUES (?, ?, ?, ?, ?, ?, 1)
-                ''', (user_id, name, amount_per_cycle, due_day, is_tenor, total_tenor))
-            db.commit()
+                due_day = min(max(1, int(request.form.get('due_day_of_month', 1))), 31)
+            except (ValueError, TypeError):
+                due_day = 1
+            is_tenor = 1 if str(request.form.get('is_temporary_tenor', '0')) == '1' else 0
+            total_tenor = request.form.get('total_tenor')
+            try:
+                total_tenor = max(1, int(total_tenor)) if total_tenor else None
+            except (ValueError, TypeError):
+                total_tenor = None
+            linked_account_id = request.form.get('linked_account_id', '')
+            try:
+                linked_account_id = int(linked_account_id) if linked_account_id else None
+            except (ValueError, TypeError):
+                linked_account_id = None
+            
+            if name and amount_per_cycle > 0:
+                try:
+                    db.execute('''
+                        INSERT INTO recurring_installments (user_id, name, amount_per_cycle, due_day_of_month, is_temporary_tenor, total_tenor, current_tenor, linked_account_id)
+                        VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+                    ''', (user_id, name, amount_per_cycle, due_day, is_tenor, total_tenor, linked_account_id))
+                except Exception:
+                    db.rollback()
+                    db.execute('''
+                        INSERT INTO recurring_installments (user_id, name, amount_per_cycle, due_day_of_month, is_temporary_tenor, total_tenor, current_tenor)
+                        VALUES (?, ?, ?, ?, ?, ?, 1)
+                    ''', (user_id, name, amount_per_cycle, due_day, is_tenor, total_tenor))
+                db.commit()
 
         elif action == 'edit_installment':
-            inst_id = int(request.form.get('inst_id'))
-            name = request.form.get('name')
-            amount_per_cycle = parse_amount(request.form.get('amount_per_cycle', '0'))
-            due_day = int(request.form.get('due_day_of_month', 1))
-            is_tenor = int(request.form.get('is_temporary_tenor', 0))
-            total_tenor = request.form.get('total_tenor')
-            total_tenor = int(total_tenor) if total_tenor else None
-            linked_account_id = request.form.get('linked_account_id', '')
-            linked_account_id = int(linked_account_id) if linked_account_id else None
-            
             try:
-                db.execute('''
-                    UPDATE recurring_installments 
-                    SET name = ?, amount_per_cycle = ?, due_day_of_month = ?, is_temporary_tenor = ?, total_tenor = ?, linked_account_id = ?
-                    WHERE id = ? AND user_id = ?
-                ''', (name, amount_per_cycle, due_day, is_tenor, total_tenor, linked_account_id, inst_id, user_id))
-            except Exception:
-                db.rollback()
-                db.execute('''
-                    UPDATE recurring_installments 
-                    SET name = ?, amount_per_cycle = ?, due_day_of_month = ?, is_temporary_tenor = ?, total_tenor = ?
-                    WHERE id = ? AND user_id = ?
-                ''', (name, amount_per_cycle, due_day, is_tenor, total_tenor, inst_id, user_id))
-            db.commit()
+                inst_id = int(request.form.get('inst_id'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
+            name = (request.form.get('name') or '').strip()
+            amount_per_cycle = parse_amount(request.form.get('amount_per_cycle', '0'))
+            try:
+                due_day = min(max(1, int(request.form.get('due_day_of_month', 1))), 31)
+            except (ValueError, TypeError):
+                due_day = 1
+            is_tenor = 1 if str(request.form.get('is_temporary_tenor', '0')) == '1' else 0
+            total_tenor = request.form.get('total_tenor')
+            try:
+                total_tenor = max(1, int(total_tenor)) if total_tenor else None
+            except (ValueError, TypeError):
+                total_tenor = None
+            linked_account_id = request.form.get('linked_account_id', '')
+            try:
+                linked_account_id = int(linked_account_id) if linked_account_id else None
+            except (ValueError, TypeError):
+                linked_account_id = None
+            
+            if name and amount_per_cycle > 0:
+                try:
+                    db.execute('''
+                        UPDATE recurring_installments 
+                        SET name = ?, amount_per_cycle = ?, due_day_of_month = ?, is_temporary_tenor = ?, total_tenor = ?, linked_account_id = ?
+                        WHERE id = ? AND user_id = ?
+                    ''', (name, amount_per_cycle, due_day, is_tenor, total_tenor, linked_account_id, inst_id, user_id))
+                except Exception:
+                    db.rollback()
+                    db.execute('''
+                        UPDATE recurring_installments 
+                        SET name = ?, amount_per_cycle = ?, due_day_of_month = ?, is_temporary_tenor = ?, total_tenor = ?
+                        WHERE id = ? AND user_id = ?
+                    ''', (name, amount_per_cycle, due_day, is_tenor, total_tenor, inst_id, user_id))
+                db.commit()
 
         elif action == 'delete_installment':
-            inst_id = int(request.form.get('inst_id'))
+            try:
+                inst_id = int(request.form.get('inst_id'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
             db.execute("DELETE FROM recurring_installments WHERE id = ? AND user_id = ?", (inst_id, user_id))
             db.commit()
 
         elif action == 'pay_installment':
-            inst_id = int(request.form.get('inst_id'))
-            source_account_id = int(request.form.get('account_name'))
+            try:
+                inst_id = int(request.form.get('inst_id'))
+                source_account_id = int(request.form.get('account_name'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
             amount_paid = parse_amount(request.form.get('amount_paid', '0'))
             notes = request.form.get('notes', '')
             
             inst = db.execute("SELECT * FROM recurring_installments WHERE id = ? AND user_id = ?", (inst_id, user_id)).fetchone()
             source_acc = db.execute("SELECT * FROM accounts WHERE id = ? AND user_id = ?", (source_account_id, user_id)).fetchone()
             
-            if inst and source_acc:
+            if inst and source_acc and amount_paid > 0:
                 clean_src = source_acc['name'].split('] ')[1] if '] ' in source_acc['name'] else source_acc['name']
                 tx_date = (datetime.now() + timedelta(hours=7)).strftime('%Y-%m-%d')
                 
@@ -177,7 +234,7 @@ def financial_performance():
                 
                 if linked_id and int(linked_id) == int(source_account_id):
                     flash('Akun sumber pembayaran tidak boleh sama dengan akun kewajiban tujuan.', 'danger')
-                    return redirect(url_for('performance.financial_performance'))
+                    return redirect(url_for('performance.financial_performance', tab=target_tab))
 
                 if linked_id:
                     # LINKED: Create transfer (bank → liability)
@@ -253,75 +310,107 @@ def financial_performance():
                 recalculate_account_balances(db, user_id)
 
         elif action == 'add_asset':
-            asset_name = request.form.get('asset_name')
-            category = request.form.get('category')
+            asset_name = (request.form.get('asset_name') or '').strip()
+            category = (request.form.get('category') or '').strip()
             purchase_date = request.form.get('purchase_date')
             purchase_price = parse_amount(request.form.get('purchase_price', '0'))
             quantity = request.form.get('quantity')
             notes = request.form.get('notes')
             
-            db.execute('''
-                INSERT INTO assets (user_id, asset_name, category, purchase_date, purchase_price, quantity, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (user_id, asset_name, category, purchase_date, purchase_price, quantity, notes))
-            db.commit()
+            if asset_name and purchase_price >= 0:
+                db.execute('''
+                    INSERT INTO assets (user_id, asset_name, category, purchase_date, purchase_price, quantity, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, asset_name, category, purchase_date, purchase_price, quantity, notes))
+                db.commit()
 
         elif action == 'edit_asset':
-            asset_id = int(request.form.get('asset_id'))
-            asset_name = request.form.get('asset_name')
-            category = request.form.get('category')
+            try:
+                asset_id = int(request.form.get('asset_id'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
+            asset_name = (request.form.get('asset_name') or '').strip()
+            category = (request.form.get('category') or '').strip()
             purchase_date = request.form.get('purchase_date')
             purchase_price = parse_amount(request.form.get('purchase_price', '0'))
             quantity = request.form.get('quantity')
             notes = request.form.get('notes')
             
-            db.execute('''
-                UPDATE assets 
-                SET asset_name = ?, category = ?, purchase_date = ?, purchase_price = ?, quantity = ?, notes = ?
-                WHERE id = ? AND user_id = ?
-            ''', (asset_name, category, purchase_date, purchase_price, quantity, notes, asset_id, user_id))
-            db.commit()
+            if asset_name and purchase_price >= 0:
+                db.execute('''
+                    UPDATE assets 
+                    SET asset_name = ?, category = ?, purchase_date = ?, purchase_price = ?, quantity = ?, notes = ?
+                    WHERE id = ? AND user_id = ?
+                ''', (asset_name, category, purchase_date, purchase_price, quantity, notes, asset_id, user_id))
+                db.commit()
 
         elif action == 'delete_asset':
-            asset_id = int(request.form.get('asset_id'))
+            try:
+                asset_id = int(request.form.get('asset_id'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
             db.execute("DELETE FROM assets WHERE id = ? AND user_id = ?", (asset_id, user_id))
             db.commit()
 
         elif action == 'add_goal':
-            name = request.form.get('goal_name')
+            name = (request.form.get('goal_name') or '').strip()
             target = parse_amount(request.form.get('target_amount', '0'))
-            current = parse_amount(request.form.get('current_amount', '0'))
+            current = max(0.0, parse_amount(request.form.get('current_amount', '0')))
             due_date = request.form.get('due_date')
-            init_status = 'Achieved' if (target > 0 and current >= target) else 'In Progress'
-            
-            db.execute('''
-                INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (user_id, name, target, current, due_date, init_status))
-            db.commit()
+            if name and target > 0:
+                init_status = 'Achieved' if current >= target else 'In Progress'
+                db.execute('''
+                    INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                ''', (user_id, name, target, current, due_date, init_status))
+                db.commit()
+
+        elif action == 'edit_goal':
+            try:
+                goal_id = int(request.form.get('goal_id'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
+            name = (request.form.get('goal_name') or '').strip()
+            target = parse_amount(request.form.get('target_amount', '0'))
+            current = max(0.0, parse_amount(request.form.get('current_amount', '0')))
+            due_date = request.form.get('due_date')
+            if name and target > 0:
+                new_status = 'Achieved' if current >= target else 'In Progress'
+                db.execute('''
+                    UPDATE financial_goals
+                    SET name = ?, target_amount = ?, current_amount = ?, due_date = ?, status = ?
+                    WHERE id = ? AND user_id = ?
+                ''', (name, target, current, due_date, new_status, goal_id, user_id))
+                db.commit()
 
         elif action == 'saving_goal':
-            goal_id = int(request.form.get('goal_id'))
+            try:
+                goal_id = int(request.form.get('goal_id'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
             amount = parse_amount(request.form.get('saving_amount', '0'))
-            
-            db.execute('''
-                UPDATE financial_goals 
-                SET current_amount = current_amount + ? 
-                WHERE id = ? AND user_id = ?
-            ''', (amount, goal_id, user_id))
-            
-            goal = db.execute('SELECT target_amount, current_amount FROM financial_goals WHERE id = ? AND user_id = ?', (goal_id, user_id)).fetchone()
-            if goal and goal['current_amount'] >= goal['target_amount']:
-                db.execute("UPDATE financial_goals SET status = 'Achieved' WHERE id = ? AND user_id = ?", (goal_id, user_id))
+            if amount > 0:
+                db.execute('''
+                    UPDATE financial_goals 
+                    SET current_amount = current_amount + ? 
+                    WHERE id = ? AND user_id = ?
+                ''', (amount, goal_id, user_id))
                 
-            db.commit()
+                goal = db.execute('SELECT target_amount, current_amount FROM financial_goals WHERE id = ? AND user_id = ?', (goal_id, user_id)).fetchone()
+                if goal and goal['current_amount'] >= goal['target_amount']:
+                    db.execute("UPDATE financial_goals SET status = 'Achieved' WHERE id = ? AND user_id = ?", (goal_id, user_id))
+                    
+                db.commit()
 
         elif action == 'delete_goal':
-            goal_id = int(request.form.get('goal_id'))
+            try:
+                goal_id = int(request.form.get('goal_id'))
+            except (ValueError, TypeError):
+                return redirect(url_for('performance.financial_performance', tab=target_tab))
             db.execute('DELETE FROM financial_goals WHERE id = ? AND user_id = ?', (goal_id, user_id))
             db.commit()
             
-        return redirect(url_for('performance.financial_performance'))
+        return redirect(url_for('performance.financial_performance', tab=target_tab))
 
     req_days = request.args.get('days', type=int) or request.args.get('period', type=int)
     days_range = req_days if req_days in [3, 7, 30, 90, 180, 365] else 30
@@ -344,6 +433,7 @@ def financial_performance():
             if current > 0:
                 distribution_list.append({
                     'name': clean_name,
+                    'raw_name': acc['name'],
                     'balance': current,
                     'percentage': round(percentage, 1),
                     'color': theme_colors[index % len(theme_colors)]
@@ -534,7 +624,10 @@ def financial_performance():
         pct = (top_cat[1] / analytics_total_expense * 100) if analytics_total_expense > 0 else 0
         analytics_insights.append({"icon": "pie-chart", "color": "amber-500", "title": f"Top Expense: {top_cat[0]}", "desc": f"You spent Rp {top_cat[1]:,.0f} on {top_cat[0]}, which is {pct:.1f}% of your total expenses."})
     # --- End Analytics Integration ---
+    req_tab = request.args.get('tab', 'analytics')
+    active_tab = req_tab if req_tab in ('analytics', 'cashflow', 'liabilities', 'assets', 'goals') else 'analytics'
     return render_template('financial_performance.html', 
+                           active_tab=active_tab,
                            expense_custom_range=expense_custom_range, income_custom_range=income_custom_range,
                            avg_expense_daily=avg_expense_daily, avg_income_daily=avg_income_daily,
                            proyeksi_seminggu_out=proyeksi_seminggu_out, proyeksi_sebulan_out=proyeksi_sebulan_out,
@@ -559,23 +652,29 @@ def manage_budget():
     action = request.form.get('action')
     
     if action == 'add':
-        category_name = request.form.get('category_name')
+        category_name = (request.form.get('category_name') or '').strip()
         limit_amount = parse_amount(request.form.get('limit_amount', '0'))
+        if not category_name or limit_amount <= 0:
+            flash('Pilih kategori dan masukkan batas anggaran lebih dari 0.', 'danger')
+            return redirect(url_for('dashboard.dashboard'))
         
         try:
-            db.execute('INSERT INTO budgets (user_id, category_name, limit_amount) VALUES (?, ?, ?)', 
-                       (user_id, category_name, limit_amount))
-            db.commit()
-            flash('Anggaran berhasil ditambahkan!', 'success')
+            existing = db.execute('SELECT id FROM budgets WHERE user_id = ? AND category_name = ?', (user_id, category_name)).fetchone()
+            if existing:
+                db.execute('UPDATE budgets SET limit_amount = ? WHERE id = ? AND user_id = ?', (limit_amount, existing['id'], user_id))
+                db.commit()
+                flash('Limit anggaran berhasil diperbarui!', 'success')
+            else:
+                db.execute('INSERT INTO budgets (user_id, category_name, limit_amount) VALUES (?, ?, ?)', 
+                           (user_id, category_name, limit_amount))
+                db.commit()
+                flash('Anggaran berhasil ditambahkan!', 'success')
         except Exception as e:
             try:
                 db.rollback()
-            except:
+            except Exception:
                 pass
-            if 'UNIQUE' in str(e) or 'duplicate' in str(e).lower():
-                flash('Anggaran untuk kategori ini sudah ada.', 'warning')
-            else:
-                flash(f'Gagal menambah anggaran: {e}', 'danger')
+            flash(f'Gagal menyimpan anggaran: {e}', 'danger')
             
     elif action == 'delete':
         budget_id = request.form.get('budget_id')

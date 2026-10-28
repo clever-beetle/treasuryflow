@@ -30,14 +30,14 @@ def api_chat():
         
         reply = "Maaf, saya tidak mengerti pertanyaan Anda. Coba tanya tentang 'saldo', 'utang', atau 'apakah saya boros?'"
         
-        today = datetime.now()
+        today = datetime.now() + timedelta(hours=7)
         current_month = today.strftime('%Y-%m')
         
         # 1. Saldo Check
         if 'saldo' in message or 'uang' in message or 'sisa' in message:
             total_balance = db.execute("SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL)", (user_id,)).fetchone()[0] or 0
             if total_balance > 0:
-                reply = f"Total saldo Anda di semua akun saat ini adalah **Rp {total_balance:,.0f}**. Tetap bijak mengelolanya ya!"
+                reply = f"Total saldo Anda di semua akun saat ini adalah **{format_rupiah(total_balance)}**. Tetap bijak mengelolanya ya!"
             else:
                 reply = "Saat ini saldo Anda tercatat Rp 0. Ayo catat pemasukan Anda terlebih dahulu."
                 
@@ -47,8 +47,8 @@ def api_chat():
             import calendar as cal_mod
             last_day_num = cal_mod.monthrange(today.year, today.month)[1]
             last_day = today.replace(day=last_day_num).strftime('%Y-%m-%d')
-            expense = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND category != 'Transfer' AND date >= ? AND date <= ?", (user_id, first_day, last_day)).fetchone()[0] or 0
-            income = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income' AND category != 'Transfer' AND date >= ? AND date <= ?", (user_id, first_day, last_day)).fetchone()[0] or 0
+            expense = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND COALESCE(category, '') != 'Transfer' AND date >= ? AND date <= ?", (user_id, first_day, last_day)).fetchone()[0] or 0
+            income = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income' AND COALESCE(category, '') != 'Transfer' AND date >= ? AND date <= ?", (user_id, first_day, last_day)).fetchone()[0] or 0
             
             if expense == 0:
                 reply = "Hebat! Anda belum ada pengeluaran sama sekali di bulan ini."
@@ -178,17 +178,17 @@ def api_rag_chat():
         return jsonify({'reply': 'Aduh, Vector Engine saya sedang bermasalah.'})
         
 def api_chat_fallback(message, db, user_id):
-    today = datetime.now()
+    today = datetime.now() + timedelta(hours=7)
     first_day = today.replace(day=1).strftime('%Y-%m-%d')
     import calendar as cal_mod
     last_day_num = cal_mod.monthrange(today.year, today.month)[1]
     last_day = today.replace(day=last_day_num).strftime('%Y-%m-%d')
     if 'saldo' in message or 'uang' in message or 'sisa' in message:
         total_balance = db.execute("SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL)", (user_id,)).fetchone()[0] or 0
-        return jsonify({'reply': f"Total saldo Anda: **Rp {total_balance:,.0f}**."})
+        return jsonify({'reply': f"Total saldo Anda: **{format_rupiah(total_balance)}**."})
     elif 'boros' in message or 'pengeluaran' in message:
-        expense = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND category != 'Transfer' AND date >= ? AND date <= ?", (user_id, first_day, last_day)).fetchone()[0] or 0
-        return jsonify({'reply': f"Bulan ini pengeluaran Anda sudah mencapai **Rp {expense:,.0f}**."})
+        expense = db.execute("SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND COALESCE(category, '') != 'Transfer' AND date >= ? AND date <= ?", (user_id, first_day, last_day)).fetchone()[0] or 0
+        return jsonify({'reply': f"Bulan ini pengeluaran Anda sudah mencapai **{format_rupiah(expense)}**."})
     return jsonify({'reply': "Maaf, mesin AI tidak menemukan transaksi yang cocok, dan saya tidak memahami maksud Anda."})
 
 @ai_bp.route('/api/predict_future', methods=['GET'])

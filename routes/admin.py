@@ -76,7 +76,7 @@ def dev_console():
                 if query:
                     try:
                         cursor = db.execute(query)
-                        if query.upper().startswith('SELECT'):
+                        if getattr(cursor, 'description', None) is not None or query.strip().upper().startswith(('SELECT', 'WITH', 'PRAGMA', 'EXPLAIN', 'SHOW')):
                             query_result = [dict(row) for row in cursor.fetchall()]
                         else:
                             db.commit()
