@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, url_for, redirect, session, g, flash, Response, jsonify
-from utils import get_db, login_required, format_rupiah, format_rupiah_input, parse_amount, CATEGORIES, cache
+from utils import get_db, login_required, format_rupiah, format_rupiah_input, parse_amount, CATEGORIES, cache, wib_now
 from models import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -76,7 +76,7 @@ def financial_performance():
                 cash_flow_type = 'expense' if debt['type'] == 'debt' else 'income'
                 clean_acc_label = acc_row['name'].split('] ')[1] if '] ' in acc_row['name'] else acc_row['name']
                 tx_desc = f"Cicilan {debt['type']} ({debt['person_name']}) via {clean_acc_label}: {notes}"
-                tx_date = (datetime.now() + timedelta(hours=7)).strftime('%Y-%m-%d')
+                tx_date = wib_now().strftime('%Y-%m-%d')
                 
                 db.execute('''
                     INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
@@ -233,7 +233,7 @@ def financial_performance():
             
             if inst and source_acc and amount_paid > 0:
                 clean_src = source_acc['name'].split('] ')[1] if '] ' in source_acc['name'] else source_acc['name']
-                tx_date = (datetime.now() + timedelta(hours=7)).strftime('%Y-%m-%d')
+                tx_date = wib_now().strftime('%Y-%m-%d')
                 
                 # Check if cicilan is linked to a liability account
                 linked_id = None
@@ -424,7 +424,7 @@ def financial_performance():
                     if source_acc_raw and str(source_acc_raw).isdigit():
                         src_acc = db.execute('SELECT id, name FROM accounts WHERE id = ? AND user_id = ?', (int(source_acc_raw), user_id)).fetchone()
                         if src_acc:
-                            tx_date = (datetime.now() + timedelta(hours=7)).strftime('%Y-%m-%d')
+                            tx_date = wib_now().strftime('%Y-%m-%d')
                             db.execute('''
                                 INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
                                 VALUES (?, ?, ?, 'expense', ?, ?, 'Investasi')
@@ -452,8 +452,8 @@ def financial_performance():
     req_days = request.args.get('days', type=int) or request.args.get('period', type=int)
     days_range = req_days if req_days in [3, 7, 30, 90, 180, 365] else 30
         
-    wib_now = datetime.now() + timedelta(hours=7)
-    today = wib_now.date()
+    wib_now_dt = wib_now()
+    today = wib_now_dt.date()
     today_str = today.strftime('%Y-%m-%d')
     days_ago_str = (today - timedelta(days=days_range)).strftime('%Y-%m-%d')
     
@@ -584,7 +584,7 @@ def financial_performance():
     # --- Analytics Integration ---
     period = days_range
         
-    today_dt = datetime.now() + timedelta(hours=7)
+    today_dt = wib_now()
     days_ago_str = (today_dt.date() - timedelta(days=period)).strftime('%Y-%m-%d')
     
     analytics_transactions = db.execute('''

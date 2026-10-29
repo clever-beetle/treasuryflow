@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, url_for, redirect, session, flash, Response, jsonify, send_file, make_response
-from utils import get_db, login_required, CATEGORIES, parse_amount, logger
+from utils import get_db, login_required, CATEGORIES, parse_amount, logger, wib_now, spreadsheet_safe
 from datetime import datetime
 import io
 import csv
@@ -121,7 +121,7 @@ def transactions_list():
     # Calendar data (WIB UTC+7)
     import calendar
     from datetime import datetime, timedelta, timezone
-    now = datetime.now(timezone.utc) + timedelta(hours=7)
+    now = wib_now()
     now_date = now.date()
     cal_year = request.args.get('cal_year', now.year, type=int)
     cal_month = request.args.get('cal_month', now.month, type=int)
@@ -195,7 +195,7 @@ def add_transaction():
             date = raw_date
         except ValueError:
             from datetime import timedelta
-            date = (datetime.now() + timedelta(hours=7)).strftime('%Y-%m-%d')
+            date = wib_now().strftime('%Y-%m-%d')
         amount = parse_amount(request.form.get('amount'))
             
         if amount <= 0:
@@ -272,7 +272,7 @@ def add_transaction():
             custom_categories[uc['type']].append(uc['name'])
 
     from datetime import timedelta, timezone
-    return render_template('add_transaction.html', accounts=accounts, categories=CATEGORIES, custom_categories=custom_categories, now=datetime.now(timezone.utc) + timedelta(hours=7))
+    return render_template('add_transaction.html', accounts=accounts, categories=CATEGORIES, custom_categories=custom_categories, now=wib_now())
 
 @transactions_bp.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -315,7 +315,7 @@ def edit_transaction(id):
             datetime.strptime(raw_date, '%Y-%m-%d')
             date = raw_date
         except ValueError:
-            date = str(tx_dict.get('date') or '')[:10] or datetime.now().strftime('%Y-%m-%d')
+            date = str(tx_dict.get('date') or '')[:10] or wib_now().strftime('%Y-%m-%d')
 
         if 'description' in request.form:
             description = request.form.get('description') or ''
@@ -391,7 +391,7 @@ def edit_transaction(id):
         if uc['type'] in custom_categories:
             custom_categories[uc['type']].append(uc['name'])
 
-    return render_template('add_transaction.html', tx=tx, accounts=accounts, categories=CATEGORIES, custom_categories=custom_categories, now=datetime.now())
+    return render_template('add_transaction.html', tx=tx, accounts=accounts, categories=CATEGORIES, custom_categories=custom_categories, now=wib_now())
 
 @transactions_bp.route('/delete/<int:transaction_id>', methods=['POST'])
 @login_required
@@ -499,7 +499,7 @@ def export_csv():
     cw = csv.writer(si)
     cw.writerow(['Date', 'Type', 'Amount', 'Description', 'Category', 'Account'])
     for t in transactions:
-        cw.writerow([str(t['date'])[:10] if t['date'] else '', t['type'], t['amount'], t['description'], t['category'], t['account_name']])
+        cw.writerow([str(t['date'])[:10] if t['date'] else '', t['type'], t['amount'], spreadsheet_safe(t['description']), spreadsheet_safe(t['category']), spreadsheet_safe(t['account_name'])])
         
     output = make_response(('\ufeff' + si.getvalue()).encode('utf-8'))
     output.headers["Content-Disposition"] = "attachment; filename=transactions.csv"
@@ -531,7 +531,7 @@ def export_excel():
     for tx in transactions:
         amount = tx['amount']
         type_cap = tx['type'].capitalize() if tx['type'] else ''
-        ws.append([str(tx['date'])[:10] if tx['date'] else '', type_cap, amount, tx['description'], tx['category'], tx['account_name']])
+        ws.append([str(tx['date'])[:10] if tx['date'] else '', type_cap, amount, spreadsheet_safe(tx['description']), spreadsheet_safe(tx['category']), spreadsheet_safe(tx['account_name'])])
         if tx['type'] == 'expense' and (tx['category'] or '') != 'Transfer':
             cat = tx['category']
             cat_totals[cat] = cat_totals.get(cat, 0) + amount
@@ -764,7 +764,7 @@ def export_pdf():
     pdf.cell(25, 5, 'Report Date', 0, 0)
     pdf.set_font('Arial', 'B', 9)
     pdf.set_text_color(*TreasuryPDF.BLACK)
-    report_date = datetime.now().strftime('%d %B %Y')
+    report_date = wib_now().strftime('%d %B %Y')
     pdf.cell(40, 5, f':  {report_date}', 0, 1)
     pdf.set_xy(130, box_y + 9)
     pdf.set_font('Arial', '', 8)

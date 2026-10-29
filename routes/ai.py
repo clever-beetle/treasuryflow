@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, url_for, redirect, session, g, flash, Response, jsonify
-from utils import logger, get_db, login_required, format_rupiah, format_rupiah_input, CATEGORIES
+from utils import logger, get_db, login_required, format_rupiah, format_rupiah_input, CATEGORIES, wib_now
 from datetime import datetime, timedelta
 
 ai_bp = Blueprint('ai', __name__)
@@ -30,7 +30,7 @@ def api_chat():
         
         reply = "Maaf, saya tidak mengerti pertanyaan Anda. Coba tanya tentang 'saldo', 'utang', atau 'apakah saya boros?'"
         
-        today = datetime.now() + timedelta(hours=7)
+        today = wib_now()
         current_month = today.strftime('%Y-%m')
         
         # 1. Saldo Check
@@ -178,7 +178,7 @@ def api_rag_chat():
         return jsonify({'reply': 'Aduh, Vector Engine saya sedang bermasalah.'})
         
 def api_chat_fallback(message, db, user_id):
-    today = datetime.now() + timedelta(hours=7)
+    today = wib_now()
     first_day = today.replace(day=1).strftime('%Y-%m-%d')
     import calendar as cal_mod
     last_day_num = cal_mod.monthrange(today.year, today.month)[1]

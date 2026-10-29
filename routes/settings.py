@@ -157,7 +157,8 @@ def settings():
                     cat_name = row['name']
                     cat_type = row['type']
                     db.execute("DELETE FROM user_categories WHERE id = ? AND user_id = ?", (cat_id, user_id))
-                    db.execute("UPDATE transactions SET category = 'Lainnya' WHERE user_id = ? AND LOWER(category) = LOWER(?) AND type = ?", (user_id, cat_name, cat_type))
+                    fallback_cat = 'Lainnya (Pemasukan)' if cat_type == 'income' else 'Lainnya (Pengeluaran)'
+                    db.execute("UPDATE transactions SET category = ? WHERE user_id = ? AND LOWER(category) = LOWER(?) AND type = ?", (fallback_cat, user_id, cat_name, cat_type))
                     try:
                         db.execute("DELETE FROM budgets WHERE user_id = ? AND LOWER(category_name) = LOWER(?)", (user_id, cat_name))
                     except Exception:

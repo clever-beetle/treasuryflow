@@ -34,6 +34,17 @@ CATEGORIES = {
                 'Hiburan', 'Kesehatan', 'Pendidikan', 'Cicilan & Utang', 'Lainnya (Pengeluaran)']
 }
 
+def wib_now():
+    """Current time in WIB (UTC+7) as a naive datetime, independent of the server's local timezone."""
+    from datetime import datetime, timezone, timedelta
+    return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=7)
+
+def spreadsheet_safe(value):
+    """Prevent CSV/Excel formula injection: prefix text starting with = + - @ (or tab/CR) with an apostrophe."""
+    if isinstance(value, str) and value and value[0] in ('=', '+', '-', '@', '\t', '\r'):
+        return "'" + value
+    return value
+
 def format_rupiah(value):
     if value is None:
         return 'Rp 0'

@@ -980,7 +980,7 @@ def test_sixth_pass_theme_and_interactive_bugs(client):
         del_row = db.execute("SELECT id FROM user_categories WHERE id = ?", (cat_id,)).fetchone()
         assert del_row is None
         tx_cat = db.execute("SELECT category FROM transactions WHERE user_id = ? AND description = 'Beli Gundam'", (user_id,)).fetchone()['category']
-        assert tx_cat == 'Lainnya'
+        assert tx_cat == 'Lainnya (Pengeluaran)'
         b_cnt = db.execute("SELECT COUNT(*) FROM budgets WHERE user_id = ? AND category_name = 'Hobi Koleksi'", (user_id,)).fetchone()[0]
         assert b_cnt == 0
 

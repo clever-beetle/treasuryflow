@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, session, redirect, url_for, flash, jsonify
-from utils import get_db, login_required
+from utils import get_db, login_required, wib_now
 
 extra_bp = Blueprint('extra', __name__)
 
@@ -60,7 +60,7 @@ def api_calendar_events():
     # Add Active Recurring Installments / Subscriptions
     import calendar as cal_mod
     from datetime import datetime, timedelta
-    today = (datetime.now() + timedelta(hours=7)).date()
+    today = wib_now().date()
     months_to_check = [
         today,
         (today.replace(day=1) + timedelta(days=32)).replace(day=1)

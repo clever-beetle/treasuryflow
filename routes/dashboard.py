@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, url_for, redirect, session, g, flash, Response, jsonify
-from utils import logger, get_db, login_required, format_rupiah, format_rupiah_input, CATEGORIES
+from utils import logger, get_db, login_required, format_rupiah, format_rupiah_input, CATEGORIES, wib_now
 from models import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -29,8 +29,8 @@ def dashboard():
     db = get_db()
     user_id = session['user_id']
     
-    wib_now = datetime.now() + timedelta(hours=7)
-    today = wib_now.date()
+    wib_now_dt = wib_now()
+    today = wib_now_dt.date()
     today_str = today.strftime('%Y-%m-%d')
 
     # AUTO RECURRING SYNC — run before balance sync & stats queries so synced items appear immediately
