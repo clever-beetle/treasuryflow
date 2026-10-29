@@ -26,7 +26,7 @@ bg_executor = ThreadPoolExecutor(max_workers=3)
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
 SMTP_EMAIL = os.environ.get("SMTP_EMAIL", "treasuryflow@gmail.com")
-SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "mhqefkbwcunkptvj")
+SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 
 CATEGORIES = {
     'income': ['Gaji', 'Investasi', 'Hadiah', 'Penjualan Aset', 'Lainnya (Pemasukan)'],

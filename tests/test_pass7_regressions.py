@@ -96,3 +96,10 @@ def test_deleted_income_category_falls_back_to_valid_income_default(client):
         cat = db.execute("SELECT category FROM transactions WHERE user_id = ? AND description = 'Proyek web'", (user_id,)).fetchone()['category']
     assert cat == 'Lainnya (Pemasukan)'
     assert cat in CATEGORIES['income']
+
+
+def test_smtp_password_not_hardcoded():
+    import pathlib
+    src = (pathlib.Path(__file__).resolve().parent.parent / 'utils.py').read_text(encoding='utf-8')
+    assert 'os.environ.get("SMTP_PASSWORD", "")' in src
+
