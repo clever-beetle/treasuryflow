@@ -31,6 +31,7 @@ def settings():
             'add_category': 'categories',
             'delete_category': 'categories',
             'toggle_auto_sync': 'appearance',
+            'delete_passkey': 'integrations',
             'reset_data': 'danger',
             'delete_account': 'danger',
         }
@@ -206,9 +207,32 @@ def settings():
             except Exception:
                 db.rollback()
 
+        elif action == 'delete_passkey':
+            passkey_id = (request.form.get('passkey_id') or '').strip()
+            try:
+                if passkey_id == 'all':
+                    db.execute("DELETE FROM webauthn_credentials WHERE user_id = ?", (user_id,))
+                    db.commit()
+                    message = "Seluruh Passkey biometrik pada akun ini berhasil dihapus."
+                elif passkey_id.isdigit():
+                    db.execute("DELETE FROM webauthn_credentials WHERE id = ? AND user_id = ?", (int(passkey_id), user_id))
+                    db.commit()
+                    message = "Perangkat Passkey biometrik berhasil dihapus."
+            except Exception:
+                db.rollback()
+                error = "Gagal menghapus Passkey biometrik."
+
         user = db.execute('SELECT fullname, username, email, password FROM users WHERE id = ?', (user_id,)).fetchone()
 
     user_categories = db.execute("SELECT * FROM user_categories WHERE user_id = ?", (user_id,)).fetchall()
+    passkeys = []
+    try:
+        passkeys = db.execute(
+            "SELECT id, credential_id, sign_count FROM webauthn_credentials WHERE user_id = ? ORDER BY id DESC",
+            (user_id,)
+        ).fetchall()
+    except Exception:
+        passkeys = []
     
     # Get auto_sync status
     auto_sync_enabled = False
@@ -219,7 +243,7 @@ def settings():
     except Exception:
         pass
     
-    return render_template('settings.html', user=user, error=error, message=message, user_categories=user_categories, auto_sync_enabled=auto_sync_enabled, active_tab=active_tab)
+    return render_template('settings.html', user=user, error=error, message=message, user_categories=user_categories, auto_sync_enabled=auto_sync_enabled, active_tab=active_tab, passkeys=passkeys, passkey_count=len(passkeys))
 
 @settings_bp.route('/setup/accounts', methods=['GET', 'POST'])
 @login_required

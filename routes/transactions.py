@@ -217,6 +217,10 @@ def transactions_list():
         if t in merged_categories and uc['name'] not in merged_categories[t]:
             merged_categories[t].append(uc['name'])
 
+    BULAN_ID = [
+        '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ]
     return render_template('transactions_list.html', 
                            month_days=month_days,
                            transactions=tx_page, 
@@ -242,7 +246,7 @@ def transactions_list():
                            cal_month=cal_month,
                            now=now_date,
                            cal_tx_map=cal_tx_map,
-                           month_name=datetime(cal_year, cal_month, 1).strftime('%B'))
+                           month_name=BULAN_ID[cal_month])
 
 @transactions_bp.route('/add', methods=['GET', 'POST'])
 @login_required
@@ -264,7 +268,9 @@ def add_transaction():
             flash('Jumlah transaksi harus lebih besar dari 0.', 'danger')
             return redirect(url_for('transactions.add_transaction'))
 
-        category = request.form.get('category')
+        category = (request.form.get('category') or '').strip()
+        if not category and t_type in ('income', 'expense'):
+            category = 'Lainnya (Pemasukan)' if t_type == 'income' else 'Lainnya (Pengeluaran)'
         account_id = request.form.get('account_id')
         description = request.form.get('description', '')
         to_account_id = request.form.get('to_account_id')

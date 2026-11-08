@@ -1,177 +1,413 @@
 {% extends 'base_shadcn.html' %}
-{% block title %}Kalender Finansial - Treasury Flow{% endblock %}
+{% block page_title %}Kalender Finansial{% endblock %}
 {% block content %}
-<link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css' rel='stylesheet' />
-<script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js'></script>
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/main.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.3/locales/id.js"></script>
 
-<div class="max-w-6xl mx-auto space-y-6">
-    <!-- Header with Legend -->
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+<div class="max-w-6xl mx-auto space-y-6" x-data="{
+    detailOpen: false,
+    evTitle: '',
+    evBadge: '',
+    evDate: '',
+    evAmount: '',
+    evNotes: '',
+    evActionUrl: '',
+    evActionLabel: '',
+    evKind: 'installment'
+}" @open-cal-event.window="
+    evTitle = $event.detail.title;
+    evBadge = $event.detail.badge;
+    evDate = $event.detail.date;
+    evAmount = $event.detail.amount;
+    evNotes = $event.detail.notes || '';
+    evActionUrl = $event.detail.actionUrl || '';
+    evActionLabel = $event.detail.actionLabel || 'Buka Detail';
+    evKind = $event.detail.kind || 'installment';
+    detailOpen = true;
+">
+    <!-- Header & Legend -->
+    <div class="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
         <div>
-            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
-                <i data-lucide="calendar" class="w-7 h-7 text-[#11237e] dark:text-blue-400"></i>
+            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+                <span class="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <i data-lucide="calendar-days" class="w-5 h-5"></i>
+                </span>
                 Kalender Finansial
             </h1>
-            <p class="text-sm text-muted-foreground mt-1">Pantau seluruh jadwal jatuh tempo tagihan, cicilan, utang piutang, dan target tabungan Anda.</p>
+            <p class="text-sm text-muted-foreground mt-1.5">Pantau jadwal jatuh tempo cicilan rutin, tagihan kartu kredit, utang-piutang, dan target tabungan dalam satu layar.</p>
         </div>
-        
+
         <!-- Legend Badges -->
-        <div class="flex flex-wrap items-center gap-2 text-xs font-semibold">
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                <span class="w-2 h-2 rounded-full bg-blue-500"></span> Goal Tabungan
+        <div class="flex flex-wrap items-center gap-2 text-xs font-medium">
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/20">
+                <span class="w-2 h-2 rounded-full bg-violet-600"></span> Cicilan Rutin
             </span>
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                <span class="w-2 h-2 rounded-full bg-purple-500"></span> Tagihan/Cicilan
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                <span class="w-2 h-2 rounded-full bg-amber-600"></span> Kartu Kredit / Paylater
             </span>
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Piutang
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-700 dark:text-rose-300 border border-rose-500/20">
+                <span class="w-2 h-2 rounded-full bg-rose-600"></span> Utang
             </span>
-            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-destructive/10 text-destructive border border-destructive/20">
-                <span class="w-2 h-2 rounded-full bg-destructive"></span> Utang
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                <span class="w-2 h-2 rounded-full bg-emerald-600"></span> Piutang
             </span>
+            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                <span class="w-2 h-2 rounded-full bg-blue-600"></span> Target Tabungan
+            </span>
+        </div>
+    </div>
+
+    <!-- Summary Strip -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
+            <p class="text-xs font-medium text-muted-foreground">Jadwal Bulan Aktif</p>
+            <p id="statTotalEvents" class="text-xl sm:text-2xl font-bold mt-1 text-foreground">0 Jadwal</p>
+        </div>
+        <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
+            <p class="text-xs font-medium text-muted-foreground">Estimasi Tagihan &amp; Cicilan</p>
+            <p id="statInstallmentSum" class="text-xl sm:text-2xl font-bold mt-1 text-violet-600 dark:text-violet-400">Rp 0</p>
+        </div>
+        <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
+            <p class="text-xs font-medium text-muted-foreground">Utang Jatuh Tempo</p>
+            <p id="statDebtSum" class="text-xl sm:text-2xl font-bold mt-1 text-rose-600 dark:text-rose-400">Rp 0</p>
+        </div>
+        <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
+            <p class="text-xs font-medium text-muted-foreground">Piutang &amp; Target</p>
+            <p id="statGoalRecSum" class="text-xl sm:text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">Rp 0</p>
         </div>
     </div>
 
     <!-- Calendar Card Container -->
-    <div class="bg-card text-card-foreground border border-border rounded-2xl p-4 sm:p-6 shadow-sm overflow-hidden">
-        <div id='calendar' class="min-h-[650px]"></div>
+    <div class="bg-card text-card-foreground border border-border rounded-2xl p-3 sm:p-6 shadow-sm overflow-hidden">
+        <div id="calendar" class="min-h-[560px]"></div>
+    </div>
+
+    <!-- Interactive Event Detail Modal -->
+    <div x-show="detailOpen" x-cloak class="fixed inset-0 z-[70] flex items-center justify-center p-4" @keydown.escape.window="detailOpen = false">
+        <div x-show="detailOpen" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm" @click="detailOpen = false"></div>
+        <div x-show="detailOpen" x-transition class="relative z-10 w-full max-w-md rounded-2xl border border-border bg-card p-6 text-card-foreground shadow-2xl space-y-4">
+            <div class="flex items-start justify-between gap-3">
+                <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+                      :class="{
+                          'bg-violet-500/15 text-violet-700 dark:text-violet-300': evKind === 'installment',
+                          'bg-amber-500/15 text-amber-700 dark:text-amber-300': evKind === 'credit_card',
+                          'bg-rose-500/15 text-rose-700 dark:text-rose-300': evKind === 'debt',
+                          'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300': evKind === 'receivable',
+                          'bg-blue-500/15 text-blue-700 dark:text-blue-300': evKind === 'goal'
+                      }"
+                      x-text="evBadge"></span>
+                <button type="button" @click="detailOpen = false" class="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="space-y-1">
+                <h3 class="text-lg font-bold tracking-tight text-foreground" x-text="evTitle"></h3>
+                <p class="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                    <span x-text="evDate"></span>
+                </p>
+            </div>
+            <div class="rounded-xl border border-border bg-muted/40 p-4">
+                <p class="text-xs text-muted-foreground">Nominal Terjadwal</p>
+                <p class="text-2xl font-bold tracking-tight text-foreground mt-0.5" x-text="evAmount"></p>
+                <p x-show="evNotes" class="text-xs text-muted-foreground mt-2 pt-2 border-t border-border/60" x-text="evNotes"></p>
+            </div>
+            <div class="flex items-center justify-end gap-2.5 pt-2">
+                <button type="button" @click="detailOpen = false" class="inline-flex items-center justify-center rounded-lg border border-input bg-background px-4 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground">
+                    Tutup
+                </button>
+                <a x-show="evActionUrl" :href="evActionUrl" class="inline-flex items-center justify-center rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                    <span x-text="evActionLabel"></span>
+                </a>
+            </div>
+        </div>
     </div>
 </div>
 
 <style>
-    /* FullCalendar Theme Adaptations */
     .fc {
         font-family: inherit;
+        --fc-border-color: hsl(var(--border));
+        --fc-page-bg-color: transparent;
+        --fc-neutral-bg-color: hsl(var(--muted) / 0.5);
+        --fc-list-event-hover-bg-color: hsl(var(--accent));
+        --fc-today-bg-color: transparent;
     }
-    .fc-toolbar-title {
-        font-size: 1.25rem !important;
-        font-weight: 700 !important;
-    }
-    .fc-theme-standard td, .fc-theme-standard th {
-        border-color: hsl(var(--border) / 0.6) !important;
-    }
-    .fc-theme-standard .fc-scrollgrid {
-        border-color: hsl(var(--border) / 0.8) !important;
-        border-radius: 0.75rem;
-        overflow: hidden;
-    }
-    .fc-button-primary {
-        background-color: #11237e !important;
-        border-color: #11237e !important;
-        border-radius: 0.5rem !important;
-        font-weight: 600 !important;
-        font-size: 0.875rem !important;
-        padding: 0.4rem 0.8rem !important;
-    }
-    .dark .fc-button-primary {
-        background-color: #3b82f6 !important;
-        border-color: #3b82f6 !important;
-        color: #ffffff !important;
-    }
-    .fc-daygrid-event {
-        border-radius: 0.375rem !important;
-        padding: 2px 4px !important;
-        font-size: 0.75rem !important;
-        font-weight: 500 !important;
-        border: none !important;
-    }
-    .dark .fc-col-header-cell-cushion,
-    .dark .fc-daygrid-day-number {
-        color: hsl(var(--foreground) / 0.85);
-    }
-    .fc-col-header-cell-cushion {
-        font-weight: 600;
-        text-decoration: none !important;
-        color: hsl(var(--foreground));
-        padding: 8px 0 !important;
-    }
-    .fc-daygrid-day-number {
-        text-decoration: none !important;
-        font-weight: 500;
-    }
-
-    /* High-contrast "Today / Hari Ini" cell highlight */
-    .fc .fc-daygrid-day.fc-day-today,
-    .fc .fc-timegrid-col.fc-day-today,
-    td.fc-day-today {
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.16) 0%, rgba(59, 130, 246, 0.24) 100%) !important;
-        box-shadow: inset 0 0 0 2.5px #2563eb !important;
-        position: relative;
-    }
-    .dark .fc .fc-daygrid-day.fc-day-today,
-    .dark .fc .fc-timegrid-col.fc-day-today,
-    .dark td.fc-day-today {
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.30) 0%, rgba(56, 189, 248, 0.22) 100%) !important;
-        box-shadow: inset 0 0 0 2.5px #38bdf8 !important;
-    }
-    .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-top {
+    .fc .fc-toolbar.fc-header-toolbar {
+        margin-bottom: 1.25rem !important;
         display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
         align-items: center;
         justify-content: space-between;
+    }
+    .fc .fc-toolbar-title {
+        font-size: 1.15rem !important;
+        font-weight: 700 !important;
+        letter-spacing: -0.015em;
+        color: hsl(var(--foreground));
+        text-transform: capitalize;
+    }
+    @media (min-width: 640px) {
+        .fc .fc-toolbar-title {
+            font-size: 1.35rem !important;
+        }
+    }
+    .fc .fc-button {
+        background-color: hsl(var(--background)) !important;
+        border: 1px solid hsl(var(--input)) !important;
+        color: hsl(var(--foreground)) !important;
+        border-radius: 0.5rem !important;
+        font-weight: 600 !important;
+        font-size: 0.8125rem !important;
+        padding: 0.42rem 0.75rem !important;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+        transition: all 150ms ease !important;
+        text-transform: capitalize;
+    }
+    .fc .fc-button:hover {
+        background-color: hsl(var(--accent)) !important;
+        color: hsl(var(--accent-foreground)) !important;
+    }
+    .fc .fc-button:focus {
+        box-shadow: 0 0 0 2px hsl(var(--ring) / 0.35) !important;
+    }
+    .fc .fc-button-primary:not(:disabled).fc-button-active {
+        background-color: hsl(var(--primary)) !important;
+        border-color: hsl(var(--primary)) !important;
+        color: hsl(var(--primary-foreground)) !important;
+    }
+    .fc .fc-button-group {
+        gap: 0.25rem;
+    }
+    .fc .fc-button-group > .fc-button {
+        border-radius: 0.5rem !important;
+        margin: 0 !important;
+    }
+    .fc-theme-standard .fc-scrollgrid {
+        border: 1px solid hsl(var(--border)) !important;
+        border-radius: 0.875rem;
+        overflow: hidden;
+    }
+    .fc-theme-standard td, .fc-theme-standard th {
+        border-color: hsl(var(--border) / 0.75) !important;
+    }
+    .fc .fc-col-header-cell {
+        background-color: hsl(var(--muted) / 0.55);
+    }
+    .fc .fc-col-header-cell-cushion {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: hsl(var(--muted-foreground));
+        padding: 0.65rem 0.25rem !important;
+        text-decoration: none !important;
+    }
+    .fc .fc-daygrid-day-frame {
+        min-height: 92px;
+        padding: 2px;
+    }
+    @media (max-width: 639px) {
+        .fc .fc-daygrid-day-frame {
+            min-height: 68px;
+        }
+        .fc .fc-toolbar.fc-header-toolbar {
+            justify-content: center;
+        }
+    }
+    .fc .fc-daygrid-day-top {
+        display: flex;
+        flex-direction: row !important;
+        align-items: center;
+        justify-content: flex-end;
         padding: 4px 6px 2px 6px;
     }
-    .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-top::before {
-        content: 'HARI INI';
-        font-size: 0.625rem;
-        font-weight: 800;
-        letter-spacing: 0.05em;
-        padding: 2px 6px;
+    .fc .fc-daygrid-day-number {
+        font-size: 0.8125rem;
+        font-weight: 600;
+        color: hsl(var(--foreground) / 0.85);
+        text-decoration: none !important;
+        width: 1.65rem;
+        height: 1.65rem;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
         border-radius: 9999px;
-        background-color: #2563eb;
-        color: #ffffff;
-        box-shadow: 0 1px 3px rgba(37, 99, 235, 0.4);
     }
-    .dark .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-top::before {
-        background-color: #38bdf8;
-        color: #0f172a;
-        box-shadow: 0 1px 4px rgba(56, 189, 248, 0.5);
+    /* Clean, Non-Colliding "Hari Ini" Highlight */
+    .fc .fc-daygrid-day.fc-day-today {
+        background-color: rgba(37, 99, 235, 0.08) !important;
+        box-shadow: inset 0 0 0 1.5px rgba(37, 99, 235, 0.55) !important;
+    }
+    .dark .fc .fc-daygrid-day.fc-day-today {
+        background-color: rgba(56, 189, 248, 0.12) !important;
+        box-shadow: inset 0 0 0 1.5px rgba(56, 189, 248, 0.65) !important;
     }
     .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
         background-color: #2563eb !important;
         color: #ffffff !important;
         font-weight: 800 !important;
-        border-radius: 9999px !important;
-        min-width: 1.75rem;
-        height: 1.75rem;
-        display: inline-flex !important;
-        align-items: center;
-        justify-content: center;
-        padding: 0 0.4rem !important;
-        box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
     }
     .dark .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-number {
         background-color: #38bdf8 !important;
         color: #0f172a !important;
-        box-shadow: 0 2px 6px rgba(56, 189, 248, 0.45);
+    }
+    @media (min-width: 768px) {
+        .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-top {
+            justify-content: space-between;
+        }
+        .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-top::before {
+            content: 'Hari Ini';
+            font-size: 0.625rem;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 9999px;
+            background-color: rgba(37, 99, 235, 0.15);
+            color: #2563eb;
+        }
+        .dark .fc .fc-daygrid-day.fc-day-today .fc-daygrid-day-top::before {
+            background-color: rgba(56, 189, 248, 0.2);
+            color: #38bdf8;
+        }
+    }
+    .fc-daygrid-event {
+        border-radius: 0.4rem !important;
+        padding: 2px 6px !important;
+        margin: 1px 2px !important;
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        cursor: pointer;
+        transition: transform 120ms ease, opacity 120ms ease;
+    }
+    .fc-daygrid-event:hover {
+        opacity: 0.92;
+        transform: translateY(-1px);
+    }
+    .fc .fc-daygrid-more-link {
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: hsl(var(--primary));
+        padding-left: 4px;
+    }
+    /* Popover & List (Agenda) Dark Mode Support */
+    .fc .fc-popover {
+        background-color: hsl(var(--popover)) !important;
+        border: 1px solid hsl(var(--border)) !important;
+        border-radius: 0.75rem !important;
+        box-shadow: 0 16px 32px rgba(0, 0, 0, 0.2) !important;
+        overflow: hidden;
+    }
+    .fc .fc-popover-header {
+        background-color: hsl(var(--muted)) !important;
+        color: hsl(var(--foreground)) !important;
+        font-weight: 600;
+        padding: 0.5rem 0.75rem !important;
+    }
+    .fc .fc-list {
+        border-radius: 0.875rem;
+        overflow: hidden;
+        border-color: hsl(var(--border)) !important;
+    }
+    .fc .fc-list-day-cushion {
+        background-color: hsl(var(--muted) / 0.7) !important;
+        color: hsl(var(--foreground)) !important;
+    }
+    .fc .fc-list-event td {
+        color: hsl(var(--foreground));
+        cursor: pointer;
+    }
+    .fc .fc-list-empty {
+        background-color: transparent !important;
+        color: hsl(var(--muted-foreground)) !important;
     }
 </style>
 
 <script>
+    function formatRupiahJs(num) {
+        const val = Math.round(Math.abs(Number(num) || 0));
+        return 'Rp ' + val.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
-        var calendarEl = document.getElementById('calendar');
-        if (calendarEl) {
-            var calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
-                locale: 'id',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,timeGridWeek'
-                },
-                buttonText: {
-                    today: 'Hari Ini',
-                    month: 'Bulan',
-                    week: 'Minggu'
-                },
-                events: '/api/calendar_events',
-                eventTimeFormat: {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    meridiem: false
-                }
-            });
-            calendar.render();
-        }
+        const calendarEl = document.getElementById('calendar');
+        if (!calendarEl) return;
+
+        const isMobile = window.innerWidth < 640;
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: isMobile ? 'listMonth' : 'dayGridMonth',
+            locale: 'id',
+            firstDay: 1,
+            height: 'auto',
+            dayMaxEvents: 3,
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,listMonth'
+            },
+            buttonText: {
+                today: 'Hari Ini',
+                month: 'Kalender',
+                list: 'Daftar Agenda'
+            },
+            noEventsContent: 'Belum ada jadwal tagihan, cicilan, utang, atau target pada bulan ini.',
+            events: '/api/calendar_events',
+            eventsSet: function(events) {
+                const viewStart = calendar.view.currentStart;
+                const viewEnd = calendar.view.currentEnd;
+                let count = 0;
+                let instSum = 0;
+                let debtSum = 0;
+                let goalRecSum = 0;
+
+                events.forEach(ev => {
+                    const d = ev.start;
+                    if (!d || d < viewStart || d >= viewEnd) return;
+                    count++;
+                    const props = ev.extendedProps || {};
+                    const amt = Number(props.raw_amount || 0);
+                    if (props.kind === 'installment' || props.kind === 'credit_card') {
+                        instSum += amt;
+                    } else if (props.kind === 'debt') {
+                        debtSum += amt;
+                    } else if (props.kind === 'receivable' || props.kind === 'goal') {
+                        goalRecSum += amt;
+                    }
+                });
+
+                const elCount = document.getElementById('statTotalEvents');
+                const elInst = document.getElementById('statInstallmentSum');
+                const elDebt = document.getElementById('statDebtSum');
+                const elGoal = document.getElementById('statGoalRecSum');
+                if (elCount) elCount.textContent = count + ' Jadwal';
+                if (elInst) elInst.textContent = formatRupiahJs(instSum);
+                if (elDebt) elDebt.textContent = formatRupiahJs(debtSum);
+                if (elGoal) elGoal.textContent = formatRupiahJs(goalRecSum);
+            },
+            eventClick: function(info) {
+                info.jsEvent.preventDefault();
+                const ev = info.event;
+                const props = ev.extendedProps || {};
+                const dateFmt = ev.start
+                    ? ev.start.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+                    : '-';
+                window.dispatchEvent(new CustomEvent('open-cal-event', {
+                    detail: {
+                        title: props.item_name || ev.title,
+                        badge: props.badge || 'Jadwal Finansial',
+                        date: dateFmt,
+                        amount: props.amount_formatted || '-',
+                        notes: props.notes || '',
+                        actionUrl: props.action_url || '',
+                        actionLabel: props.action_label || 'Buka Halaman Terkait',
+                        kind: props.kind || 'installment'
+                    }
+                }));
+            }
+        });
+
+        calendar.render();
         if (window.lucide) {
             lucide.createIcons();
         }

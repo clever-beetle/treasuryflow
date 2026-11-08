@@ -5,7 +5,7 @@
 <div class="max-w-3xl mx-auto space-y-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-            <h2 class="text-2xl font-bold tracking-tight">Kelola Akun & Dompet</h2>
+            <h2 class="text-2xl font-bold tracking-tight">Kelola Akun &amp; Dompet</h2>
             <p class="text-muted-foreground">Tambah dan kelola rekening bank, e-wallet, uang tunai, dan kartu kredit Anda.</p>
         </div>
         <button id="btn-add-account" data-tour="add-account" @click="$dispatch('open-modal', 'addAccountModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shadow-sm">
@@ -44,49 +44,48 @@
                 <div class="flex justify-between items-start">
                     <div class="flex items-center gap-4">
                         {{ macros.render_account_logo(account.name) }}
-                        {% set d = account.name.upper().replace(' ', '') %}
                         {% set category = account.name.split(']')[0].replace('[', '') if '[' in account.name else 'Custom' %}
-                        {% set has_logo = ('CASH' in d or 'BCA' in d or 'BNI' in d or 'BRI' in d or 'MANDIRI' in d or 'JAGO' in d or 'BSI' in d or 'CIMB' in d or 'SEABANK' in d or 'JENIUS' in d or 'BTPN' in d or 'OCBC' in d or 'MEGA' in d or 'PERMATA' in d or 'BTN' in d or 'HSBC' in d or 'SUPERBANK' in d or 'DKI' in d or 'BJB' in d or 'GOPAY' in d or 'DANA' in d or 'OVO' in d or 'SHOPEEPAY' in d or 'LINKAJA' in d) %}
                         <div class="ml-1">
                             <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{{ category }}</span>
                         </div>
                     </div>
                     <div class="flex gap-1">
-                        <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ "{:,.0f}".format((account.initial_balance or 0)|abs).replace(",", ".") }}', limit: '{{ "{:,.0f}".format(account.limit_amount or 0).replace(",", ".") if account.account_type == "liability" and account.limit_amount else "" }}', billingDueDay: '{{ account.billing_due_day|default("", true) }}', isLiability: '{{ account.account_type }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors" title="Edit">
+                        <button type="button" @click="$dispatch('open-edit-modal', {id: '{{ account.id }}', balance: '{{ "{:,.0f}".format((account.initial_balance or 0)|abs).replace(",", ".") }}', limit: '{{ "{:,.0f}".format(account.limit_amount or 0).replace(",", ".") if account.account_type == "liability" and account.limit_amount else "" }}', billingDueDay: '{{ account.billing_due_day|default("", true) }}', isLiability: '{{ account.account_type }}'})" class="text-muted-foreground hover:text-primary p-1.5 rounded-md hover:bg-muted transition-colors" title="Edit Akun">
                             <i data-lucide="edit-2" class="w-4 h-4"></i>
                         </button>
-                        <button type="button" @click="$dispatch('open-delete-modal', {id: '{{ account.id }}'})" class="text-muted-foreground hover:text-destructive p-1.5 rounded-md hover:bg-muted transition-colors" title="Delete Account">
+                        <button type="button" @click="$dispatch('open-delete-modal', {id: '{{ account.id }}'})" class="text-muted-foreground hover:text-destructive p-1.5 rounded-md hover:bg-muted transition-colors" title="Hapus Akun">
                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                         </button>
                     </div>
-                </div>              </div>
-              <div class="p-6 pt-4 bg-muted/20">
-                  <div class="flex justify-between items-end">
-                      <div>
-                          {% if account.account_type == 'liability' %}
-                          <p class="text-sm text-muted-foreground mb-1">Terpakai (Utang)</p>
-                          <p class="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400">Rp {{ "{:,.0f}".format(account.current_balance|abs).replace(',', '.') }}</p>
-                          {% else %}
-                          <p class="text-sm text-muted-foreground mb-1">Saldo Saat Ini</p>
-                          <p class="text-2xl font-bold tracking-tight">Rp {{ "{:,.0f}".format(account.current_balance).replace(',', '.') }}</p>
-                          {% endif %}
-                      </div>
-                      <div class="text-right space-y-1">
-                          {% if account.limit_amount %}
-                          <div>
-                              <p class="text-xs text-muted-foreground">Limit Kredit</p>
-                              <p class="text-sm font-semibold text-muted-foreground">Rp {{ "{:,.0f}".format(account.limit_amount).replace(',', '.') }}</p>
-                          </div>
-                          {% endif %}
-                          {% if account['billing_due_day'] is defined and account['billing_due_day'] %}
-                          <div>
-                              <p class="text-xs text-muted-foreground">Jatuh Tempo</p>
-                              <p class="text-sm font-semibold text-amber-600 dark:text-amber-400"><i data-lucide="calendar" class="w-3 h-3 inline"></i> Tgl {{ account.billing_due_day }}</p>
-                          </div>
-                          {% endif %}
-                      </div>
-                  </div>
-              </div>
+                </div>
+            </div>
+            <div class="p-6 pt-4 bg-muted/20">
+                <div class="flex justify-between items-end">
+                    <div>
+                        {% if account.account_type == 'liability' %}
+                        <p class="text-sm text-muted-foreground mb-1">Terpakai (Utang)</p>
+                        <p class="text-2xl font-bold tracking-tight text-red-600 dark:text-red-400">Rp {{ "{:,.0f}".format(account.current_balance|abs).replace(',', '.') }}</p>
+                        {% else %}
+                        <p class="text-sm text-muted-foreground mb-1">Saldo Saat Ini</p>
+                        <p class="text-2xl font-bold tracking-tight">Rp {{ "{:,.0f}".format(account.current_balance).replace(',', '.') }}</p>
+                        {% endif %}
+                    </div>
+                    <div class="text-right space-y-1">
+                        {% if account.limit_amount %}
+                        <div>
+                            <p class="text-xs text-muted-foreground">Limit Kredit</p>
+                            <p class="text-sm font-semibold text-muted-foreground">Rp {{ "{:,.0f}".format(account.limit_amount).replace(',', '.') }}</p>
+                        </div>
+                        {% endif %}
+                        {% if account['billing_due_day'] is defined and account['billing_due_day'] %}
+                        <div>
+                            <p class="text-xs text-muted-foreground">Jatuh Tempo</p>
+                            <p class="text-sm font-semibold text-amber-600 dark:text-amber-400"><i data-lucide="calendar" class="w-3 h-3 inline"></i> Tgl {{ account.billing_due_day }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
         {% endfor %}
     </div>
@@ -110,7 +109,7 @@
 <template x-teleport="body">
     <div x-show="modalOpen && modalId === 'addAccountModal'" x-transition x-cloak class="fixed inset-0 z-[60] flex items-center justify-center p-4 sm:p-0">
         <div class="fixed inset-0 bg-background/80 backdrop-blur-md transition-opacity" @click="$dispatch('close-modal')"></div>
-        <div class="bg-card text-card-foreground rounded-2xl shadow-2xl shadow-primary/10 border border-border w-full max-w-lg overflow-hidden relative z-10 sm:max-w-[425px]" @click.stop>
+        <div class="bg-card text-card-foreground rounded-2xl shadow-2xl shadow-primary/10 border border-border w-full max-w-lg overflow-hidden relative z-10 sm:max-w-[435px] max-h-[90vh] overflow-y-auto" @click.stop>
             <div class="flex flex-col space-y-2 p-6 pb-4 relative overflow-hidden">
                 <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50"></div>
                 <h3 class="font-bold text-xl tracking-tight relative z-10">Tambah Akun Baru</h3>
@@ -121,77 +120,43 @@
                 </button>
             </div>
             
-            <form method="POST" action="{{ url_for('settings.setup_account') }}" class="p-6 pt-2 space-y-4" x-data="{ selectedCategory: 'BANK' }">
+            <form method="POST" action="{{ url_for('settings.setup_account') }}" class="p-6 pt-2 space-y-4"
+                  x-data="{ selectedCategory: 'BANK' }"
+                  x-init="$watch('selectedCategory', val => { if (window.syncAccountInstitutions) window.syncAccountInstitutions($el, val); })">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="action" value="add"/>
                 
                 <div class="space-y-2">
                     <label class="text-sm font-medium leading-none">Kategori Akun</label>
-                    <div class="relative">
-                        <select name="category_key" id="accountCategory" x-model="selectedCategory" class="flex h-11 w-full items-center justify-between rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                            <option value="BANK">Rekening Bank</option>
-                            <option value="E-WALLET">E-Wallet</option>
-                            <option value="CASH">Uang Tunai (Cash)</option>
-                            <option value="KARTU KREDIT">Kartu Kredit</option>
-                            <option value="PAYLATER">Paylater</option>
-                            <option value="PINJOL">Pinjaman Online (Pinjol)</option>
-                        </select>
-                    </div>
+                    <select name="category_key" id="accountCategory" x-model="selectedCategory" class="flex h-11 w-full items-center justify-between rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                        <option value="BANK">Rekening Bank</option>
+                        <option value="E-WALLET">E-Wallet / Dompet Digital</option>
+                        <option value="CASH">Uang Tunai (Cash)</option>
+                        <option value="KARTU KREDIT">Kartu Kredit</option>
+                        <option value="PAYLATER">Paylater</option>
+                        <option value="PINJOL">Pinjaman Online (Pinjol)</option>
+                    </select>
                 </div>
 
                 <div class="space-y-2" x-show="selectedCategory !== 'CASH'" x-transition>
                     <label class="text-sm font-medium leading-none">Nama Institusi / Layanan</label>
-                    <div class="relative">
-                        <select name="name_detail" class="flex h-11 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
-                            <template x-if="selectedCategory === 'BANK'">
-                                <optgroup label="Bank">
-                                    {% for bank in categories['BANK'] %}
-                                    <option value="{{ bank }}">{{ bank }}</option>
-                                    {% endfor %}
-                                </optgroup>
-                            </template>
-                            <template x-if="selectedCategory === 'E-WALLET'">
-                                <optgroup label="E-Wallet">
-                                    {% for ewallet in categories['E-WALLET'] %}
-                                    <option value="{{ ewallet }}">{{ ewallet }}</option>
-                                    {% endfor %}
-                                </optgroup>
-                            </template>
-                            <template x-if="selectedCategory === 'KARTU KREDIT'">
-                                <optgroup label="Kartu Kredit">
-                                    {% for cc in categories['KARTU KREDIT'] %}
-                                    <option value="{{ cc }}">{{ cc }}</option>
-                                    {% endfor %}
-                                </optgroup>
-                            </template>
-                            <template x-if="selectedCategory === 'PAYLATER'">
-                                <optgroup label="Paylater">
-                                    {% for pl in categories['PAYLATER'] %}
-                                    <option value="{{ pl }}">{{ pl }}</option>
-                                    {% endfor %}
-                                </optgroup>
-                            </template>
-                            <template x-if="selectedCategory === 'PINJOL'">
-                                <optgroup label="Pinjaman Online">
-                                    {% for pj in categories['PINJOL'] %}
-                                    <option value="{{ pj }}">{{ pj }}</option>
-                                    {% endfor %}
-                                </optgroup>
-                            </template>
-                        </select>
-                    </div>
+                    <select name="name_detail" class="flex h-11 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                        {% for bank in categories['BANK'] %}
+                        <option value="{{ bank }}">{{ bank }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <div class="space-y-2">
                     <label class="text-sm font-medium leading-none">Nama Kustom / Alias <span class="text-xs text-muted-foreground font-normal">(Opsional)</span></label>
-                    <input type="text" name="custom_name" placeholder="Contoh: Tabungan Gaji, Dompet Harian..." class="flex h-11 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20">
+                    <input type="text" name="custom_name" placeholder="Contoh: Tabungan Gaji, Dompet Harian..." class="flex h-11 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring">
                 </div>
 
                 <div class="space-y-2">
                     <label class="text-sm font-medium leading-none" x-text="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? 'Tagihan Saat Ini (jika sudah ada utang)' : 'Saldo Awal'">Saldo Awal</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
-                        <input type="text" name="initial_balance" id="balanceInput" required class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0" :value="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? '0' : ''">
+                        <input type="text" name="initial_balance" id="balanceInput" required class="flex h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="0" :value="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL' ? '0' : ''">
                     </div>
                     <p class="text-xs text-muted-foreground" x-show="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL'">Isi 0 jika belum ada tagihan. Nanti akan bertambah otomatis saat dipakai.</p>
                 </div>
@@ -200,24 +165,24 @@
                     <label class="text-sm font-medium leading-none">Limit Kredit</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">Rp</span>
-                        <input type="text" name="limit_amount" id="limitInput" class="flex h-11 w-full rounded-lg border border-input bg-background/50 pl-10 pr-3 py-2 text-sm transition-colors hover:border-primary/50 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20" placeholder="0">
+                        <input type="text" name="limit_amount" id="limitInput" class="flex h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring" placeholder="0">
                     </div>
                 </div>
 
                 <div class="space-y-2" x-show="selectedCategory === 'KARTU KREDIT' || selectedCategory === 'PAYLATER' || selectedCategory === 'PINJOL'" x-transition>
                     <label class="text-sm font-medium leading-none">Tanggal Jatuh Tempo (Bulanan)</label>
-                    <select name="billing_due_day" class="flex h-11 w-full rounded-lg border border-input bg-background/50 px-3 py-2 text-sm">
+                    <select name="billing_due_day" class="flex h-11 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
                         <option value="">-- Belum diatur --</option>
-                        <template x-for="d in Array.from({length: 31}, (_, i) => i + 1)">
-                            <option :value="d" x-text="'Tanggal ' + d"></option>
-                        </template>
+                        {% for d in range(1, 32) %}
+                        <option value="{{ d }}">Tanggal {{ d }}</option>
+                        {% endfor %}
                     </select>
-                    <p class="text-xs text-muted-foreground">Tanggal bayar tagihan setiap bulan (1-31).</p>
+                    <p class="text-xs text-muted-foreground">Tanggal bayar tagihan setiap bulan (1–31).</p>
                 </div>
 
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 pt-4">
                     <button type="button" @click="$dispatch('close-modal')" class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-5">Batal</button>
-                    <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-md shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11 px-5">Simpan Akun</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-5">Simpan Akun</button>
                 </div>
             </form>
         </div>
@@ -227,17 +192,17 @@
 <!-- Edit Account Modal -->
 <template x-teleport="body">
     <div x-data="{ open: false, edit_id: '', edit_balance: '', edit_limit: '', edit_due_day: '', is_liability: false }" 
-         @open-edit-modal.window="open = true; edit_id = $event.detail.id; edit_balance = $event.detail.balance; edit_limit = $event.detail.limit; edit_due_day = $event.detail.billingDueDay || ''; is_liability = $event.detail.isLiability === 'liability';" 
+         @open-edit-modal.window="open = true; edit_id = $event.detail.id; edit_balance = $event.detail.balance; edit_limit = $event.detail.limit; edit_due_day = String($event.detail.billingDueDay || ''); is_liability = $event.detail.isLiability === 'liability'; $nextTick(() => { const s = $el.querySelector('select[name=billing_due_day]'); if (s) { s.value = edit_due_day; s.dispatchEvent(new CustomEvent('shadcn:refresh')); } });" 
          @close-modal.window="open = false" 
          x-show="open" 
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" 
          x-cloak
          @click.self="open = false">
-        <div @click.stop class="bg-background w-full max-w-md p-6 rounded-2xl shadow-2xl border border-border mx-4">
+        <div @click.stop class="bg-card text-card-foreground w-full max-w-md p-6 rounded-2xl shadow-2xl border border-border mx-4">
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h3 class="text-xl font-bold tracking-tight">Edit Akun</h3>
-                    <p class="text-sm text-muted-foreground">Update saldo awal dan pengaturan akun.</p>
+                    <p class="text-sm text-muted-foreground">Perbarui saldo awal dan pengaturan akun Anda.</p>
                 </div>
                 <button @click="open = false" class="text-muted-foreground hover:bg-muted p-2 rounded-full transition-colors"><i data-lucide="x" class="w-5 h-5"></i></button>
             </div>
@@ -248,18 +213,18 @@
                 <input type="hidden" name="edit_account_id" :value="edit_id"/>
 
                 <div class="space-y-2">
-                    <label class="text-sm font-semibold" x-text="is_liability ? 'Saldo Awal (Tagihan Existing)' : 'Saldo Awal'">Saldo Awal</label>
+                    <label class="text-sm font-semibold" x-text="is_liability ? 'Saldo Awal (Tagihan Awal)' : 'Saldo Awal'">Saldo Awal</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">Rp</span>
-                        <input type="text" name="initial_balance" :value="edit_balance" required class="auto-ribuan w-full rounded-lg border border-input bg-background pl-10 pr-4 py-2.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="0">
+                        <input type="text" name="initial_balance" :value="edit_balance" required class="auto-ribuan w-full rounded-lg border border-input bg-background pl-10 pr-4 py-2.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="0">
                     </div>
                 </div>
                 
                 <div class="space-y-2" x-show="is_liability" x-transition>
-                    <label class="text-sm font-semibold">Credit Limit</label>
+                    <label class="text-sm font-semibold">Limit Kredit</label>
                     <div class="relative">
                         <span class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">Rp</span>
-                        <input type="text" name="limit_amount" :value="edit_limit" class="auto-ribuan w-full rounded-lg border border-input bg-background pl-10 pr-4 py-2.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring" placeholder="0">
+                        <input type="text" name="limit_amount" :value="edit_limit" class="auto-ribuan w-full rounded-lg border border-input bg-background pl-10 pr-4 py-2.5 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" placeholder="0">
                     </div>
                 </div>
 
@@ -267,15 +232,15 @@
                     <label class="text-sm font-semibold">Tanggal Jatuh Tempo</label>
                     <select name="billing_due_day" class="w-full rounded-lg border border-input bg-background px-3 py-2.5 text-sm" x-model="edit_due_day">
                         <option value="">-- Belum diatur --</option>
-                        <template x-for="d in Array.from({length: 31}, (_, i) => i + 1)">
-                            <option :value="d" x-text="'Tanggal ' + d" :selected="edit_due_day == d"></option>
-                        </template>
+                        {% for d in range(1, 32) %}
+                        <option value="{{ d }}">Tanggal {{ d }}</option>
+                        {% endfor %}
                     </select>
                 </div>
 
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-3 pt-4">
                     <button type="button" @click="open = false" class="mt-2 sm:mt-0 inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors border border-input bg-background hover:bg-accent hover:text-accent-foreground h-11 px-5">Batal</button>
-                    <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-md shadow-blue-500/20 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white h-11 px-5">Simpan</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-all shadow-sm bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-5">Simpan Perubahan</button>
                 </div>
             </form>
         </div>
@@ -291,7 +256,7 @@
          class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm" 
          x-cloak
          @click.self="open = false">
-        <div class="bg-background w-full max-w-sm rounded-xl shadow-lg border border-border overflow-hidden" 
+        <div class="bg-card text-card-foreground w-full max-w-sm rounded-xl shadow-lg border border-border overflow-hidden" 
              x-show="open" 
              x-transition.scale.95.opacity>
             <div class="px-6 py-4 border-b border-border flex justify-between items-center bg-muted/30">
@@ -315,6 +280,25 @@
 </template>
 
 <script>
+    const ACCOUNT_INSTITUTIONS = {{ categories | tojson }};
+    window.syncAccountInstitutions = function(formEl, categoryKey) {
+        if (!formEl) return;
+        const instSelect = formEl.querySelector('select[name="name_detail"]');
+        if (!instSelect) return;
+        const items = ACCOUNT_INSTITUTIONS[categoryKey] || [];
+        instSelect.innerHTML = '';
+        items.forEach(name => {
+            const opt = document.createElement('option');
+            opt.value = name;
+            opt.textContent = name;
+            instSelect.appendChild(opt);
+        });
+        if (items.length > 0) {
+            instSelect.value = items[0];
+        }
+        instSelect.dispatchEvent(new CustomEvent('shadcn:refresh'));
+    };
+
     // Format Rupiah for Modal via event delegation
     document.addEventListener('input', function(e) {
         if (e.target && (e.target.id === 'balanceInput' || e.target.id === 'limitInput' || e.target.classList.contains('input-rupiah-modal'))) {

@@ -12,15 +12,28 @@ from fpdf import FPDF
 dashboard_bp = Blueprint('dashboard', __name__)
 
 def recalculate_account_balances(db, user_id):
-    # Recalculate all account balances for a user to ensure strict consistency
-    db.execute('''
-        UPDATE accounts
-        SET current_balance = COALESCE(initial_balance, 0) + 
-            COALESCE((SELECT SUM(amount) FROM transactions WHERE account_id = accounts.id AND type = 'income' AND user_id = ?), 0) - 
-            COALESCE((SELECT SUM(amount) FROM transactions WHERE account_id = accounts.id AND type = 'expense' AND user_id = ?), 0)
+    # Pure read-only check first: zero write locks & zero WAL/replica writes when balances are already in sync
+    needs_sync = db.execute('''
+        SELECT 1 FROM accounts
         WHERE user_id = ?
-    ''', (user_id, user_id, user_id))
-    db.commit()
+          AND ABS(
+              COALESCE(current_balance, 0) - (
+                  COALESCE(initial_balance, 0) +
+                  COALESCE((SELECT SUM(amount) FROM transactions WHERE account_id = accounts.id AND type = 'income' AND user_id = ?), 0) -
+                  COALESCE((SELECT SUM(amount) FROM transactions WHERE account_id = accounts.id AND type = 'expense' AND user_id = ?), 0)
+              )
+          ) > 0.009
+        LIMIT 1
+    ''', (user_id, user_id, user_id)).fetchone()
+    if needs_sync:
+        db.execute('''
+            UPDATE accounts
+            SET current_balance = COALESCE(initial_balance, 0) + 
+                COALESCE((SELECT SUM(amount) FROM transactions WHERE account_id = accounts.id AND type = 'income' AND user_id = ?), 0) - 
+                COALESCE((SELECT SUM(amount) FROM transactions WHERE account_id = accounts.id AND type = 'expense' AND user_id = ?), 0)
+            WHERE user_id = ?
+        ''', (user_id, user_id, user_id))
+        db.commit()
 
 @dashboard_bp.route('/')
 @dashboard_bp.route('/dashboard')
@@ -125,15 +138,22 @@ def dashboard():
             (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date >= ? AND COALESCE(category, '') != 'Transfer') as total_expense,
             (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income' AND date >= ? AND COALESCE(category, '') != 'Transfer') as total_income,
             (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date = ? AND COALESCE(category, '') != 'Transfer') as expense_today,
-            (SELECT SUM(limit_amount) FROM budgets WHERE user_id = ?) as total_budget
+            (SELECT SUM(limit_amount) FROM budgets WHERE user_id = ?) as total_budget,
+            (SELECT COALESCE(SUM(purchase_price), 0) FROM assets WHERE user_id = ?) as assets_sum,
+            (SELECT COUNT(*) FROM transactions WHERE user_id = ? AND date >= ?) as tx_period_count
     '''
-    stats = db.execute(stats_query_compat, (user_id, user_id, days_ago_str, user_id, days_ago_str, user_id, today_str, user_id)).fetchone()
+    stats = db.execute(
+        stats_query_compat,
+        (user_id, user_id, days_ago_str, user_id, days_ago_str, user_id, today_str, user_id, user_id, user_id, days_ago_str)
+    ).fetchone()
     
     total_balance = float(stats['total_balance'] or 0)
     total_expense = float(stats['total_expense'] or 0)
     total_income = float(stats['total_income'] or 0)
     expense_today = float(stats['expense_today'] or 0)
     total_budget = float(stats['total_budget'] or 0)
+    assets_sum = float(stats['assets_sum'] or 0)
+    tx_period_count = int(stats['tx_period_count'] or 0)
     budget_usage = (total_expense / total_budget * 100) if total_budget > 0 else 0
     
     # Chart Data
@@ -263,14 +283,19 @@ def dashboard():
     first_day_current_month = today.replace(day=1).strftime('%Y-%m-%d')
     last_day_current_month = today.replace(day=cal_mod.monthrange(today.year, today.month)[1]).strftime('%Y-%m-%d')
     budgets_raw = db.execute('SELECT id, category_name, limit_amount FROM budgets WHERE user_id = ?', (user_id,)).fetchall()
-    
+    monthly_spent_map = {}
+    if budgets_raw:
+        monthly_spent_rows = db.execute('''
+            SELECT category, COALESCE(SUM(amount), 0) as total
+            FROM transactions
+            WHERE user_id = ? AND type = 'expense' AND date >= ? AND date <= ?
+            GROUP BY category
+        ''', (user_id, first_day_current_month, last_day_current_month)).fetchall()
+        monthly_spent_map = {(r['category'] or ''): float(r['total'] or 0) for r in monthly_spent_rows}
+
     budgets_data = []
     for b in budgets_raw:
-        spent_row = db.execute('''
-            SELECT SUM(amount) as total FROM transactions
-            WHERE user_id = ? AND type = 'expense' AND category = ? AND date >= ? AND date <= ?
-        ''', (user_id, b['category_name'], first_day_current_month, last_day_current_month)).fetchone()
-        spent = spent_row['total'] if spent_row['total'] else 0
+        spent = monthly_spent_map.get(b['category_name'], 0.0)
         pct = (spent / b['limit_amount']) * 100 if b['limit_amount'] > 0 else 0
         budgets_data.append({
             'id': b['id'],
@@ -283,9 +308,13 @@ def dashboard():
     total_budget_spent = sum(b['current_spent'] for b in budgets_data)
     budget_usage = (total_budget_spent / total_budget * 100) if total_budget > 0 else 0
 
-    total_assets = sum(asset['purchase_price'] for asset in db.execute('SELECT purchase_price FROM assets WHERE user_id = ?', (user_id,)).fetchall()) + total_balance
-    total_debt_records = sum(debt['remaining_amount'] for debt in db.execute("SELECT remaining_amount FROM debts_receivables WHERE user_id = ? AND type='debt' AND status='BELUM LUNAS'", (user_id,)).fetchall())
-    total_liability_accounts = db.execute("SELECT SUM(ABS(current_balance)) FROM accounts WHERE user_id = ? AND account_type = 'liability' AND current_balance < 0", (user_id,)).fetchone()[0] or 0
+    total_assets = assets_sum + total_balance
+    total_debt_records = sum(float(d['remaining_amount'] or 0) for d in db_alerts_debt if d['type'] == 'debt')
+    total_liability_accounts = sum(
+        abs(float(a['current_balance'] or 0))
+        for a in accounts
+        if a['account_type'] == 'liability' and float(a['current_balance'] or 0) < 0
+    )
     total_debt = total_debt_records + abs(total_liability_accounts)
     
     # Financial Health Score Algorithm
@@ -330,7 +359,7 @@ def dashboard():
     if total_debt == 0:
         badges.append({'icon': 'shield-check', 'name': 'Debt Free', 'desc': 'Bebas dari utang aktif', 'color': 'text-blue-500', 'bg': 'bg-blue-500/10'})
         
-    tx_last_7_days = db.execute("SELECT COUNT(*) FROM transactions WHERE user_id = ? AND date >= ?", (user_id, days_ago_str)).fetchone()[0]
+    tx_last_7_days = tx_period_count
     if tx_last_7_days >= 3:
         badges.append({'icon': 'flame', 'name': 'Consistent', 'desc': 'Rutin mencatat transaksi', 'color': 'text-orange-500', 'bg': 'bg-orange-500/10'})
     

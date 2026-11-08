@@ -201,10 +201,12 @@
                     return;
                 }
 
+                const nextInput = document.querySelector('input[name="next"]');
                 const payload = {
                     id: assertion.id,
                     rawId: bufferToBase64url(assertion.rawId),
                     type: assertion.type,
+                    next: nextInput ? nextInput.value : '',
                     response: {
                         authenticatorData: bufferToBase64url(assertion.response.authenticatorData),
                         clientDataJSON: bufferToBase64url(assertion.response.clientDataJSON),

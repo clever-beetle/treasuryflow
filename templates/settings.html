@@ -2,9 +2,17 @@
 {% block page_title %}Pengaturan{% endblock %}
 {% block content %}
 <div class="space-y-6 pb-16" x-data="{ activeTab: '{{ active_tab or 'profile' }}' }">
-    <div class="space-y-0.5">
-        <h2 class="text-2xl font-bold tracking-tight">Settings</h2>
-        <p class="text-muted-foreground">Manage your account settings, categories, and preferences.</p>
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div class="space-y-0.5">
+            <h2 class="text-2xl font-bold tracking-tight">Pengaturan</h2>
+            <p class="text-muted-foreground">Kelola profil akun, keamanan biometrik, kategori transaksi, dan preferensi tampilan Anda.</p>
+        </div>
+        {% if app_version is defined %}
+        <span class="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-mono font-medium text-muted-foreground">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500"></i>
+            Treasury Flow v{{ app_version }} <span class="opacity-70">({{ app_build }})</span>
+        </span>
+        {% endif %}
     </div>
     <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full my-6"></div>
     
@@ -37,22 +45,25 @@
         <aside class="w-full lg:w-1/5">
             <nav class="flex space-x-2 lg:flex-col lg:space-x-0 lg:space-y-1 overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
                 <button @click="activeTab = 'profile'" :class="activeTab === 'profile' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
-                    <i data-lucide="user" class="w-4 h-4 mr-2"></i> Profile
+                    <i data-lucide="user" class="w-4 h-4 mr-2"></i> Profil
                 </button>
                 <button @click="activeTab = 'security'" :class="activeTab === 'security' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
-                    <i data-lucide="shield" class="w-4 h-4 mr-2"></i> Security
+                    <i data-lucide="shield" class="w-4 h-4 mr-2"></i> Keamanan
                 </button>
                 <button @click="activeTab = 'categories'" :class="activeTab === 'categories' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
-                    <i data-lucide="tags" class="w-4 h-4 mr-2"></i> Categories
+                    <i data-lucide="tags" class="w-4 h-4 mr-2"></i> Kategori
                 </button>
                 <button @click="activeTab = 'appearance'" :class="activeTab === 'appearance' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
-                    <i data-lucide="palette" class="w-4 h-4 mr-2"></i> Appearance
+                    <i data-lucide="palette" class="w-4 h-4 mr-2"></i> Tampilan
                 </button>
-                <button @click="activeTab = 'integrations'" :class="activeTab === 'integrations' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
-                    <i data-lucide="blocks" class="w-4 h-4 mr-2"></i> Integrations
+                <button @click="activeTab = 'integrations'" :class="activeTab === 'integrations' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center justify-center sm:justify-start rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
+                    <i data-lucide="blocks" class="w-4 h-4 mr-2"></i> Integrasi &amp; Data
+                    {% if passkey_count and passkey_count > 0 %}
+                    <span class="ml-auto hidden lg:inline-flex items-center rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400">{{ passkey_count }}</span>
+                    {% endif %}
                 </button>
                 <button @click="activeTab = 'danger'" :class="activeTab === 'danger' ? 'bg-muted hover:bg-muted text-foreground' : 'hover:bg-transparent lg:hover:underline text-muted-foreground'" class="justify-start inline-flex items-center rounded-md text-sm font-medium transition-colors h-10 px-4 py-2 w-auto whitespace-nowrap lg:w-full lg:whitespace-normal text-left">
-                    <i data-lucide="alert-triangle" class="w-4 h-4 mr-2 text-destructive"></i> Danger Zone
+                    <i data-lucide="alert-triangle" class="w-4 h-4 mr-2 text-destructive"></i> Zona Berbahaya
                 </button>
             </nav>
         </aside>
@@ -63,26 +74,26 @@
             <!-- Profile Tab -->
             <div x-show="activeTab === 'profile'" x-cloak class="space-y-6">
                 <div>
-                    <h3 class="text-lg font-medium">Profile</h3>
-                    <p class="text-sm text-muted-foreground">This is how others will see you on the site.</p>
+                    <h3 class="text-lg font-medium">Profil Pengguna</h3>
+                    <p class="text-sm text-muted-foreground">Informasi identitas akun Anda pada sistem Treasury Flow.</p>
                 </div>
                 <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
                 
                 <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
                     <div class="p-6 pt-0 space-y-4 mt-6">
                         <div class="grid gap-2">
-                            <label class="text-sm font-medium leading-none">Registered Email</label>
-                            <p class="text-sm text-muted-foreground">{{ user.email }}</p>
+                            <label class="text-sm font-medium leading-none">Email Terdaftar</label>
+                            <p class="text-sm text-muted-foreground">{{ user.email or '-' }}</p>
                         </div>
                         <form method="POST" class="space-y-4 pt-4 border-t border-border">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                             <input type="hidden" name="action" value="update_fullname">
                             <div class="grid gap-2">
-                                <label class="text-sm font-medium leading-none">Full Name</label>
+                                <label class="text-sm font-medium leading-none">Nama Lengkap</label>
                                 <input type="text" name="fullname" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value="{{ user.fullname }}" required>
                             </div>
                             <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                                Update Name
+                                Simpan Nama
                             </button>
                         </form>
 
@@ -94,7 +105,7 @@
                                 <input type="text" name="username" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" value="{{ user.username }}" required>
                             </div>
                             <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                                Change Username
+                                Ubah Username
                             </button>
                         </form>
                     </div>
@@ -104,8 +115,8 @@
             <!-- Security Tab -->
             <div x-show="activeTab === 'security'" x-cloak class="space-y-6">
                 <div>
-                    <h3 class="text-lg font-medium">Security</h3>
-                    <p class="text-sm text-muted-foreground">Manage your password and security settings.</p>
+                    <h3 class="text-lg font-medium">Keamanan Akun</h3>
+                    <p class="text-sm text-muted-foreground">Perbarui password dan kelola akses keamanan akun Anda.</p>
                 </div>
                 <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
                 
@@ -114,28 +125,28 @@
                     <input type="hidden" name="action" value="update_password">
                     
                     <div class="grid gap-2">
-                        <label class="text-sm font-medium leading-none">Current Password</label>
+                        <label class="text-sm font-medium leading-none">Password Saat Ini</label>
                         <input type="password" name="old_password" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
                     </div>
                     
                     <div class="grid gap-2">
-                        <label class="text-sm font-medium leading-none">New Password</label>
+                        <label class="text-sm font-medium leading-none">Password Baru</label>
                         <input type="password" name="new_password" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
                     </div>
                     
                     <div class="grid gap-2">
-                        <label class="text-sm font-medium leading-none">Confirm New Password</label>
+                        <label class="text-sm font-medium leading-none">Konfirmasi Password Baru</label>
                         <input type="password" name="confirm_password" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
                     </div>
                     
                     <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                        Update Password
+                        Perbarui Password
                     </button>
                 </form>
 
                 <div class="mt-8 rounded-xl border border-border bg-card p-6 shadow-sm">
-                    <h4 class="text-sm font-semibold flex items-center mb-2"><i data-lucide="help-circle" class="w-4 h-4 mr-2"></i> Forgot your password?</h4>
-                    <p class="text-sm text-muted-foreground mb-4">If you forgot your old password and cannot change it here, you can request a password reset link to your email.</p>
+                    <h4 class="text-sm font-semibold flex items-center mb-2"><i data-lucide="help-circle" class="w-4 h-4 mr-2"></i> Lupa password lama Anda?</h4>
+                    <p class="text-sm text-muted-foreground mb-4">Jika Anda lupa password saat ini, Anda dapat meminta tautan reset password melalui email terdaftar.</p>
                     <a href="{{ url_for('auth.forgot_password') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
                         Reset via Email
                     </a>
@@ -146,11 +157,11 @@
             <div x-show="activeTab === 'categories'" x-cloak class="space-y-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <h3 class="text-lg font-medium">Custom Categories</h3>
-                        <p class="text-sm text-muted-foreground">Manage your custom income and expense categories.</p>
+                        <h3 class="text-lg font-medium">Kategori Kustom</h3>
+                        <p class="text-sm text-muted-foreground">Kelola kategori tambahan untuk Pemasukan dan Pengeluaran Anda.</p>
                     </div>
                     <button @click="$dispatch('open-modal', 'addCategoryModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4 py-2 shadow-sm">
-                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Add Category
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Tambah Kategori
                     </button>
                 </div>
                 <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
@@ -159,9 +170,9 @@
                     <table class="w-full caption-bottom text-sm">
                         <thead class="[&_tr]:border-b">
                             <tr class="border-b border-border transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Category Name</th>
-                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Type</th>
-                                <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Action</th>
+                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Nama Kategori</th>
+                                <th class="h-12 px-4 text-left align-middle font-medium text-muted-foreground">Jenis</th>
+                                <th class="h-12 px-4 text-right align-middle font-medium text-muted-foreground">Aksi</th>
                             </tr>
                         </thead>
                         <tbody class="[&_tr:last-child]:border-0">
@@ -171,9 +182,9 @@
                                     <td class="p-4 align-middle font-medium">{{ cat.name }}</td>
                                     <td class="p-4 align-middle">
                                         {% if cat.type == 'income' %}
-                                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">Income</span>
+                                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400">Pemasukan</span>
                                         {% else %}
-                                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-destructive/10 text-destructive">Expense</span>
+                                            <span class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors border-transparent bg-destructive/10 text-destructive">Pengeluaran</span>
                                         {% endif %}
                                     </td>
                                     <td class="p-4 align-middle text-right">
@@ -185,7 +196,7 @@
                                 {% endfor %}
                             {% else %}
                                 <tr>
-                                    <td colspan="3" class="p-8 text-center text-muted-foreground">You haven't created any custom categories yet.</td>
+                                    <td colspan="3" class="p-8 text-center text-muted-foreground">Belum ada kategori kustom yang ditambahkan.</td>
                                 </tr>
                             {% endif %}
                         </tbody>
@@ -196,15 +207,15 @@
             <!-- Appearance Tab -->
             <div x-show="activeTab === 'appearance'" x-cloak class="space-y-6">
                 <div>
-                    <h3 class="text-lg font-medium">Appearance</h3>
-                    <p class="text-sm text-muted-foreground">Customize how Treasury Flow looks on your device.</p>
+                    <h3 class="text-lg font-medium">Tampilan &amp; Otomatisasi</h3>
+                    <p class="text-sm text-muted-foreground">Sesuaikan tema warna aplikasi dan perilaku sinkronisasi otomatis.</p>
                 </div>
                 <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
                 
                 <div class="flex items-center justify-between rounded-xl border border-border bg-card p-6 shadow-sm">
                     <div class="space-y-0.5">
-                        <label class="text-base font-medium">Dark Mode</label>
-                        <p class="text-sm text-muted-foreground">Switch between light and dark themes.</p>
+                        <label class="text-base font-medium">Mode Gelap (Dark Mode)</label>
+                        <p class="text-sm text-muted-foreground">Beralih antara tampilan terang dan gelap yang nyaman di mata.</p>
                     </div>
                     <button @click="darkMode = !darkMode" :class="darkMode ? 'bg-primary' : 'bg-input'" class="relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
                         <span :class="darkMode ? 'translate-x-5' : 'translate-x-0'" class="pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg ring-0 transition-transform"></span>
@@ -214,7 +225,7 @@
                 <div class="flex items-center justify-between rounded-xl border border-border bg-card p-6 shadow-sm" x-data="{ syncOn: {{ 'true' if auto_sync_enabled else 'false' }} }">
                     <div class="space-y-0.5">
                         <label class="text-base font-medium">Auto Sync Cicilan</label>
-                        <p class="text-sm text-muted-foreground">Otomatis membuat transaksi expense saat jatuh tempo cicilan terlewati. Jika dimatikan, Anda harus klik "Bayar Bulan Ini" secara manual.</p>
+                        <p class="text-sm text-muted-foreground">Otomatis membuat transaksi pengeluaran/transfer saat tanggal jatuh tempo cicilan tiba.</p>
                     </div>
                     <form method="POST" action="{{ url_for('settings.settings') }}" class="m-0">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
@@ -229,25 +240,64 @@
             <!-- Integrations Tab -->
             <div x-show="activeTab === 'integrations'" x-cloak class="space-y-6">
                 <div>
-                    <h3 class="text-lg font-medium">Integrations & Data</h3>
-                    <p class="text-sm text-muted-foreground">Kelola integrasi sistem, keamanan biometrik, dan ekspor data pembukuan.</p>
+                    <h3 class="text-lg font-medium">Integrasi &amp; Data</h3>
+                    <p class="text-sm text-muted-foreground">Kelola keamanan biometrik (Passkey), kalkulator finansial, ekspor pembukuan, dan info versi sistem.</p>
                 </div>
                 <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
                 
                 <div class="rounded-xl border border-border bg-card p-6 shadow-sm space-y-6">
-                    <div class="space-y-3">
+                    <div class="space-y-4">
                         <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div class="space-y-1">
-                                <h4 class="text-base font-semibold flex items-center gap-2">
-                                    <i data-lucide="fingerprint" class="w-5 h-5 text-primary"></i> Biometric / Passkey Login
-                                </h4>
-                                <p class="text-sm text-muted-foreground">Masuk lebih cepat dan aman menggunakan Face ID, Touch ID, atau Windows Hello pada perangkat ini.</p>
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <h4 class="text-base font-semibold flex items-center gap-2">
+                                        <i data-lucide="fingerprint" class="w-5 h-5 text-primary"></i> Login Biometrik / Passkey
+                                    </h4>
+                                    {% if passkey_count and passkey_count > 0 %}
+                                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> {{ passkey_count }} Terdaftar di Server
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground border border-border">
+                                        Belum Terdaftar
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-muted-foreground">Masuk lebih cepat dan aman menggunakan Face ID, Touch ID, Sidik Jari, atau Windows Hello. Data kunci publik tersimpan permanen di server.</p>
                             </div>
                             <button type="button" onclick="registerBiometric()" id="biometricBtn" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 shrink-0">
-                                <i data-lucide="key-round" class="w-4 h-4 mr-2"></i> Aktifkan Passkey
+                                <i data-lucide="key-round" class="w-4 h-4 mr-2"></i>
+                                {% if passkey_count and passkey_count > 0 %}Tambah Perangkat Passkey{% else %}Aktifkan Passkey{% endif %}
                             </button>
                         </div>
+
                         <div id="biometricStatus" class="hidden rounded-lg border px-4 py-3 text-sm font-medium"></div>
+
+                        {% if passkeys %}
+                        <div class="rounded-lg border border-border bg-muted/30 divide-y divide-border overflow-hidden">
+                            {% for pk in passkeys %}
+                            <div class="flex items-center justify-between px-4 py-3 text-sm">
+                                <div class="flex items-center gap-3 min-w-0">
+                                    <div class="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                                        <i data-lucide="shield-check" class="w-4 h-4"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p class="font-medium text-foreground truncate">Passkey Perangkat #{{ loop.index }} <span class="text-xs font-mono text-muted-foreground">({{ pk.credential_id[:6] }}…{{ pk.credential_id[-6:] }})</span></p>
+                                        <p class="text-xs text-muted-foreground">Tersimpan di database • Digunakan {{ pk.sign_count or 0 }} kali</p>
+                                    </div>
+                                </div>
+                                <form method="POST" action="{{ url_for('settings.settings') }}" class="shrink-0 ml-2">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <input type="hidden" name="action" value="delete_passkey"/>
+                                    <input type="hidden" name="passkey_id" value="{{ pk.id }}"/>
+                                    <button type="submit" class="inline-flex items-center gap-1 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-1.5 text-xs font-medium text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors" title="Hapus Passkey ini">
+                                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Hapus
+                                    </button>
+                                </form>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
                     </div>
 
                     <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
@@ -260,7 +310,7 @@
                             <p class="text-sm text-muted-foreground">Hitung simulasi bunga majemuk investasi dan estimasi cicilan KPR rumah impian Anda.</p>
                         </div>
                         <a href="{{ url_for('extra.tools') }}" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 shrink-0">
-                            Buka Financial Tools
+                            Buka Alat Finansial
                         </a>
                     </div>
 
@@ -268,7 +318,7 @@
 
                     <div class="space-y-3">
                         <h4 class="text-base font-semibold flex items-center gap-2">
-                            <i data-lucide="download" class="w-5 h-5 text-primary"></i> Unduh & Ekspor Data Keuangan
+                            <i data-lucide="download" class="w-5 h-5 text-primary"></i> Unduh &amp; Ekspor Data Keuangan
                         </h4>
                         <p class="text-sm text-muted-foreground">Unduh seluruh riwayat transaksi dan pembukuan dalam format pilihan Anda.</p>
                         <div class="flex flex-wrap gap-3 pt-2">
@@ -283,33 +333,47 @@
                             </a>
                         </div>
                     </div>
+
+                    {% if version_info is defined %}
+                    <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
+                        <div class="space-y-0.5">
+                            <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Versi Aplikasi &amp; Audit Rilis</p>
+                            <p class="text-sm font-semibold text-foreground">Treasury Flow v{{ version_info.version }} — <span class="text-primary font-normal">{{ version_info.codename }}</span></p>
+                            <p class="text-xs text-muted-foreground font-mono">Build: {{ version_info.build }} • Rilis: {{ version_info.release_date }}</p>
+                        </div>
+                        <a href="/api/version" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground">
+                            <i data-lucide="code-2" class="w-3.5 h-3.5"></i> Cek JSON Audit
+                        </a>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
 
             <!-- Danger Zone Tab -->
             <div x-show="activeTab === 'danger'" x-cloak class="space-y-6">
                 <div>
-                    <h3 class="text-lg font-medium text-destructive">Danger Zone</h3>
-                    <p class="text-sm text-muted-foreground">Irreversible and destructive actions.</p>
+                    <h3 class="text-lg font-medium text-destructive">Zona Berbahaya</h3>
+                    <p class="text-sm text-muted-foreground">Tindakan permanen yang tidak dapat dibatalkan.</p>
                 </div>
                 <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
                 
                 <div class="rounded-xl border border-destructive bg-destructive/5 p-6 shadow-sm space-y-6">
                     <div>
-                        <h4 class="text-base font-semibold">Reset Financial Data</h4>
-                        <p class="text-sm text-muted-foreground mt-1 mb-4">This will permanently delete all your transactions, accounts, budgets, and goals, but your user account and profile will remain intact. This cannot be undone.</p>
+                        <h4 class="text-base font-semibold">Reset Seluruh Data Finansial</h4>
+                        <p class="text-sm text-muted-foreground mt-1 mb-4">Menghapus seluruh transaksi, akun/dompet, anggaran, utang-piutang, dan target tabungan secara permanen, namun akun pengguna Anda tetap aktif.</p>
                         <button @click="$dispatch('open-modal', 'resetDataModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2">
-                            Reset All Data
+                            Reset Data Finansial
                         </button>
                     </div>
                     
                     <div data-orientation="horizontal" role="none" class="shrink-0 bg-destructive/20 h-[1px] w-full"></div>
                     
                     <div>
-                        <h4 class="text-base font-semibold text-destructive">Delete Account</h4>
-                        <p class="text-sm text-muted-foreground mt-1 mb-4">This will permanently delete your entire account and all associated data. This cannot be undone.</p>
+                        <h4 class="text-base font-semibold text-destructive">Hapus Akun Permanen</h4>
+                        <p class="text-sm text-muted-foreground mt-1 mb-4">Menghapus akun pengguna Anda beserta seluruh data terkait secara permanen dari server.</p>
                         <button @click="$dispatch('open-modal', 'deleteAccountModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">
-                            Delete Account
+                            Hapus Akun Saya
                         </button>
                     </div>
                 </div>
@@ -325,29 +389,29 @@
 <div x-data="{ open: false }" @open-modal.window="if ($event.detail === 'addCategoryModal') open = true" @keydown.escape.window="open = false" x-show="open" class="relative z-50" x-cloak>
     <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl relative">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl relative">
             <button @click="open = false" class="absolute top-4 right-4 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
             <div class="flex flex-col space-y-1.5 text-center sm:text-left">
-                <h2 class="text-lg font-semibold leading-none tracking-tight">Add Custom Category</h2>
-                <p class="text-sm text-muted-foreground">Create a new category for your transactions.</p>
+                <h2 class="text-lg font-semibold leading-none tracking-tight">Tambah Kategori Kustom</h2>
+                <p class="text-sm text-muted-foreground">Buat kategori baru sesuai kebutuhan pencatatan Anda.</p>
             </div>
             <form method="POST" class="space-y-4 pt-6">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="action" value="add_category">
                 <div class="grid gap-2">
-                    <label class="text-sm font-medium leading-none">Type</label>
+                    <label class="text-sm font-medium leading-none">Jenis Kategori</label>
                     <select name="type" class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
-                        <option value="expense">Expense</option>
-                        <option value="income">Income</option>
+                        <option value="expense">Pengeluaran</option>
+                        <option value="income">Pemasukan</option>
                     </select>
                 </div>
                 <div class="grid gap-2">
-                    <label class="text-sm font-medium leading-none">Category Name</label>
-                    <input type="text" name="name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="e.g. Groceries, Allowance" required>
+                    <label class="text-sm font-medium leading-none">Nama Kategori</label>
+                    <input type="text" name="name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" placeholder="Contoh: Kopi & Snack, Freelance" required>
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
-                    <button type="button" @click="open = false" class="mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 sm:mt-0">Cancel</button>
-                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">Add Category</button>
+                    <button type="button" @click="open = false" class="mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 sm:mt-0">Batal</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">Simpan Kategori</button>
                 </div>
             </form>
         </div>
@@ -358,22 +422,22 @@
 <div x-data="{ open: false }" @open-modal.window="if ($event.detail === 'resetDataModal') open = true" @keydown.escape.window="open = false" x-show="open" class="relative z-50" x-cloak>
     <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl relative">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl relative">
             <button @click="open = false" class="absolute top-4 right-4 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
             <div class="flex flex-col space-y-1.5 text-center sm:text-left">
-                <h2 class="text-lg font-semibold leading-none tracking-tight text-destructive">Reset Financial Data</h2>
-                <p class="text-sm text-muted-foreground">Are you absolutely sure? This will wipe all transactions and accounts.</p>
+                <h2 class="text-lg font-semibold leading-none tracking-tight text-destructive">Reset Seluruh Data Finansial</h2>
+                <p class="text-sm text-muted-foreground">Apakah Anda yakin? Seluruh transaksi, dompet, dan catatan keuangan akan dihapus permanen.</p>
             </div>
             <form method="POST" class="space-y-4 pt-6">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="action" value="reset_data">
                 <div class="grid gap-2">
-                    <label class="text-sm font-medium leading-none text-destructive">Enter your password to confirm</label>
-                    <input type="password" name="password_check" class="flex h-10 w-full rounded-md border border-destructive focus-visible:ring-destructive bg-background px-3 py-2 text-sm ring-offset-background" placeholder="Password" required>
+                    <label class="text-sm font-medium leading-none text-destructive">Masukkan password Anda untuk konfirmasi</label>
+                    <input type="password" name="password_check" class="flex h-10 w-full rounded-md border border-destructive focus-visible:ring-destructive bg-background px-3 py-2 text-sm ring-offset-background" placeholder="Password akun Anda" required>
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
-                    <button type="button" @click="open = false" class="mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 sm:mt-0">Cancel</button>
-                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">Reset Data</button>
+                    <button type="button" @click="open = false" class="mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 sm:mt-0">Batal</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">Ya, Reset Data</button>
                 </div>
             </form>
         </div>
@@ -384,22 +448,22 @@
 <div x-data="{ open: false }" @open-modal.window="if ($event.detail === 'deleteAccountModal') open = true" @keydown.escape.window="open = false" x-show="open" class="relative z-50" x-cloak>
     <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl relative">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-lg rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg sm:rounded-xl relative">
             <button @click="open = false" class="absolute top-4 right-4 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
             <div class="flex flex-col space-y-1.5 text-center sm:text-left">
-                <h2 class="text-lg font-semibold leading-none tracking-tight text-destructive">Permanently Delete Account</h2>
-                <p class="text-sm text-muted-foreground">This action is irreversible and will delete your entire account.</p>
+                <h2 class="text-lg font-semibold leading-none tracking-tight text-destructive">Hapus Akun Secara Permanen</h2>
+                <p class="text-sm text-muted-foreground">Tindakan ini tidak dapat dibatalkan dan akan menghapus seluruh akun serta data Anda.</p>
             </div>
             <form method="POST" class="space-y-4 pt-6">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <input type="hidden" name="action" value="delete_account">
                 <div class="grid gap-2">
-                    <label class="text-sm font-medium leading-none text-destructive">Enter your password to confirm</label>
-                    <input type="password" name="password_check" class="flex h-10 w-full rounded-md border border-destructive focus-visible:ring-destructive bg-background px-3 py-2 text-sm ring-offset-background" placeholder="Password" required>
+                    <label class="text-sm font-medium leading-none text-destructive">Masukkan password Anda untuk konfirmasi</label>
+                    <input type="password" name="password_check" class="flex h-10 w-full rounded-md border border-destructive focus-visible:ring-destructive bg-background px-3 py-2 text-sm ring-offset-background" placeholder="Password akun Anda" required>
                 </div>
                 <div class="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 pt-4">
-                    <button type="button" @click="open = false" class="mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 sm:mt-0">Cancel</button>
-                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">Permanently Delete</button>
+                    <button type="button" @click="open = false" class="mt-2 inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 sm:mt-0">Batal</button>
+                    <button type="submit" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-10 px-4 py-2">Hapus Permanen</button>
                 </div>
             </form>
         </div>
@@ -415,7 +479,7 @@
      x-cloak>
     <div x-show="open" x-transition.opacity class="fixed inset-0 bg-background/80 backdrop-blur-sm"></div>
     <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-sm rounded-xl border bg-card p-6 text-card-foreground shadow-lg relative">
+        <div x-show="open" x-transition @click.outside="open = false" class="w-full max-w-sm rounded-xl border border-border bg-card p-6 text-card-foreground shadow-lg relative">
             <button @click="open = false" class="absolute top-4 right-4 text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
             <div class="flex flex-col space-y-1.5 text-center sm:text-left">
                 <h2 class="text-lg font-semibold leading-none tracking-tight text-destructive">Hapus Kategori?</h2>
@@ -474,92 +538,87 @@ async function registerBiometric() {
         return;
     }
 
+    const origText = btnEl ? btnEl.innerHTML : '';
+    if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = 'Memproses sensor biometrik...';
+    }
+
     try {
         const csrfToken = "{{ csrf_token() }}";
         const genRes = await fetch('/api/webauthn/register/generate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken }
         });
-        let publicKeyOpts = null;
-        if (genRes.ok) {
-            const opts = await genRes.json();
-            publicKeyOpts = {
-                ...opts,
-                challenge: base64urlToUint8Array(opts.challenge),
-                user: {
-                    ...opts.user,
-                    id: base64urlToUint8Array(opts.user.id)
-                }
-            };
-            if (opts.excludeCredentials) {
-                publicKeyOpts.excludeCredentials = opts.excludeCredentials.map(c => ({
-                    ...c,
-                    id: base64urlToUint8Array(c.id)
-                }));
+        if (!genRes.ok) {
+            const errJson = await genRes.json().catch(() => ({}));
+            showStatus(errJson.message || 'Gagal menginisialisasi sesi registrasi Passkey di server.', false);
+            return;
+        }
+
+        const opts = await genRes.json();
+        const publicKeyOpts = {
+            ...opts,
+            challenge: base64urlToUint8Array(opts.challenge),
+            user: {
+                ...opts.user,
+                id: base64urlToUint8Array(opts.user.id)
             }
-        } else {
-            const challenge = new Uint8Array(32);
-            window.crypto.getRandomValues(challenge);
-            publicKeyOpts = {
-                challenge: challenge,
-                rp: { name: "Treasury Flow" },
-                user: {
-                    id: new TextEncoder().encode("{{ user.username }}"),
-                    name: "{{ user.username }}",
-                    displayName: "{{ user.fullname or user.username }}"
-                },
-                pubKeyCredParams: [
-                    { type: "public-key", alg: -7 },
-                    { type: "public-key", alg: -257 }
-                ],
-                authenticatorSelection: { userVerification: "preferred" },
-                timeout: 60000
-            };
+        };
+        if (opts.excludeCredentials && opts.excludeCredentials.length > 0) {
+            publicKeyOpts.excludeCredentials = opts.excludeCredentials.map(c => ({
+                ...c,
+                id: base64urlToUint8Array(c.id)
+            }));
         }
 
         const cred = await navigator.credentials.create({ publicKey: publicKeyOpts });
+        if (!cred || !cred.response) {
+            showStatus('Registrasi Passkey dibatalkan.', false);
+            return;
+        }
 
-        if (cred && cred.response) {
-            const payload = {
-                id: cred.id,
-                rawId: bufferToBase64url(cred.rawId),
-                type: cred.type,
-                response: {
-                    attestationObject: bufferToBase64url(cred.response.attestationObject),
-                    clientDataJSON: bufferToBase64url(cred.response.clientDataJSON)
-                }
-            };
-            const verifyRes = await fetch('/api/webauthn/register/verify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify(payload)
-            });
-            if (!verifyRes.ok) {
-                const errData = await verifyRes.json().catch(() => ({}));
-                showStatus(errData.message || 'Gagal memverifikasi Passkey di server.', false);
-                return;
+        const payload = {
+            id: cred.id,
+            rawId: bufferToBase64url(cred.rawId),
+            type: cred.type,
+            response: {
+                attestationObject: bufferToBase64url(cred.response.attestationObject),
+                clientDataJSON: bufferToBase64url(cred.response.clientDataJSON),
+                transports: typeof cred.response.getTransports === 'function' ? cred.response.getTransports() : []
             }
+        };
+
+        const verifyRes = await fetch('/api/webauthn/register/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify(payload)
+        });
+        const verifyData = await verifyRes.json().catch(() => ({}));
+        if (!verifyRes.ok || verifyData.status !== 'ok') {
+            showStatus(verifyData.message || 'Gagal memverifikasi Passkey di server.', false);
+            return;
         }
 
-        localStorage.setItem('passkeyRegistered_{{ user.username }}', 'true');
-        if (btnEl) {
-            btnEl.textContent = 'Passkey Aktif di Perangkat Ini';
-        }
-        showStatus('Passkey Biometrik berhasil didaftarkan dan diverifikasi ke server!', true);
+        showStatus('Passkey Biometrik berhasil disimpan permanen ke server! Memperbarui daftar perangkat...', true);
+        setTimeout(() => {
+            window.location.href = "{{ url_for('settings.settings', tab='integrations') }}";
+        }, 900);
     } catch (err) {
-        if (err && err.name === 'NotAllowedError') {
+        if (err && err.name === 'InvalidStateError') {
+            showStatus('Perangkat ini sudah terdaftar sebagai Passkey aktif untuk akun Anda.', true);
+        } else if (err && err.name === 'NotAllowedError') {
             showStatus('Pendaftaran biometrik dibatalkan atau tidak diizinkan oleh perangkat.', false);
         } else {
-            showStatus('Gagal mendaftarkan biometrik: pastikan perangkat memiliki kunci layar / sensor biometrik aktif.', false);
+            showStatus('Gagal mendaftarkan biometrik: pastikan kunci layar / sensor biometrik perangkat aktif.', false);
+        }
+    } finally {
+        if (btnEl) {
+            btnEl.disabled = false;
+            btnEl.innerHTML = origText;
+            if (window.lucide) lucide.createIcons();
         }
     }
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    if (localStorage.getItem('passkeyRegistered_{{ user.username }}') === 'true') {
-        const btnEl = document.getElementById('biometricBtn');
-        if (btnEl) btnEl.textContent = 'Perbarui Passkey';
-    }
-});
 </script>
 {% endblock %}

@@ -141,24 +141,27 @@
 
         {% if view == 'calendar' %}
         <!-- Calendar View -->
-        <div x-show="view === 'calendar'" x-cloak class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 mb-6">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-bold">{{ month_name }} {{ cal_year }}</h3>
-                <div class="flex gap-2">
-                    <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=(cal_year if cal_month > 1 else cal_year - 1), cal_month=(cal_month - 1 if cal_month > 1 else 12), start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
+        <div x-show="view === 'calendar'" x-cloak class="rounded-2xl border border-border bg-card text-card-foreground shadow-sm p-3 sm:p-6 mb-6">
+            <div class="flex flex-wrap justify-between items-center gap-3 mb-5">
+                <div>
+                    <h3 class="text-lg sm:text-xl font-bold tracking-tight">{{ month_name }} {{ cal_year }}</h3>
+                    <p class="text-xs text-muted-foreground">Klik tanggal untuk menyaring rincian transaksi harian.</p>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=(cal_year if cal_month > 1 else cal_year - 1), cal_month=(cal_month - 1 if cal_month > 1 else 12), start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="p-2 border border-border rounded-lg hover:bg-muted text-foreground transition-colors" title="Bulan Sebelumnya">
                         <i data-lucide="chevron-left" class="w-4 h-4"></i>
                     </a>
-                    <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=now.year, cal_month=now.month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="px-3 py-2 border border-border rounded-md hover:bg-muted text-sm font-medium text-muted-foreground">
+                    <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=now.year, cal_month=now.month, start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="px-3 py-1.5 border border-border rounded-lg hover:bg-muted text-xs sm:text-sm font-semibold text-foreground transition-colors">
                         Hari Ini
                     </a>
-                    <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=(cal_year if cal_month < 12 else cal_year + 1), cal_month=(cal_month + 1 if cal_month < 12 else 1), start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="p-2 border border-border rounded-md hover:bg-muted text-muted-foreground">
+                    <a href="{{ clean_url('transactions.transactions_list', view='calendar', cal_year=(cal_year if cal_month < 12 else cal_year + 1), cal_month=(cal_month + 1 if cal_month < 12 else 1), start_date=start_date, end_date=end_date, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=page) }}" class="p-2 border border-border rounded-lg hover:bg-muted text-foreground transition-colors" title="Bulan Berikutnya">
                         <i data-lucide="chevron-right" class="w-4 h-4"></i>
                     </a>
                 </div>
             </div>
-            <div class="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden border border-border">
-                {% for day in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}
-                <div class="bg-muted/50 p-2 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">{{ day }}</div>
+            <div class="grid grid-cols-7 gap-px bg-border rounded-xl overflow-hidden border border-border">
+                {% for day in ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'] %}
+                <div class="bg-muted/60 py-2.5 px-1 text-center text-[11px] font-bold text-muted-foreground uppercase tracking-wider">{{ day }}</div>
                 {% endfor %}
                 
                 {% for week in month_days %}
@@ -166,23 +169,23 @@
                         {% set d_str = date.strftime('%Y-%m-%d') %}
                         {% set is_current = date.month == cal_month %}
                         {% set is_today = date == now %}
-                        <a href="{{ clean_url('transactions.transactions_list', view='list', start_date=d_str, end_date=d_str, cal_month=cal_month, cal_year=cal_year, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=1) }}" class="min-h-[100px] p-2 hover:bg-muted/50 transition-colors flex flex-col {% if not is_current %}opacity-40{% endif %} {% if is_today %}bg-blue-500/15 dark:bg-sky-500/25 ring-2 ring-inset ring-blue-600 dark:ring-sky-400 z-10{% else %}bg-background{% endif %} {% if start_date == d_str and end_date == d_str %}ring-2 ring-inset ring-primary bg-primary/5 z-10{% endif %}">
-                            <div class="flex items-center justify-between">
-                                <span class="text-sm font-bold {% if is_today %}bg-blue-600 dark:bg-sky-400 text-white dark:text-slate-950 rounded-full w-7 h-7 inline-flex items-center justify-center shadow-sm{% elif start_date == d_str and end_date == d_str %}text-primary{% endif %}">{{ date.day }}</span>
+                        <a href="{{ clean_url('transactions.transactions_list', view='list', start_date=d_str, end_date=d_str, cal_month=cal_month, cal_year=cal_year, category=selected_category, account_id=selected_account, search=search_query, sort_by=sort_by, sort_order=sort_order, page=1) }}" class="min-h-[78px] sm:min-h-[106px] p-1.5 sm:p-2.5 hover:bg-muted/50 transition-colors flex flex-col overflow-hidden {% if not is_current %}opacity-40 bg-muted/20{% elif is_today %}bg-blue-500/10 dark:bg-sky-500/15 ring-1 ring-inset ring-blue-600/60 dark:ring-sky-400/70 z-10{% else %}bg-background{% endif %} {% if start_date == d_str and end_date == d_str %}ring-2 ring-inset ring-primary bg-primary/5 z-10{% endif %}">
+                            <div class="flex items-center justify-between gap-1">
+                                <span class="text-xs sm:text-sm font-bold {% if is_today %}bg-blue-600 dark:bg-sky-400 text-white dark:text-slate-950 rounded-full w-6 h-6 sm:w-7 sm:h-7 inline-flex items-center justify-center shadow-sm{% elif start_date == d_str and end_date == d_str %}text-primary{% else %}text-foreground/90{% endif %}">{{ date.day }}</span>
                                 {% if is_today %}
-                                <span class="text-[10px] font-extrabold uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-blue-600 text-white dark:bg-sky-400 dark:text-slate-950 shadow-sm">Hari Ini</span>
+                                <span class="hidden md:inline-flex text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-blue-600/15 text-blue-700 dark:bg-sky-400/20 dark:text-sky-300">Hari Ini</span>
                                 {% endif %}
                             </div>
-                            <div class="mt-auto space-y-1 pt-2">
+                            <div class="mt-auto space-y-1 pt-1.5 min-w-0">
                             {% if d_str in cal_tx_map %}
                                 {% if cal_tx_map[d_str]['income'] > 0 %}
-                                <div class="text-[10px] font-medium text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 px-1 rounded truncate">
-                                    +{{ "{:,.0f}".format(cal_tx_map[d_str]['income']/1000) }}k
+                                <div class="text-[10px] font-semibold text-emerald-700 bg-emerald-500/15 dark:text-emerald-300 px-1.5 py-0.5 rounded-md truncate" title="Pemasukan: Rp {{ '{:,.0f}'.format(cal_tx_map[d_str]['income']).replace(',', '.') }}">
+                                    +{{ "{:,.0f}".format(cal_tx_map[d_str]['income']/1000).replace(',', '.') }}k
                                 </div>
                                 {% endif %}
                                 {% if cal_tx_map[d_str]['expense'] > 0 %}
-                                <div class="text-[10px] font-medium text-destructive bg-destructive/10 px-1 rounded truncate">
-                                    -{{ "{:,.0f}".format(cal_tx_map[d_str]['expense']/1000) }}k
+                                <div class="text-[10px] font-semibold text-rose-700 bg-rose-500/15 dark:text-rose-300 px-1.5 py-0.5 rounded-md truncate" title="Pengeluaran: Rp {{ '{:,.0f}'.format(cal_tx_map[d_str]['expense']).replace(',', '.') }}">
+                                    -{{ "{:,.0f}".format(cal_tx_map[d_str]['expense']/1000).replace(',', '.') }}k
                                 </div>
                                 {% endif %}
                             {% endif %}
@@ -218,7 +221,7 @@
                     <option value="">Semua Kategori</option>
                     <option value="Transfer" {% if selected_category == 'Transfer' %}selected{% endif %}>Transfer</option>
                     {% for group, cats in categories.items() %}
-                        <optgroup label="{{ group }}">
+                        <optgroup label="{{ 'Pemasukan' if group == 'income' else 'Pengeluaran' }}">
                             {% for cat in cats %}
                                 <option value="{{ cat }}" {% if selected_category == cat %}selected{% endif %}>{{ cat }}</option>
                             {% endfor %}
@@ -409,7 +412,7 @@
     editOpen: false, 
     tx: {id: '', amount: '', description: '', date: '', category: '', account_id: '', type: ''} 
 }" 
-@open-edit-modal.window="tx = { ...$event.detail, amount: window.formatRibuanInput ? window.formatRibuanInput($event.detail.amount, true) : String(Math.round(Number($event.detail.amount || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'), account_id: String($event.detail.account_id || ''), date: String($event.detail.date || '').slice(0, 10) }; editOpen = true;" 
+@open-edit-modal.window="tx = { ...$event.detail, amount: window.formatRibuanInput ? window.formatRibuanInput($event.detail.amount, true) : String(Math.round(Number($event.detail.amount || 0))).replace(/\B(?=(\d{3})+(?!\d))/g, '.'), account_id: String($event.detail.account_id || ''), date: String($event.detail.date || '').slice(0, 10) }; editOpen = true; $nextTick(() => { if (window.populateQuickEditCategory) window.populateQuickEditCategory(tx.type, tx.category); });" 
 x-cloak>
     
     <div x-show="editOpen" class="relative z-50" aria-labelledby="modal-title" role="dialog" aria-modal="true">
@@ -441,14 +444,9 @@ x-cloak>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Kategori</label>
-                                    <select name="category" x-model="tx.category" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                        <option value="Transfer" x-show="tx.category === 'Transfer'">Transfer</option>
-                                        {% for group, cats in categories.items() %}
-                                            <optgroup label="{{ group }}">
-                                                {% for cat in cats %}
-                                                    <option value="{{ cat }}">{{ cat }}</option>
-                                                {% endfor %}
-                                            </optgroup>
+                                    <select name="category" id="quickEditCategorySelect" x-model="tx.category" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                        {% for cat in categories['expense'] %}
+                                            <option value="{{ cat }}">{{ cat }}</option>
                                         {% endfor %}
                                     </select>
                                 </div>
@@ -495,7 +493,7 @@ x-cloak>
                                     <select name="category" required class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                         <option value="">-- Pilih Kategori --</option>
                                         {% for group, cats in categories.items() %}
-                                            <optgroup label="{{ group }}">
+                                            <optgroup label="{{ 'Pemasukan' if group == 'income' else 'Pengeluaran' }}">
                                                 {% for cat in cats %}
                                                     <option value="{{ cat }}">{{ cat }}</option>
                                                 {% endfor %}
@@ -545,6 +543,28 @@ x-cloak>
 </div>
 
 <script>
+    const TX_CATEGORIES_BY_TYPE = {{ categories | tojson }};
+    window.populateQuickEditCategory = function(txType, currentCategory) {
+        const sel = document.getElementById('quickEditCategorySelect');
+        if (!sel) return;
+        const typeKey = txType === 'income' ? 'income' : 'expense';
+        const list = Array.isArray(TX_CATEGORIES_BY_TYPE[typeKey]) ? [...TX_CATEGORIES_BY_TYPE[typeKey]] : [];
+        if (currentCategory && !list.includes(currentCategory)) {
+            list.unshift(currentCategory);
+        }
+        sel.innerHTML = '';
+        list.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            sel.appendChild(opt);
+        });
+        if (currentCategory && list.includes(currentCategory)) {
+            sel.value = currentCategory;
+        }
+        sel.dispatchEvent(new CustomEvent('shadcn:refresh'));
+    };
+
     // Clean up empty URL parameters from links before clicking
     document.addEventListener('mouseover', function(e) {
         let link = e.target.closest('a');

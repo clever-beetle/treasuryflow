@@ -1,6 +1,10 @@
 import os
+import sys
+import time
+import threading
 import sqlite3
 import psycopg2
+import psycopg2.pool
 import psycopg2.extras
 import psycopg2.errors
 import locale
@@ -12,16 +16,15 @@ from flask_limiter.util import get_remote_address
 from flask_babel import Babel
 from concurrent.futures import ThreadPoolExecutor
 from loguru import logger
-import sys
 
-# Configure loguru (optional but good practice)
+# Configure loguru
 logger.remove()
 logger.add(sys.__stderr__ if sys.__stderr__ else sys.stderr, level="INFO", catch=True)
 
 cache = Cache(config={'CACHE_TYPE': 'SimpleCache', 'CACHE_DEFAULT_TIMEOUT': 60})
 limiter = Limiter(key_func=get_remote_address, default_limits=["2000 per day", "500 per hour"])
 babel = Babel()
-bg_executor = ThreadPoolExecutor(max_workers=3)
+bg_executor = ThreadPoolExecutor(max_workers=4)
 
 SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
@@ -30,20 +33,23 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 
 CATEGORIES = {
     'income': ['Gaji', 'Investasi', 'Hadiah', 'Penjualan Aset', 'Lainnya (Pemasukan)'],
-    'expense': ['Makanan & Minuman', 'Transportasi', 'Belanja', 'Tagihan', 
+    'expense': ['Makanan & Minuman', 'Transportasi', 'Belanja', 'Tagihan',
                 'Hiburan', 'Kesehatan', 'Pendidikan', 'Cicilan & Utang', 'Lainnya (Pengeluaran)']
 }
+
 
 def wib_now():
     """Current time in WIB (UTC+7) as a naive datetime, independent of the server's local timezone."""
     from datetime import datetime, timezone, timedelta
     return datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=7)
 
+
 def spreadsheet_safe(value):
     """Prevent CSV/Excel formula injection: prefix text starting with = + - @ (or tab/CR) with an apostrophe."""
     if isinstance(value, str) and value and value[0] in ('=', '+', '-', '@', '\t', '\r'):
         return "'" + value
     return value
+
 
 def format_rupiah(value):
     if value is None:
@@ -57,6 +63,7 @@ def format_rupiah(value):
     formatted = '{:,.0f}'.format(abs_value).replace(',', '.')
     return sign + 'Rp ' + formatted
 
+
 def format_rupiah_input(value):
     if value is None:
         return '0'
@@ -67,12 +74,12 @@ def format_rupiah_input(value):
     formatted = '{:,.0f}'.format(abs(value)).replace(',', '.')
     return formatted
 
+
 def parse_amount(raw, default=0.0):
     """Parse a user-entered amount into a float.
 
     Accepts Indonesian formatting ("150.000", "150.000,50"), plain numbers
-    ("150000"), and machine formatting ("150000.0", "150000.50"). Previously
-    callers did ``raw.replace('.', '')`` which turned "150000.0" into 1500000.
+    ("150000"), and machine formatting ("150000.0", "150000.50").
     """
     import re
     from decimal import Decimal
@@ -84,10 +91,8 @@ def parse_amount(raw, default=0.0):
     if not s:
         return default
     if ',' in s:
-        # Indonesian format: dots are thousand separators, comma is decimal
         s = s.replace('.', '').replace(',', '.')
     elif '.' in s and re.fullmatch(r'-?\d{1,3}(\.\d{3})+', s):
-        # Only thousand separators, e.g. "1.500.000"
         s = s.replace('.', '')
     try:
         val = float(s)
@@ -97,69 +102,209 @@ def parse_amount(raw, default=0.0):
         return default
     return val
 
+
 def format_amount_input(value):
     """Format a stored amount for an editable text input without losing decimals."""
     v = parse_amount(value)
     v = abs(v)
     if v == int(v):
         return '{:,.0f}'.format(v).replace(',', '.')
-    s = '{:,.2f}'.format(v)  # e.g. "1,500.50"
+    s = '{:,.2f}'.format(v)
     s = s.replace(',', '#').replace('.', ',').replace('#', '.')
     return s.rstrip('0').rstrip(',')
+
 
 @limiter.request_filter
 def _limiter_skip_static():
     from flask import request
-    return request.endpoint == 'static' or request.path.startswith('/static/') or request.path in ('/sw.js', '/favicon.ico')
+    return request.endpoint == 'static' or request.path.startswith('/static/') or request.path in ('/sw.js', '/favicon.ico', '/api/version')
+
 
 DATABASE = 'treasury_flow.db'
 DATABASE_URL = os.environ.get('DATABASE_URL')
 REPLICA_DATABASE_URL = os.environ.get('REPLICA_DATABASE_URL')
 
+_pg_pools = {}
+_pool_lock = threading.Lock()
+_conn_last_used = {}
+
+
+def _get_pg_pool(dsn):
+    pool = _pg_pools.get(dsn)
+    if pool is not None and not pool.closed:
+        return pool
+    with _pool_lock:
+        pool = _pg_pools.get(dsn)
+        if pool is None or pool.closed:
+            pool = psycopg2.pool.ThreadedConnectionPool(
+                minconn=1,
+                maxconn=8,
+                dsn=dsn,
+                sslmode='require',
+                connect_timeout=5,
+                keepalives=1,
+                keepalives_idle=30,
+                keepalives_interval=10,
+                keepalives_count=3,
+            )
+            _pg_pools[dsn] = pool
+        return pool
+
+
+def _acquire_pg_conn(dsn):
+    pool = _get_pg_pool(dsn)
+    for _ in range(2):
+        conn = pool.getconn()
+        if conn.closed != 0:
+            try:
+                pool.putconn(conn, close=True)
+            except Exception:
+                pass
+            continue
+        last_ts = _conn_last_used.get(id(conn), 0.0)
+        now_ts = time.monotonic()
+        # Only ping connections idle > 45s (e.g. Neon serverless sleep), zero overhead on active clicks
+        if last_ts and (now_ts - last_ts) > 45.0:
+            try:
+                with conn.cursor() as cur:
+                    cur.execute('SELECT 1')
+                if not conn.autocommit:
+                    conn.rollback()
+            except Exception:
+                try:
+                    pool.putconn(conn, close=True)
+                except Exception:
+                    pass
+                continue
+        _conn_last_used[id(conn)] = now_ts
+        return conn, pool
+    # Fallback direct connect if pool had two stale sockets
+    conn = psycopg2.connect(
+        dsn,
+        sslmode='require',
+        connect_timeout=5,
+        keepalives=1,
+        keepalives_idle=30,
+        keepalives_interval=10,
+        keepalives_count=3,
+    )
+    return conn, None
+
+
+def _release_pg_conn(conn, pool, discard=False):
+    if conn is None:
+        return
+    if pool is None:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return
+    if discard or conn.closed != 0:
+        _conn_last_used.pop(id(conn), None)
+        try:
+            pool.putconn(conn, close=True)
+        except Exception:
+            pass
+        return
+    try:
+        if conn.autocommit:
+            conn.autocommit = False
+        else:
+            conn.rollback()
+        _conn_last_used[id(conn)] = time.monotonic()
+        pool.putconn(conn)
+    except Exception:
+        _conn_last_used.pop(id(conn), None)
+        try:
+            pool.putconn(conn, close=True)
+        except Exception:
+            pass
+
+
+def _sync_replica_writes(replica_dsn, writes_batch):
+    if not replica_dsn or not writes_batch:
+        return
+    conn = None
+    pool = None
+    discard = False
+    try:
+        conn, pool = _acquire_pg_conn(replica_dsn)
+        cur = conn.cursor()
+        for pg_query, params in writes_batch:
+            try:
+                cur.execute(pg_query, params)
+            except Exception as e:
+                logger.warning(f"Replica statement skipped - {e}")
+                conn.rollback()
+        conn.commit()
+    except Exception as e:
+        discard = True
+        logger.warning(f"Replica DB async sync failed - {e}")
+    finally:
+        _release_pg_conn(conn, pool, discard=discard)
+
+
 class DBWrapper:
-    def __init__(self, primary_conn, replica_conn=None):
+    def __init__(self, primary_conn, replica_conn=None, pool=None, dsn=None):
         self.conn = primary_conn
         self.primary_conn = primary_conn
         self.replica_conn = replica_conn
+        self._pool = pool
+        self._dsn = dsn
+        self._has_executed = False
+        self._pending_replica_writes = []
 
     def execute(self, query, params=()):
-        cursor = self.primary_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         pg_query = query.replace('?', '%s')
-        
+        cursor = None
+
         try:
+            cursor = self.primary_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
             cursor.execute(pg_query, params)
+            self._has_executed = True
+        except (psycopg2.OperationalError, psycopg2.InterfaceError):
+            if not self._has_executed and self._dsn:
+                # Stale pooled socket on first query of request: transparently swap & retry once
+                _release_pg_conn(self.primary_conn, self._pool, discard=True)
+                self.primary_conn, self._pool = _acquire_pg_conn(self._dsn)
+                self.conn = self.primary_conn
+                cursor = self.primary_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+                cursor.execute(pg_query, params)
+                self._has_executed = True
+            else:
+                raise
         except psycopg2.errors.UniqueViolation as e:
-            # Auto-fix sequence on duplicate key for INSERT statements
             if query.strip().upper().startswith('INSERT'):
                 self.primary_conn.rollback()
-                err_str = str(e)
-                # Extract table name from query: INSERT INTO tablename
                 try:
                     tbl = query.strip().split()[2].strip('(')
                     fix_cursor = self.primary_conn.cursor()
                     fix_cursor.execute(f"SELECT setval('{tbl}_id_seq', (SELECT COALESCE(MAX(id), 0) + 1 FROM {tbl}), false)")
                     self.primary_conn.commit()
                     logger.info(f"Auto-fixed sequence for {tbl}")
-                    # Retry the original query
                     cursor = self.primary_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
                     cursor.execute(pg_query, params)
+                    self._has_executed = True
                 except Exception as retry_err:
                     logger.error(f"Sequence fix retry failed: {retry_err}")
                     raise e
             else:
                 raise
-        
-        if self.replica_conn:
-            is_write = query.strip().upper().startswith(('INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP', 'PRAGMA'))
-            if is_write:
+
+        is_write = query.strip().upper().startswith(('INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP'))
+        if is_write:
+            if self.replica_conn:
                 try:
                     rep_cursor = self.replica_conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
                     rep_cursor.execute(pg_query, params)
                 except Exception as e:
                     logger.warning(f"Replica DB write failed - {e}")
-                    
+            elif REPLICA_DATABASE_URL:
+                self._pending_replica_writes.append((pg_query, params))
+
         return cursor
-        
+
     def cursor(self):
         return self
 
@@ -168,41 +313,45 @@ class DBWrapper:
         if self.replica_conn:
             try:
                 self.replica_conn.commit()
-            except:
+            except Exception:
                 pass
+        elif self._pending_replica_writes and REPLICA_DATABASE_URL:
+            batch = list(self._pending_replica_writes)
+            self._pending_replica_writes.clear()
+            if os.environ.get("TESTING") != "True":
+                bg_executor.submit(_sync_replica_writes, REPLICA_DATABASE_URL, batch)
 
     def rollback(self):
+        self._pending_replica_writes.clear()
         self.primary_conn.rollback()
         if self.replica_conn:
             try:
                 self.replica_conn.rollback()
-            except:
+            except Exception:
                 pass
 
     def close(self):
-        self.primary_conn.close()
+        self._pending_replica_writes.clear()
+        _release_pg_conn(self.primary_conn, self._pool)
         if self.replica_conn:
             try:
                 self.replica_conn.close()
-            except:
+            except Exception:
                 pass
+
 
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         if DATABASE_URL:
-            conn = psycopg2.connect(DATABASE_URL, sslmode='require')
-            rep_conn = None
-            if REPLICA_DATABASE_URL:
-                try:
-                    rep_conn = psycopg2.connect(REPLICA_DATABASE_URL, sslmode='require')
-                except Exception as e:
-                    logger.warning(f"Could not connect to Replica DB - {e}")
-            db = g._database = DBWrapper(conn, rep_conn)
+            conn, pool = _acquire_pg_conn(DATABASE_URL)
+            db = g._database = DBWrapper(conn, replica_conn=None, pool=pool, dsn=DATABASE_URL)
         else:
-            db = g._database = sqlite3.connect(DATABASE)
-            db.row_factory = sqlite3.Row
+            conn = sqlite3.connect(DATABASE, timeout=15.0)
+            conn.row_factory = sqlite3.Row
+            db = g._database = conn
     return db
+
 
 def login_required(f):
     @wraps(f)
@@ -217,21 +366,23 @@ def login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_id' not in session:
             flash('Authentication required.', 'danger')
             return redirect(url_for('auth.login'))
-        
+
         db = get_db()
         user = db.execute('SELECT role FROM users WHERE id = ?', (session['user_id'],)).fetchone()
         if not user or user['role'] != 'admin':
             flash('Akses ditolak. Halaman ini membutuhkan hak akses Admin.', 'danger')
             return redirect(url_for('dashboard.dashboard'))
-            
+
         return f(*args, **kwargs)
     return decorated_function
+
 
 def is_feature_enabled(feature_name):
     try:
@@ -240,8 +391,9 @@ def is_feature_enabled(feature_name):
         if flag and flag['is_active']:
             return True
         return False
-    except:
+    except Exception:
         return False
+
 
 def _send_reset_email_task(email_input, fullname, reset_url):
     import smtplib
@@ -295,6 +447,6 @@ Treasury Flow"""
         except Exception:
             pass
 
+
 def send_reset_email(email_input, fullname, reset_url):
     bg_executor.submit(_send_reset_email_task, email_input, fullname, reset_url)
-

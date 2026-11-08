@@ -21,6 +21,8 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         [x-cloak] { display: none !important; }
+        html { color-scheme: light; }
+        html.dark { color-scheme: dark; }
         :root {
             --background: 0 0% 100%;
             --foreground: 222.2 47.4% 11.2%;
@@ -220,6 +222,12 @@
                                     <button @click="$dispatch('open-modal', 'logoutModal'); mobileMenuOpen = false" class="flex w-full items-center justify-center rounded-md bg-destructive px-3 py-3 text-sm font-semibold text-destructive-foreground shadow-sm hover:bg-destructive/90 transition-all duration-200 hover:scale-[1.02] active:scale-95">
                                         <i data-lucide="log-out" class="h-4 w-4 mr-2"></i> Keluar Akun
                                     </button>
+                                    {% if app_version is defined %}
+                                    <div class="mt-5 pt-4 border-t border-border/60 flex items-center justify-between text-[11px] font-mono text-muted-foreground">
+                                        <span>Treasury Flow</span>
+                                        <span class="rounded-full bg-muted px-2 py-0.5 border border-border">v{{ app_version }}</span>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
@@ -261,7 +269,9 @@
         
         <!-- Watermark Footer -->
         <footer class="w-full py-4 text-center mt-auto">
-            <p class="text-xs text-muted-foreground/40 tracking-widest font-medium uppercase">Powered by Fernando Capital</p>
+            <p class="text-xs text-muted-foreground/50 tracking-widest font-medium uppercase">
+                Powered by Fernando Capital{% if app_version is defined %} &bull; <span class="font-mono normal-case tracking-normal">v{{ app_version }}</span>{% endif %}
+            </p>
         </footer>
 
     <!-- Global Modals -->
@@ -635,6 +645,393 @@
             });
             
         });
+    </script>
+
+    <!-- Global Shadcn Custom Select Dropdown Enhancer -->
+    <style>
+        .shadcn-select-native {
+            position: absolute !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            opacity: 0 !important;
+            pointer-events: none !important;
+            z-index: -1 !important;
+        }
+        #shadcn-select-portal {
+            position: fixed;
+            z-index: 99999;
+            display: none;
+            background-color: hsl(var(--popover));
+            color: hsl(var(--popover-foreground));
+            border: 1px solid hsl(var(--border));
+            border-radius: 0.75rem;
+            box-shadow: 0 20px 35px -8px rgba(15, 23, 42, 0.22), 0 8px 14px -6px rgba(15, 23, 42, 0.12);
+            overflow: hidden;
+            animation: shadcnSelectFadeIn 120ms cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        html.dark #shadcn-select-portal {
+            box-shadow: 0 22px 40px -8px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.06);
+        }
+        @keyframes shadcnSelectFadeIn {
+            from { opacity: 0; transform: translateY(-4px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .shadcn-select-options::-webkit-scrollbar {
+            width: 6px;
+        }
+        .shadcn-select-options::-webkit-scrollbar-thumb {
+            background-color: hsl(var(--border));
+            border-radius: 9999px;
+        }
+    </style>
+    <script>
+        (function() {
+            let portal = null;
+            let searchWrap = null;
+            let searchInput = null;
+            let optionsContainer = null;
+            let activeSelect = null;
+            let activeTrigger = null;
+            const enhancedRegistry = new Set();
+
+            function ensurePortal() {
+                if (portal) return portal;
+                portal = document.createElement('div');
+                portal.id = 'shadcn-select-portal';
+                portal.setAttribute('role', 'listbox');
+
+                searchWrap = document.createElement('div');
+                searchWrap.className = 'border-b border-border px-3 py-2 flex items-center gap-2 bg-muted/30';
+                searchWrap.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground shrink-0"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>';
+                searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.placeholder = 'Cari pilihan...';
+                searchInput.className = 'w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground focus:outline-none';
+                searchWrap.appendChild(searchInput);
+
+                optionsContainer = document.createElement('div');
+                optionsContainer.className = 'shadcn-select-options max-h-64 overflow-y-auto p-1.5 space-y-0.5';
+
+                portal.appendChild(searchWrap);
+                portal.appendChild(optionsContainer);
+                document.body.appendChild(portal);
+
+                searchInput.addEventListener('input', function() {
+                    if (activeSelect) renderOptions(activeSelect, this.value);
+                });
+
+                searchInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        closePortal();
+                    } else if (e.key === 'Enter') {
+                        const firstBtn = optionsContainer.querySelector('button[data-opt-val]:not([disabled])');
+                        if (firstBtn) {
+                            e.preventDefault();
+                            firstBtn.click();
+                        }
+                    }
+                });
+
+                document.addEventListener('mousedown', function(e) {
+                    if (!portal || portal.style.display === 'none') return;
+                    if (portal.contains(e.target)) return;
+                    if (activeTrigger && activeTrigger.contains(e.target)) return;
+                    closePortal();
+                });
+
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape' && portal && portal.style.display !== 'none') {
+                        closePortal();
+                    }
+                });
+
+                window.addEventListener('resize', closePortal);
+                window.addEventListener('scroll', function(e) {
+                    if (!portal || portal.style.display === 'none') return;
+                    if (optionsContainer && (e.target === optionsContainer || optionsContainer.contains(e.target))) return;
+                    positionPortal();
+                }, true);
+
+                return portal;
+            }
+
+            function getSelectedLabel(selectEl) {
+                if (!selectEl || !selectEl.options || selectEl.options.length === 0) {
+                    return { text: 'Pilih...', isPlaceholder: true };
+                }
+                let opt = selectEl.options[selectEl.selectedIndex];
+                if (!opt) opt = selectEl.options[0];
+                const text = (opt ? opt.textContent : '').trim() || 'Pilih...';
+                const isPlaceholder = !opt || opt.value === '';
+                return { text, isPlaceholder };
+            }
+
+            function syncTrigger(selectEl, triggerBtn) {
+                if (!selectEl || !triggerBtn) return;
+                const labelSpan = triggerBtn.querySelector('.shadcn-select-label');
+                if (!labelSpan) return;
+                const { text, isPlaceholder } = getSelectedLabel(selectEl);
+                labelSpan.textContent = text;
+                if (isPlaceholder) {
+                    labelSpan.classList.add('text-muted-foreground', 'font-normal');
+                    labelSpan.classList.remove('text-foreground', 'font-medium');
+                } else {
+                    labelSpan.classList.remove('text-muted-foreground', 'font-normal');
+                    labelSpan.classList.add('text-foreground', 'font-medium');
+                }
+                triggerBtn.disabled = Boolean(selectEl.disabled);
+            }
+
+            function buildOptionRow(opt, currentVal) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.dataset.optVal = opt.value;
+                btn.disabled = Boolean(opt.disabled);
+                const isSelected = String(opt.value) === String(currentVal) && (opt.value !== '' || currentVal === '');
+                btn.className = 'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ' + (
+                    opt.disabled
+                        ? 'opacity-40 cursor-not-allowed text-muted-foreground'
+                        : isSelected
+                            ? 'bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary font-semibold'
+                            : 'text-popover-foreground hover:bg-accent hover:text-accent-foreground'
+                );
+
+                const txt = document.createElement('span');
+                txt.className = 'truncate';
+                txt.textContent = (opt.textContent || '').trim();
+                btn.appendChild(txt);
+
+                if (isSelected) {
+                    const check = document.createElement('span');
+                    check.className = 'shrink-0 text-primary';
+                    check.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+                    btn.appendChild(check);
+                }
+
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (opt.disabled || !activeSelect) return;
+                    const targetSelect = activeSelect;
+                    const targetTrigger = activeTrigger;
+                    targetSelect.value = opt.value;
+                    opt.selected = true;
+                    syncTrigger(targetSelect, targetTrigger);
+                    closePortal();
+                    targetSelect.dispatchEvent(new Event('input', { bubbles: true }));
+                    targetSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                });
+
+                return btn;
+            }
+
+            function renderOptions(selectEl, filterText) {
+                optionsContainer.innerHTML = '';
+                const q = (filterText || '').trim().toLowerCase();
+                const currentVal = selectEl.value;
+                let renderedCount = 0;
+
+                Array.from(selectEl.children).forEach(child => {
+                    if (child.tagName === 'OPTGROUP') {
+                        if (child.hidden || child.style.display === 'none') return;
+                        const groupOpts = Array.from(child.children).filter(o => {
+                            if (o.tagName !== 'OPTION' || o.hidden || o.style.display === 'none') return false;
+                            if (!q) return true;
+                            return (o.textContent || '').toLowerCase().includes(q) || (child.label || '').toLowerCase().includes(q);
+                        });
+                        if (groupOpts.length === 0) return;
+                        const hdr = document.createElement('div');
+                        hdr.className = 'px-2.5 pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground select-none';
+                        hdr.textContent = child.label || '';
+                        optionsContainer.appendChild(hdr);
+                        groupOpts.forEach(opt => {
+                            optionsContainer.appendChild(buildOptionRow(opt, currentVal));
+                            renderedCount++;
+                        });
+                    } else if (child.tagName === 'OPTION') {
+                        if (child.hidden || child.style.display === 'none') return;
+                        if (q && !(child.textContent || '').toLowerCase().includes(q)) return;
+                        optionsContainer.appendChild(buildOptionRow(child, currentVal));
+                        renderedCount++;
+                    }
+                });
+
+                if (renderedCount === 0) {
+                    const empty = document.createElement('div');
+                    empty.className = 'px-3 py-4 text-center text-xs text-muted-foreground';
+                    empty.textContent = 'Tidak ada pilihan yang cocok.';
+                    optionsContainer.appendChild(empty);
+                }
+            }
+
+            function positionPortal() {
+                if (!portal || !activeTrigger || portal.style.display === 'none') return;
+                const rect = activeTrigger.getBoundingClientRect();
+                if (rect.width === 0 && rect.height === 0) {
+                    closePortal();
+                    return;
+                }
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                const menuWidth = Math.min(Math.max(rect.width, 190), vw - 16);
+                let left = rect.left;
+                if (left + menuWidth > vw - 8) {
+                    left = Math.max(8, vw - menuWidth - 8);
+                }
+                portal.style.width = menuWidth + 'px';
+                portal.style.left = left + 'px';
+
+                const spaceBelow = vh - rect.bottom - 10;
+                const spaceAbove = rect.top - 10;
+                const portalHeight = Math.min(portal.offsetHeight || 260, 310);
+
+                if (spaceBelow < portalHeight && spaceAbove > spaceBelow) {
+                    portal.style.top = 'auto';
+                    portal.style.bottom = (vh - rect.top + 6) + 'px';
+                } else {
+                    portal.style.bottom = 'auto';
+                    portal.style.top = (rect.bottom + 6) + 'px';
+                }
+            }
+
+            function openPortal(selectEl, triggerBtn) {
+                ensurePortal();
+                if (activeTrigger && activeTrigger !== triggerBtn) {
+                    const prevChev = activeTrigger.querySelector('.shadcn-select-chevron');
+                    if (prevChev) prevChev.classList.remove('rotate-180');
+                    activeTrigger.setAttribute('aria-expanded', 'false');
+                }
+                activeSelect = selectEl;
+                activeTrigger = triggerBtn;
+
+                const visibleOptsCount = Array.from(selectEl.options || []).filter(o => !o.hidden && o.style.display !== 'none').length;
+                if (visibleOptsCount >= 8) {
+                    searchWrap.style.display = 'flex';
+                    searchInput.value = '';
+                } else {
+                    searchWrap.style.display = 'none';
+                    searchInput.value = '';
+                }
+
+                renderOptions(selectEl, '');
+                portal.style.display = 'block';
+                positionPortal();
+
+                const chev = triggerBtn.querySelector('.shadcn-select-chevron');
+                if (chev) chev.classList.add('rotate-180');
+                triggerBtn.setAttribute('aria-expanded', 'true');
+
+                const selectedItem = optionsContainer.querySelector('.font-semibold');
+                if (selectedItem) {
+                    selectedItem.scrollIntoView({ block: 'nearest' });
+                }
+                if (visibleOptsCount >= 8) {
+                    setTimeout(() => searchInput && searchInput.focus(), 20);
+                }
+            }
+
+            function closePortal() {
+                if (portal) portal.style.display = 'none';
+                if (activeTrigger) {
+                    const chev = activeTrigger.querySelector('.shadcn-select-chevron');
+                    if (chev) chev.classList.remove('rotate-180');
+                    activeTrigger.setAttribute('aria-expanded', 'false');
+                }
+                activeSelect = null;
+                activeTrigger = null;
+            }
+
+            function enhanceSelect(selectEl) {
+                if (!selectEl || selectEl.dataset.shadcnSelect === '1' || selectEl.dataset.nativeSelect === '1') return;
+                if (selectEl.closest('template') || selectEl.multiple || (selectEl.size && selectEl.size > 1)) return;
+
+                selectEl.dataset.shadcnSelect = '1';
+                const isFull = selectEl.classList.contains('w-full') || (selectEl.parentElement && selectEl.parentElement.classList.contains('w-full'));
+                const isCompact = selectEl.classList.contains('h-9');
+                const isTall = selectEl.classList.contains('h-11');
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'shadcn-select-wrapper relative ' + (isFull ? 'w-full block' : 'inline-block min-w-[155px]');
+
+                const heightCls = isCompact ? 'h-9 py-1.5 text-xs sm:text-sm' : (isTall ? 'h-11 py-2.5 text-sm' : 'h-10 py-2 text-sm');
+                const triggerBtn = document.createElement('button');
+                triggerBtn.type = 'button';
+                triggerBtn.setAttribute('aria-haspopup', 'listbox');
+                triggerBtn.setAttribute('aria-expanded', 'false');
+                triggerBtn.className = `shadcn-select-trigger flex w-full items-center justify-between gap-2 rounded-lg border border-input bg-background px-3.5 ${heightCls} ring-offset-background transition-all hover:border-primary/40 hover:bg-accent/30 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm`;
+                triggerBtn.innerHTML = '<span class="shadcn-select-label truncate text-left"></span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="shadcn-select-chevron h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200"><path d="m6 9 6 6 6-6"/></svg>';
+
+                selectEl.parentNode.insertBefore(wrapper, selectEl);
+                wrapper.appendChild(selectEl);
+                wrapper.appendChild(triggerBtn);
+
+                selectEl.classList.add('shadcn-select-native');
+                selectEl.tabIndex = -1;
+
+                syncTrigger(selectEl, triggerBtn);
+                enhancedRegistry.add({ selectEl, triggerBtn });
+
+                triggerBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (selectEl.disabled) return;
+                    if (portal && portal.style.display !== 'none' && activeSelect === selectEl) {
+                        closePortal();
+                    } else {
+                        openPortal(selectEl, triggerBtn);
+                    }
+                });
+
+                const refreshFn = () => syncTrigger(selectEl, triggerBtn);
+                selectEl.addEventListener('change', refreshFn);
+                selectEl.addEventListener('input', refreshFn);
+                selectEl.addEventListener('shadcn:refresh', refreshFn);
+
+                const mo = new MutationObserver(refreshFn);
+                mo.observe(selectEl, { childList: true, subtree: true, attributes: true, attributeFilter: ['selected', 'disabled', 'value'] });
+            }
+
+            function scanAllSelects(root) {
+                (root || document).querySelectorAll('select').forEach(enhanceSelect);
+            }
+
+            function syncAllTriggers() {
+                enhancedRegistry.forEach(({ selectEl, triggerBtn }) => {
+                    if (document.body.contains(selectEl)) {
+                        syncTrigger(selectEl, triggerBtn);
+                    }
+                });
+            }
+
+            window.refreshShadcnSelects = syncAllTriggers;
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => scanAllSelects(document));
+            } else {
+                scanAllSelects(document);
+            }
+
+            const bodyObserver = new MutationObserver(mutations => {
+                for (const m of mutations) {
+                    for (const node of m.addedNodes) {
+                        if (node.nodeType === 1) {
+                            if (node.tagName === 'SELECT') enhanceSelect(node);
+                            else if (node.querySelectorAll) scanAllSelects(node);
+                        }
+                    }
+                }
+            });
+            bodyObserver.observe(document.body, { childList: true, subtree: true });
+
+            ['open-modal', 'open-edit-modal', 'open-bulk-edit-modal'].forEach(evName => {
+                window.addEventListener(evName, () => {
+                    setTimeout(syncAllTriggers, 30);
+                    setTimeout(syncAllTriggers, 120);
+                });
+            });
+            document.addEventListener('click', () => requestAnimationFrame(syncAllTriggers));
+        })();
     </script>
 </body>
 </html>

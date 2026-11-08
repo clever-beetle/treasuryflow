@@ -213,7 +213,35 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
+def _ensure_performance_indexes(cursor, db, is_pg=False):
+    index_ddl = [
+        "CREATE INDEX IF NOT EXISTS idx_tx_user_date ON transactions(user_id, date)",
+        "CREATE INDEX IF NOT EXISTS idx_tx_user_acc_type ON transactions(user_id, account_id, type)",
+        "CREATE INDEX IF NOT EXISTS idx_tx_user_type_date ON transactions(user_id, type, date)",
+        "CREATE INDEX IF NOT EXISTS idx_acc_user ON accounts(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_notif_user_id ON notifications(user_id, id)",
+        "CREATE INDEX IF NOT EXISTS idx_webauthn_user ON webauthn_credentials(user_id)",
+        "CREATE INDEX IF NOT EXISTS idx_webauthn_cred ON webauthn_credentials(credential_id)",
+    ]
+    for ddl in index_ddl:
+        try:
+            cursor.execute(ddl)
+            if is_pg:
+                db.commit()
+        except Exception:
+            try:
+                db.rollback()
+            except Exception:
+                pass
+    if not is_pg:
+        try:
+            db.commit()
+        except Exception:
+            pass
+
+
 def init_db(force=False):
+    global _db_bootstrapped
     with app.app_context():
         db = utils.get_db()
         cursor = db.cursor()
@@ -235,8 +263,14 @@ def init_db(force=False):
                 pass
         if not force:
             try:
-                # Fast cold-start path: if schema already exists, avoid 50+ DDL queries over network
+                # Fast cold-start path: if schema already exists, ensure indexes once & skip 50+ DDL queries
                 cursor.execute("SELECT 1 FROM transactions LIMIT 1")
+                _ensure_performance_indexes(cursor, db, is_pg=is_pg)
+                try:
+                    db.conn.autocommit = False
+                except Exception:
+                    pass
+                _db_bootstrapped = True
                 return
             except Exception:
                 try:
@@ -595,6 +629,8 @@ def init_db(force=False):
             pass
             
         db.commit()
+        _ensure_performance_indexes(cursor, db, is_pg=is_pg)
+        _db_bootstrapped = True
 
 @app.cli.command("init-db")
 def init_db_command():
@@ -602,8 +638,35 @@ def init_db_command():
     init_db(force=True)
     print("Initialized the database.")
 
-# Run init_db on module load (Vercel cold start)
-init_db()
+_db_bootstrapped = False
+_bootstrapped_db_key = None
+
+@app.before_request
+def _lazy_bootstrap_db():
+    global _db_bootstrapped, _bootstrapped_db_key
+    if request.path.startswith('/static/') or request.path in ('/sw.js', '/favicon.ico', '/robots.txt', '/sitemap.xml', '/api/version'):
+        return
+    current_key = utils.DATABASE_URL or utils.DATABASE
+    if not _db_bootstrapped or _bootstrapped_db_key != current_key:
+        try:
+            init_db()
+            _bootstrapped_db_key = current_key
+        except Exception as e:
+            logger.warning(f"Lazy DB bootstrap warning: {e}")
+
+from version import APP_VERSION, BUILD_SHA, get_version_info
+
+@app.route('/api/version')
+def api_version():
+    return jsonify(get_version_info())
+
+@app.context_processor
+def inject_app_version():
+    return dict(
+        app_version=APP_VERSION,
+        app_build=BUILD_SHA,
+        version_info=get_version_info(),
+    )
 
 from routes.auth import auth_bp
 from routes.dashboard import dashboard_bp
@@ -811,9 +874,16 @@ def inject_notifications():
     from utils import get_db
     if 'user_id' in session:
         try:
+            uid = session['user_id']
             db = get_db()
-            notifs = db.execute('SELECT * FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 5', (session['user_id'],)).fetchall()
-            unread_count = db.execute('SELECT COUNT(*) as c FROM notifications WHERE user_id = ? AND is_read = 0', (session['user_id'],)).fetchone()['c']
+            notifs = db.execute('''
+                SELECT id, user_id, message, is_read, created_at,
+                       (SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0) AS unread_total
+                FROM notifications
+                WHERE user_id = ?
+                ORDER BY id DESC LIMIT 5
+            ''', (uid, uid)).fetchall()
+            unread_count = int(notifs[0]['unread_total'] or 0) if notifs else 0
             return dict(notifications=notifs, unread_count=unread_count)
         except Exception:
             return dict(notifications=[], unread_count=0)

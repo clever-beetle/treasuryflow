@@ -486,7 +486,8 @@ def financial_performance():
     from routes.dashboard import recalculate_account_balances
     recalculate_account_balances(db, user_id)
 
-    accounts_data = db.execute("SELECT name, initial_balance, current_balance FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL)", (user_id,)).fetchall()
+    raw_accounts = db.execute("SELECT * FROM accounts WHERE user_id = ?", (user_id,)).fetchall()
+    accounts_data = [acc for acc in raw_accounts if (acc['account_type'] or 'asset') == 'asset']
     total_net_worth = sum((acc['current_balance'] or 0) for acc in accounts_data)
     theme_colors = ["#11237e", "#3f51b5", "#7986cb", "#9fa8da", "#c5cae9"]
     
@@ -505,10 +506,19 @@ def financial_performance():
                     'color': theme_colors[index % len(theme_colors)]
                 })
 
-    expense_custom_range = db.execute("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND COALESCE(category, '') != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
-    income_custom_range = db.execute("SELECT COALESCE(SUM(amount), 0) FROM transactions WHERE user_id = ? AND type = 'income' AND COALESCE(category, '') != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
-    max_expense = db.execute("SELECT COALESCE(MAX(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND COALESCE(category, '') != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
-    min_expense = db.execute("SELECT COALESCE(MIN(amount), 0) FROM transactions WHERE user_id = ? AND type = 'expense' AND COALESCE(category, '') != 'Transfer' AND date BETWEEN ? AND ?", (user_id, days_ago_str, today_str)).fetchone()[0]
+    range_stats = db.execute('''
+        SELECT
+            COALESCE(SUM(CASE WHEN type = 'expense' THEN amount ELSE 0 END), 0) AS exp_sum,
+            COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS inc_sum,
+            COALESCE(MAX(CASE WHEN type = 'expense' THEN amount END), 0) AS exp_max,
+            COALESCE(MIN(CASE WHEN type = 'expense' THEN amount END), 0) AS exp_min
+        FROM transactions
+        WHERE user_id = ? AND COALESCE(category, '') != 'Transfer' AND date BETWEEN ? AND ?
+    ''', (user_id, days_ago_str, today_str)).fetchone()
+    expense_custom_range = float(range_stats['exp_sum'] or 0)
+    income_custom_range = float(range_stats['inc_sum'] or 0)
+    max_expense = float(range_stats['exp_max'] or 0)
+    min_expense = float(range_stats['exp_min'] or 0)
 
     avg_expense_daily = expense_custom_range / days_range
     avg_income_daily = income_custom_range / days_range
@@ -518,7 +528,6 @@ def financial_performance():
     records_active = db.execute("SELECT * FROM debts_receivables WHERE user_id = ? AND status = 'BELUM LUNAS' ORDER BY due_date ASC", (user_id,)).fetchall()
     records_history = db.execute("SELECT * FROM debts_receivables WHERE user_id = ? AND status = 'LUNAS' ORDER BY due_date DESC", (user_id,)).fetchall()
     
-    raw_accounts = db.execute("SELECT * FROM accounts WHERE user_id = ?", (user_id,)).fetchall()
     clean_accounts = []
     liability_accounts = []
     for acc in raw_accounts:
