@@ -2,16 +2,23 @@
 {% block page_title %}Pengaturan{% endblock %}
 {% block content %}
 <div class="space-y-6 pb-16" x-data="{ activeTab: '{{ active_tab or 'profile' }}' }">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div class="space-y-0.5">
             <h2 class="text-2xl font-bold tracking-tight">Pengaturan</h2>
             <p class="text-muted-foreground">Kelola profil akun, keamanan biometrik, kategori transaksi, dan preferensi tampilan Anda.</p>
         </div>
         {% if app_version is defined %}
-        <span class="inline-flex items-center gap-1.5 self-start sm:self-auto rounded-full border border-border bg-muted/60 px-3 py-1 text-xs font-mono font-medium text-muted-foreground">
-            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-500"></i>
-            Treasury Flow v{{ app_version }} <span class="opacity-70">({{ app_build }})</span>
-        </span>
+        <button type="button" @click="activeTab = 'integrations'" title="Lihat detail versi aplikasi & pembaruan"
+                class="inline-flex items-center gap-2 self-start sm:self-auto rounded-full border border-emerald-500/25 bg-emerald-500/10 hover:bg-emerald-500/15 px-3.5 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 transition-colors shadow-sm">
+            <span class="relative flex h-2 w-2">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span class="font-semibold">v{{ app_version }}</span>
+            <span class="text-emerald-600/40 dark:text-emerald-400/40">&bull;</span>
+            <span>Rilis Terbaru</span>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 opacity-60"></i>
+        </button>
         {% endif %}
     </div>
     <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full my-6"></div>
@@ -202,6 +209,37 @@
                         </tbody>
                     </table>
                 </div>
+
+                {% if default_categories is defined %}
+                <div class="rounded-xl border border-border bg-card/60 p-5 shadow-sm space-y-4">
+                    <div>
+                        <h4 class="text-sm font-semibold text-foreground">Kategori Bawaan Sistem</h4>
+                        <p class="text-xs text-muted-foreground mt-0.5">Kategori utama sudah dipisahkan &amp; disusun rapi secara otomatis untuk Pemasukan dan Pengeluaran.</p>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                        <div class="space-y-2">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Pemasukan ({{ default_categories['income']|length }})
+                            </span>
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for cname in default_categories['income'] %}
+                                <span class="inline-flex items-center rounded-md border border-emerald-500/20 bg-emerald-500/5 px-2.5 py-1 text-xs font-medium text-foreground">{{ cname }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400">
+                                <span class="w-2 h-2 rounded-full bg-rose-500"></span> Pengeluaran ({{ default_categories['expense']|length }})
+                            </span>
+                            <div class="flex flex-wrap gap-1.5">
+                                {% for cname in default_categories['expense'] %}
+                                <span class="inline-flex items-center rounded-md border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground">{{ cname }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
 
             <!-- Appearance Tab -->
@@ -336,15 +374,37 @@
 
                     {% if version_info is defined %}
                     <div data-orientation="horizontal" role="none" class="shrink-0 bg-border h-[1px] w-full"></div>
-                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3">
-                        <div class="space-y-0.5">
-                            <p class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Versi Aplikasi &amp; Audit Rilis</p>
-                            <p class="text-sm font-semibold text-foreground">Treasury Flow v{{ version_info.version }} — <span class="text-primary font-normal">{{ version_info.codename }}</span></p>
-                            <p class="text-xs text-muted-foreground font-mono">Build: {{ version_info.build }} • Rilis: {{ version_info.release_date }}</p>
+                    <div class="rounded-xl border border-border bg-gradient-to-br from-muted/40 via-background to-muted/20 p-5 shadow-sm space-y-4">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div class="flex items-start sm:items-center gap-3.5">
+                                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary border border-primary/20">
+                                    <i data-lucide="sparkles" class="w-5 h-5"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <div class="flex flex-wrap items-center gap-2">
+                                        <span class="text-sm font-bold text-foreground">Treasury Flow</span>
+                                        <span class="inline-flex items-center rounded-full bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-semibold text-primary">v{{ version_info.version }}</span>
+                                        <span class="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Stabil
+                                        </span>
+                                    </div>
+                                    <p class="text-xs text-muted-foreground">Edisi {{ version_info.codename }}</p>
+                                </div>
+                            </div>
+                            <a href="/api/version" target="_blank" rel="noopener" class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-input bg-background px-3 py-2 text-xs font-medium hover:bg-accent hover:text-accent-foreground transition-colors shrink-0">
+                                <i data-lucide="file-json-2" class="w-3.5 h-3.5"></i> Detail Rilis
+                            </a>
                         </div>
-                        <a href="/api/version" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium hover:bg-accent hover:text-accent-foreground">
-                            <i data-lucide="code-2" class="w-3.5 h-3.5"></i> Cek JSON Audit
-                        </a>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3 border-t border-border/60 text-xs">
+                            <div class="flex items-center justify-between sm:justify-start sm:gap-2 text-muted-foreground">
+                                <span>Pembaruan Terakhir:</span>
+                                <span class="font-medium text-foreground">{{ version_info.release_date_id or version_info.release_date }}</span>
+                            </div>
+                            <div class="flex items-center justify-between sm:justify-end sm:gap-2 text-muted-foreground" title="Kode unik build deployment server (Git Commit ID)">
+                                <span>ID Deployment:</span>
+                                <span class="inline-flex items-center rounded-md bg-muted px-2 py-0.5 font-mono text-[11px] font-medium text-foreground border border-border">#{{ version_info.build }}</span>
+                            </div>
+                        </div>
                     </div>
                     {% endif %}
                 </div>

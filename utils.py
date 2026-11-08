@@ -37,6 +37,97 @@ CATEGORIES = {
                 'Hiburan', 'Kesehatan', 'Pendidikan', 'Cicilan & Utang', 'Lainnya (Pengeluaran)']
 }
 
+DEFAULT_OTHER_CATEGORIES = {
+    'income': 'Lainnya (Pemasukan)',
+    'expense': 'Lainnya (Pengeluaran)',
+}
+
+
+def normalize_category_list(items, cat_type='expense'):
+    """Deduplicate categories case-insensitively, sort A-Z, and keep 'Lainnya (...)' at the bottom."""
+    other_label = DEFAULT_OTHER_CATEGORIES.get(cat_type, 'Lainnya (Pengeluaran)')
+    seen = set()
+    regular = []
+    has_other = False
+    ignored_lower = {'transfer', 'transfer in', 'transfer out'}
+
+    for raw in (items or []):
+        name = ' '.join(str(raw or '').split())
+        if not name:
+            continue
+        low = name.lower()
+        if low in ignored_lower:
+            continue
+        if low in ('lainnya', 'lainnya (pemasukan)', 'lainnya (pengeluaran)'):
+            has_other = True
+            continue
+        if low in seen:
+            continue
+        seen.add(low)
+        regular.append(name)
+
+    regular.sort(key=lambda s: s.casefold())
+    if has_other or other_label:
+        regular.append(other_label)
+    return regular
+
+
+def get_user_categories(db, user_id):
+    """Return cleanly deduplicated & neatly ordered built-in and custom categories for a user."""
+    default_lower = {
+        k: {c.strip().lower() for c in v} | {'lainnya', 'transfer', 'transfer in', 'transfer out'}
+        for k, v in CATEGORIES.items()
+    }
+    raw_rows = db.execute(
+        'SELECT id, type, name FROM user_categories WHERE user_id = ? ORDER BY id ASC',
+        (user_id,)
+    ).fetchall()
+
+    custom_only = {'income': [], 'expense': []}
+    custom_seen = {'income': set(), 'expense': set()}
+    custom_rows = []
+
+    for r in raw_rows:
+        r_dict = dict(r)
+        t = r_dict.get('type')
+        if t not in ('income', 'expense'):
+            continue
+        clean_name = ' '.join(str(r_dict.get('name') or '').split())
+        if not clean_name:
+            continue
+        low = clean_name.lower()
+        # Skip legacy seeded copies of built-in defaults or bare 'Lainnya' duplicates
+        if low in default_lower[t] or low in custom_seen[t]:
+            continue
+        custom_seen[t].add(low)
+        custom_only[t].append(clean_name)
+        custom_rows.append({
+            'id': r_dict.get('id'),
+            'type': t,
+            'name': clean_name,
+        })
+
+    custom_only['income'].sort(key=lambda s: s.casefold())
+    custom_only['expense'].sort(key=lambda s: s.casefold())
+    custom_rows.sort(key=lambda r: (0 if r['type'] == 'income' else 1, r['name'].casefold()))
+
+    merged = {
+        'income': normalize_category_list(list(CATEGORIES['income']) + custom_only['income'], 'income'),
+        'expense': normalize_category_list(list(CATEGORIES['expense']) + custom_only['expense'], 'expense'),
+    }
+
+    defaults_clean = {
+        'income': normalize_category_list(CATEGORIES['income'], 'income'),
+        'expense': normalize_category_list(CATEGORIES['expense'], 'expense'),
+    }
+
+    return {
+        'merged': merged,
+        'custom': custom_only,
+        'custom_rows': custom_rows,
+        'defaults': defaults_clean,
+    }
+
 
 def wib_now():
     """Current time in WIB (UTC+7) as a naive datetime, independent of the server's local timezone."""

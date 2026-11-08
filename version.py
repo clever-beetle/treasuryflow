@@ -1,9 +1,35 @@
 import os
 import subprocess
 
-APP_VERSION = "2.8.1"
+APP_VERSION = "2.8.2"
 RELEASE_DATE = "2026-11-08"
-RELEASE_CODENAME = "Precision & Speed"
+RELEASE_CODENAME = "Category Hygiene & UI Polish"
+
+_BULAN_ID = (
+    "",
+    "Januari",
+    "Februari",
+    "Maret",
+    "April",
+    "Mei",
+    "Juni",
+    "Juli",
+    "Agustus",
+    "September",
+    "Oktober",
+    "November",
+    "Desember",
+)
+
+
+def _format_release_date_id(iso_date: str) -> str:
+    try:
+        y, m, d = [int(p) for p in str(iso_date)[:10].split("-")]
+        if 1 <= m <= 12:
+            return f"{d} {_BULAN_ID[m]} {y}"
+    except Exception:
+        pass
+    return iso_date
 
 
 def _detect_build_sha() -> str:
@@ -38,6 +64,7 @@ def get_version_info() -> dict:
         "version": APP_VERSION,
         "build": BUILD_SHA,
         "release_date": RELEASE_DATE,
+        "release_date_id": _format_release_date_id(RELEASE_DATE),
         "codename": RELEASE_CODENAME,
         "display": f"v{APP_VERSION}",
         "full_display": f"v{APP_VERSION} ({BUILD_SHA})",

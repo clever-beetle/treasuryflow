@@ -257,3 +257,58 @@ def test_smart_balance_recalculation_skips_clean_rows(client):
             WHERE user_id = ? AND ABS(COALESCE(current_balance, 0) - COALESCE(initial_balance, 0)) > 0.009
         ''', (uid,))
         assert cur.rowcount == 0
+
+
+def test_category_deduplication_ordering_and_aesthetic_version_ui(client):
+    import json
+    import re
+    from utils import CATEGORIES
+
+    uname, _ = _register_and_login(client)
+    with client.application.app_context():
+        db = get_db()
+        uid = db.execute("SELECT id FROM users WHERE username = ?", (uname,)).fetchone()['id']
+        # Simulate legacy seeded user_categories containing ALL built-in defaults + bare 'Lainnya' + custom
+        for c in CATEGORIES['income']:
+            db.execute("INSERT INTO user_categories (user_id, type, name) VALUES (?, 'income', ?)", (uid, c))
+        for c in CATEGORIES['expense']:
+            db.execute("INSERT INTO user_categories (user_id, type, name) VALUES (?, 'expense', ?)", (uid, c))
+        db.execute("INSERT INTO user_categories (user_id, type, name) VALUES (?, 'income', 'Lainnya')", (uid,))
+        db.execute("INSERT INTO user_categories (user_id, type, name) VALUES (?, 'expense', 'Lainnya')", (uid,))
+        db.execute("INSERT INTO user_categories (user_id, type, name) VALUES (?, 'income', 'Bonus Tahunan')", (uid,))
+        db.execute("INSERT INTO user_categories (user_id, type, name) VALUES (?, 'expense', 'Kopi & Camilan')", (uid,))
+        db.commit()
+
+    # Check /transactions/add deduplicates all built-ins + bare 'Lainnya' and places Lainnya LAST
+    add_res = client.get('/transactions/add')
+    assert add_res.status_code == 200
+    html = add_res.data.decode('utf-8')
+
+    inc_m = re.search(r'const INCOME_CATEGORIES = (\[.*?\]);', html)
+    exp_m = re.search(r'const EXPENSE_CATEGORIES = (\[.*?\]);', html)
+    assert inc_m and exp_m
+    inc_list = json.loads(inc_m.group(1))
+    exp_list = json.loads(exp_m.group(1))
+
+    assert len(inc_list) == len(CATEGORIES['income']) + 1
+    assert len(exp_list) == len(CATEGORIES['expense']) + 1
+    assert inc_list.count('Lainnya (Pemasukan)') == 1
+    assert exp_list.count('Lainnya (Pengeluaran)') == 1
+    assert 'Lainnya' not in inc_list
+    assert 'Lainnya' not in exp_list
+    assert inc_list[-1] == 'Lainnya (Pemasukan)'
+    assert exp_list[-1] == 'Lainnya (Pengeluaran)'
+    assert inc_list[:-1] == sorted(inc_list[:-1], key=str.casefold)
+    assert exp_list[:-1] == sorted(exp_list[:-1], key=str.casefold)
+    assert 'Bonus Tahunan' in inc_list[:-1]
+    assert 'Kopi & Camilan' in exp_list[:-1]
+
+    # Settings rejects adding bare 'Lainnya' and hides legacy default clones from custom table
+    rej = client.post('/settings', data={'action': 'add_category', 'type': 'expense', 'name': 'Lainnya'}, follow_redirects=True)
+    assert b'bawaan sistem' in rej.data
+
+    set_res = client.get('/settings?tab=categories')
+    set_html = set_res.data.decode('utf-8')
+    assert 'Rilis Terbaru' in set_html
+    assert 'Kategori Bawaan Sistem' in set_html
+    assert f"({client.get('/api/version').get_json()['build']})" not in set_html

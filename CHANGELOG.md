@@ -4,6 +4,18 @@ Seluruh perubahan penting, perbaikan bug, peningkatan keamanan, dan pembaruan an
 
 ---
 
+## [2.8.2] — 2026-11-08 — *Category Hygiene & UI Polish*
+
+### Perbaikan & Peningkatan Antarmuka
+- **Pembersihan Duplikasi Kategori & Pengurutan Rapi (`get_user_categories`)**:
+  - Menghilangkan duplikasi kategori bawaan (termasuk munculnya dua opsi `Lainnya (Pemasukan)` / `Lainnya (Pengeluaran)` maupun `Lainnya`) yang berasal dari baris warisan tabel `user_categories` pada halaman **Catat Transaksi**, **Edit Transaksi**, **Riwayat Transaksi**, **Dashboard**, dan **Pengaturan**.
+  - Menata urutan kategori secara alfabetis `A–Z` dengan kategori kustom tampil rapi sebelum opsi **`Lainnya (Pemasukan)` / `Lainnya (Pengeluaran)`** yang selalu ditempatkan di posisi paling akhir daftar.
+  - Mencegah penambahan kategori kustom bernama `Lainnya` atau `Transfer` serta memisahkan tampilan **Kategori Bawaan Sistem** dan **Kategori Kustom** pada halaman Pengaturan.
+- **Penyegaran Tampilan Badge Versi di Pengaturan (`settings.html` & `version.py`)**:
+  - Mengganti badge mentah `v2.8.x (commit_sha)` di bagian atas Pengaturan menjadi pil status modern **`v2.8.2 • Rilis Terbaru`** yang dapat diklik langsung menuju kartu **Tentang Aplikasi** di tab **Integrasi & Data**, lengkap dengan format tanggal Indonesia dan ID Deployment.
+
+---
+
 ## [2.8.1] — 2026-11-08 — *Post-Release Deep Audit & Dropdown Stability Hotfix*
 
 ### Perbaikan Bug & Stabilitas Antarmuka

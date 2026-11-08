@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, url_for, redirect, session, flash, Response, jsonify, send_file, make_response
-from utils import get_db, login_required, CATEGORIES, parse_amount, logger, wib_now, spreadsheet_safe
+from utils import get_db, login_required, CATEGORIES, get_user_categories, parse_amount, logger, wib_now, spreadsheet_safe
 from datetime import datetime
 import io
 import csv
@@ -210,12 +210,8 @@ def transactions_list():
         t_kind = tx['type'] if tx['type'] in ('income', 'expense') else 'expense'
         cal_tx_map[d_str][t_kind] += (tx['amount'] or 0)
     
-    user_cats_rows = db.execute('SELECT type, name FROM user_categories WHERE user_id = ?', (user_id,)).fetchall()
-    merged_categories = {k: list(v) for k, v in CATEGORIES.items()}
-    for uc in user_cats_rows:
-        t = uc['type']
-        if t in merged_categories and uc['name'] not in merged_categories[t]:
-            merged_categories[t].append(uc['name'])
+    cat_data = get_user_categories(db, user_id)
+    merged_categories = cat_data['merged']
 
     BULAN_ID = [
         '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -333,14 +329,14 @@ def add_transaction():
         return redirect(url_for('transactions.transactions_list'))
         
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
-    user_cats_rows = db.execute('SELECT type, name FROM user_categories WHERE user_id = ?', (user_id,)).fetchall()
-    custom_categories = {'income': [], 'expense': []}
-    for uc in user_cats_rows:
-        if uc['type'] in custom_categories:
-            custom_categories[uc['type']].append(uc['name'])
-
-    from datetime import timedelta, timezone
-    return render_template('add_transaction.html', accounts=accounts, categories=CATEGORIES, custom_categories=custom_categories, now=wib_now())
+    cat_data = get_user_categories(db, user_id)
+    return render_template(
+        'add_transaction.html',
+        accounts=accounts,
+        categories=cat_data['merged'],
+        custom_categories=cat_data['custom'],
+        now=wib_now(),
+    )
 
 @transactions_bp.route('/edit/<int:id>', methods=['GET', 'POST'])
 @login_required
@@ -454,13 +450,15 @@ def edit_transaction(id):
         return redirect(next_url)
         
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
-    user_cats_rows = db.execute('SELECT type, name FROM user_categories WHERE user_id = ?', (user_id,)).fetchall()
-    custom_categories = {'income': [], 'expense': []}
-    for uc in user_cats_rows:
-        if uc['type'] in custom_categories:
-            custom_categories[uc['type']].append(uc['name'])
-
-    return render_template('add_transaction.html', tx=tx, accounts=accounts, categories=CATEGORIES, custom_categories=custom_categories, now=wib_now())
+    cat_data = get_user_categories(db, user_id)
+    return render_template(
+        'add_transaction.html',
+        tx=tx,
+        accounts=accounts,
+        categories=cat_data['merged'],
+        custom_categories=cat_data['custom'],
+        now=wib_now(),
+    )
 
 @transactions_bp.route('/delete/<int:transaction_id>', methods=['POST'])
 @login_required

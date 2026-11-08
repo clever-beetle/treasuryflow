@@ -3,8 +3,24 @@
 {% block content %}
 {% set active_init_type = tx.type if tx else 'expense' %}
 {% set is_transfer_edit = (tx and tx.category == 'Transfer') %}
-{% set income_all = categories['income'] + (custom_categories['income'] if custom_categories and custom_categories['income'] else []) %}
-{% set expense_all = categories['expense'] + (custom_categories['expense'] if custom_categories and custom_categories['expense'] else []) %}
+{% set ns_inc = namespace(items=[], seen=[]) %}
+{% for c in (categories['income'] + (custom_categories['income'] if custom_categories and custom_categories['income'] else [])) %}
+    {% set low = (c|string)|trim|lower %}
+    {% if low and low not in ns_inc.seen and low not in ['lainnya', 'transfer', 'transfer in', 'transfer out'] %}
+        {% set _ = ns_inc.seen.append(low) %}
+        {% set _ = ns_inc.items.append((c|string)|trim) %}
+    {% endif %}
+{% endfor %}
+{% set ns_exp = namespace(items=[], seen=[]) %}
+{% for c in (categories['expense'] + (custom_categories['expense'] if custom_categories and custom_categories['expense'] else [])) %}
+    {% set low = (c|string)|trim|lower %}
+    {% if low and low not in ns_exp.seen and low not in ['lainnya', 'transfer', 'transfer in', 'transfer out'] %}
+        {% set _ = ns_exp.seen.append(low) %}
+        {% set _ = ns_exp.items.append((c|string)|trim) %}
+    {% endif %}
+{% endfor %}
+{% set income_all = ns_inc.items %}
+{% set expense_all = ns_exp.items %}
 
 <div class="max-w-2xl mx-auto space-y-6">
     <div class="space-y-1.5">
@@ -206,11 +222,38 @@
         if (!categorySelect) return;
 
         const baseList = type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
-        const list = Array.isArray(baseList) ? [...baseList] : [];
+        const otherLabel = type === 'income' ? 'Lainnya (Pemasukan)' : 'Lainnya (Pengeluaran)';
+        const seen = new Set();
+        const regular = [];
+        let hasOther = false;
 
-        if (INITIAL_TX_CATEGORY && INITIAL_TX_TYPE === type && !list.includes(INITIAL_TX_CATEGORY)) {
-            list.unshift(INITIAL_TX_CATEGORY);
+        (Array.isArray(baseList) ? baseList : []).forEach(raw => {
+            const name = String(raw || '').trim().replace(/\s+/g, ' ');
+            if (!name) return;
+            const low = name.toLowerCase();
+            if (low === 'transfer' || low === 'transfer in' || low === 'transfer out') return;
+            if (low === 'lainnya' || low === 'lainnya (pemasukan)' || low === 'lainnya (pengeluaran)') {
+                hasOther = true;
+                return;
+            }
+            if (!seen.has(low)) {
+                seen.add(low);
+                regular.push(name);
+            }
+        });
+
+        if (INITIAL_TX_CATEGORY && INITIAL_TX_TYPE === type) {
+            const initLow = INITIAL_TX_CATEGORY.trim().toLowerCase();
+            if (initLow === 'lainnya' || initLow === 'lainnya (pemasukan)' || initLow === 'lainnya (pengeluaran)') {
+                if (INITIAL_TX_CATEGORY !== otherLabel && !seen.has(initLow)) {
+                    regular.unshift(INITIAL_TX_CATEGORY);
+                }
+            } else if (initLow && !seen.has(initLow)) {
+                regular.unshift(INITIAL_TX_CATEGORY);
+            }
         }
+
+        const list = hasOther ? [...regular, otherLabel] : regular;
 
         if (categoryLabel) {
             categoryLabel.textContent = type === 'income' ? 'Kategori Pemasukan' : 'Kategori Pengeluaran';

@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, url_for, redirect, session, g, flash, Response, jsonify
-from utils import logger, get_db, login_required, format_rupiah, format_rupiah_input, CATEGORIES, wib_now
+from utils import logger, get_db, login_required, format_rupiah, format_rupiah_input, CATEGORIES, get_user_categories, wib_now
 from models import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -402,8 +402,7 @@ def dashboard():
                 a['days_until_due'] = None
             liability_accounts_info.append(a)
 
-    user_exp_cats = [r['name'] for r in db.execute("SELECT name FROM user_categories WHERE user_id = ? AND type = 'expense'", (user_id,)).fetchall()]
-    expense_categories = list(CATEGORIES.get('expense', [])) + [c for c in user_exp_cats if c not in CATEGORIES.get('expense', [])]
+    expense_categories = get_user_categories(db, user_id)['merged']['expense']
 
     return render_template('dashboard.html', ach=ach,
                            today_str=today_str,

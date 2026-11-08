@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, request, url_for, redirect, session, g, flash, Response, jsonify
-from utils import get_db, login_required, format_rupiah, format_rupiah_input, parse_amount, CATEGORIES
+from utils import get_db, login_required, format_rupiah, format_rupiah_input, parse_amount, CATEGORIES, get_user_categories
 from models import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
@@ -135,18 +135,24 @@ def settings():
 
         elif action == 'add_category':
             cat_type = request.form.get('type')
-            cat_name = (request.form.get('name') or '').strip()
+            cat_name = ' '.join((request.form.get('name') or '').split())
             if ',' in cat_name:
                 error = "Nama kategori tidak boleh mengandung tanda koma (,)."
             elif cat_type in ['income', 'expense'] and cat_name:
-                default_cats = [c.lower() for c in CATEGORIES.get(cat_type, [])] + ['transfer']
-                existing = db.execute("SELECT id FROM user_categories WHERE user_id = ? AND LOWER(name) = LOWER(?) AND type = ?", (user_id, cat_name, cat_type)).fetchone()
-                if existing or cat_name.lower() in default_cats:
-                    error = f"Kategori '{cat_name}' sudah ada."
+                low_name = cat_name.lower()
+                default_cats = {c.lower() for c in CATEGORIES.get(cat_type, [])}
+                if low_name in ('lainnya', 'lainnya (pemasukan)', 'lainnya (pengeluaran)') or low_name in default_cats:
+                    error = f"Kategori '{cat_name}' sudah ada sebagai kategori bawaan sistem."
+                elif low_name in ('transfer', 'transfer in', 'transfer out'):
+                    error = "Nama kategori 'Transfer' dicadangkan oleh sistem."
                 else:
-                    db.execute("INSERT INTO user_categories (user_id, name, type) VALUES (?, ?, ?)", (user_id, cat_name, cat_type))
-                    db.commit()
-                    message = f"Kategori '{cat_name}' berhasil ditambahkan."
+                    existing = db.execute("SELECT id FROM user_categories WHERE user_id = ? AND LOWER(name) = LOWER(?) AND type = ?", (user_id, cat_name, cat_type)).fetchone()
+                    if existing:
+                        error = f"Kategori '{cat_name}' sudah ada."
+                    else:
+                        db.execute("INSERT INTO user_categories (user_id, name, type) VALUES (?, ?, ?)", (user_id, cat_name, cat_type))
+                        db.commit()
+                        message = f"Kategori '{cat_name}' berhasil ditambahkan."
             else:
                 error = "Nama kategori dan jenis kategori wajib diisi."
 
@@ -158,12 +164,14 @@ def settings():
                     cat_name = row['name']
                     cat_type = row['type']
                     db.execute("DELETE FROM user_categories WHERE id = ? AND user_id = ?", (cat_id, user_id))
-                    fallback_cat = 'Lainnya (Pemasukan)' if cat_type == 'income' else 'Lainnya (Pengeluaran)'
-                    db.execute("UPDATE transactions SET category = ? WHERE user_id = ? AND LOWER(category) = LOWER(?) AND type = ?", (fallback_cat, user_id, cat_name, cat_type))
-                    try:
-                        db.execute("DELETE FROM budgets WHERE user_id = ? AND LOWER(category_name) = LOWER(?)", (user_id, cat_name))
-                    except Exception:
-                        pass
+                    builtin_lower = {c.lower() for c in CATEGORIES.get(cat_type, [])}
+                    if (cat_name or '').strip().lower() not in builtin_lower:
+                        fallback_cat = 'Lainnya (Pemasukan)' if cat_type == 'income' else 'Lainnya (Pengeluaran)'
+                        db.execute("UPDATE transactions SET category = ? WHERE user_id = ? AND LOWER(category) = LOWER(?) AND type = ?", (fallback_cat, user_id, cat_name, cat_type))
+                        try:
+                            db.execute("DELETE FROM budgets WHERE user_id = ? AND LOWER(category_name) = LOWER(?)", (user_id, cat_name))
+                        except Exception:
+                            pass
                     db.commit()
                     message = f"Kategori '{cat_name}' berhasil dihapus."
 
@@ -224,7 +232,9 @@ def settings():
 
         user = db.execute('SELECT fullname, username, email, password FROM users WHERE id = ?', (user_id,)).fetchone()
 
-    user_categories = db.execute("SELECT * FROM user_categories WHERE user_id = ?", (user_id,)).fetchall()
+    cat_data = get_user_categories(db, user_id)
+    user_categories = cat_data['custom_rows']
+    default_categories = cat_data['defaults']
     passkeys = []
     try:
         passkeys = db.execute(
@@ -243,7 +253,7 @@ def settings():
     except Exception:
         pass
     
-    return render_template('settings.html', user=user, error=error, message=message, user_categories=user_categories, auto_sync_enabled=auto_sync_enabled, active_tab=active_tab, passkeys=passkeys, passkey_count=len(passkeys))
+    return render_template('settings.html', user=user, error=error, message=message, user_categories=user_categories, default_categories=default_categories, auto_sync_enabled=auto_sync_enabled, active_tab=active_tab, passkeys=passkeys, passkey_count=len(passkeys))
 
 @settings_bp.route('/setup/accounts', methods=['GET', 'POST'])
 @login_required
