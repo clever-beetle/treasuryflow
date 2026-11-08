@@ -307,8 +307,13 @@ def test_category_deduplication_ordering_and_aesthetic_version_ui(client):
     rej = client.post('/settings', data={'action': 'add_category', 'type': 'expense', 'name': 'Lainnya'}, follow_redirects=True)
     assert b'bawaan sistem' in rej.data
 
-    set_res = client.get('/settings?tab=categories')
+    set_res = client.get('/settings?tab=version')
     set_html = set_res.data.decode('utf-8')
-    assert 'Rilis Terbaru' in set_html
+    build_sha = client.get('/api/version').get_json()['build']
+    assert 'Versi Aplikasi' in set_html
+    assert 'Riwayat Pembaruan' in set_html
     assert 'Kategori Bawaan Sistem' in set_html
-    assert f"({client.get('/api/version').get_json()['build']})" not in set_html
+    assert 'ID Deployment' not in set_html
+    assert 'Detail Rilis' not in set_html
+    assert f"({build_sha})" not in set_html
+    assert f"#{build_sha}" not in set_html

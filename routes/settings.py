@@ -18,7 +18,10 @@ def settings():
     user_id = session['user_id']
     error = None
     message = None
+    valid_tabs = {'profile', 'security', 'categories', 'appearance', 'integrations', 'version', 'danger'}
     active_tab = request.args.get('tab', 'profile')
+    if active_tab not in valid_tabs:
+        active_tab = 'profile'
     
     user = db.execute('SELECT fullname, username, email, password FROM users WHERE id = ?', (user_id,)).fetchone()
 

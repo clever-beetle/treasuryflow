@@ -4,6 +4,16 @@ Seluruh perubahan penting, perbaikan bug, peningkatan keamanan, dan pembaruan an
 
 ---
 
+## [2.8.3] — 2026-11-08 — *Versi Aplikasi & Penyempurnaan Pengaturan*
+
+### Peningkatan Antarmuka & Kebersihan Informasi
+- **Tab Khusus `Versi Aplikasi` (`settings.html` & `version.py`)**:
+  - Memindahkan informasi versi dari `Integrasi & Data` ke tab khusus **`Versi Aplikasi`** di menu **Pengaturan**, lengkap dengan bagian **Riwayat Pembaruan** berurutan (`v2.8.3`, `v2.8.2`, `v2.8.1`, `v2.8.0`) dalam bahasa yang mudah dibaca.
+  - Menampilkan logo resmi **Treasury Flow**, versi aktif, serta tanggal pembaruan tanpa detail teknis internal (`ID Deployment`, badge `Stabil`, maupun tombol `Detail Rilis` JSON mentah) sehingga tampilan jauh lebih bersih dan aman dari pengungkapan info teknis build.
+- **Validasi Tab Pengaturan (`routes/settings.py`)**: Menambahkan whitelist parameter `?tab=` untuk memastikan perpindahan tab berjalan aman dan konsisten.
+
+---
+
 ## [2.8.2] — 2026-11-08 — *Category Hygiene & UI Polish*
 
 ### Perbaikan & Peningkatan Antarmuka

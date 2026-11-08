@@ -1,9 +1,9 @@
 import os
 import subprocess
 
-APP_VERSION = "2.8.2"
+APP_VERSION = "2.8.3"
 RELEASE_DATE = "2026-11-08"
-RELEASE_CODENAME = "Category Hygiene & UI Polish"
+RELEASE_CODENAME = "Versi Aplikasi & Penyempurnaan Pengaturan"
 
 _BULAN_ID = (
     "",
@@ -20,6 +20,49 @@ _BULAN_ID = (
     "November",
     "Desember",
 )
+
+RELEASE_HISTORY = [
+    {
+        "version": "2.8.3",
+        "date_id": "8 November 2026",
+        "title": "Tab Khusus Versi Aplikasi",
+        "highlights": [
+            "Menambahkan menu khusus Versi Aplikasi di Pengaturan untuk melihat info versi dan riwayat pembaruan.",
+            "Menyederhanakan tampilan informasi versi agar lebih bersih, ringkas, dan bebas dari kode teknis.",
+            "Menampilkan logo resmi Treasury Flow dengan tata letak kartu informasi yang lebih rapi.",
+        ],
+    },
+    {
+        "version": "2.8.2",
+        "date_id": "8 November 2026",
+        "title": "Kerapian Kategori Transaksi",
+        "highlights": [
+            "Menghilangkan duplikasi kategori 'Lainnya' pada menu Pemasukan dan Pengeluaran.",
+            "Mengurutkan daftar kategori secara alfabetis (A-Z) dengan pilihan 'Lainnya' selalu di posisi paling bawah.",
+            "Memisahkan tampilan Kategori Bawaan Sistem dan Kategori Kustom di halaman Pengaturan.",
+        ],
+    },
+    {
+        "version": "2.8.1",
+        "date_id": "8 November 2026",
+        "title": "Stabilitas Dropdown & Kalender Finansial",
+        "highlights": [
+            "Memperbaiki dropdown kategori pengeluaran agar tidak menutup sendiri pada layar HP.",
+            "Menjaga popup modal tetap terbuka saat memilih opsi dropdown di dalamnya.",
+            "Merapikan validasi Split Bill saat berganti jenis transaksi serta tautan agenda di Kalender Finansial.",
+        ],
+    },
+    {
+        "version": "2.8.0",
+        "date_id": "8 November 2026",
+        "title": "Kecepatan Aplikasi & Keamanan Biometrik",
+        "highlights": [
+            "Mempercepat respons muat halaman dan transaksi melalui optimasi koneksi database.",
+            "Memperbaiki penyimpanan dan login Biometrik / Passkey agar persisten di server.",
+            "Memisahkan kategori Pemasukan dan Pengeluaran serta menyelaraskan tema terang dan gelap.",
+        ],
+    },
+]
 
 
 def _format_release_date_id(iso_date: str) -> str:
@@ -68,4 +111,5 @@ def get_version_info() -> dict:
         "codename": RELEASE_CODENAME,
         "display": f"v{APP_VERSION}",
         "full_display": f"v{APP_VERSION} ({BUILD_SHA})",
+        "history": RELEASE_HISTORY,
     }
