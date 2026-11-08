@@ -3,7 +3,7 @@ from utils import get_db, login_required, format_rupiah, format_rupiah_input, pa
 from models import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
-import secrets, smtplib, json, csv, os
+import math, secrets, smtplib, json, csv, os
 from io import StringIO
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -576,11 +576,112 @@ def financial_performance():
             'color': asset_colors[idx % len(asset_colors)]
         })
 
-    goals_list = db.execute('''
+    goals_raw = db.execute('''
         SELECT id, name, target_amount, current_amount, due_date, status,
                COALESCE((current_amount / NULLIF(target_amount, 0) * 100), 0) as percentage
         FROM financial_goals WHERE user_id = ? ORDER BY status DESC, due_date ASC
     ''', (user_id,)).fetchall()
+
+    _bulan_short_id = ('', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des')
+    goals_list = []
+    goals_total_target = 0.0
+    goals_total_saved = 0.0
+    goals_total_shortfall = 0.0
+    goals_achieved_count = 0
+    goals_active_count = 0
+
+    for g_row in goals_raw:
+        gd = dict(g_row)
+        target_amt = max(0.0, float(gd.get('target_amount') or 0))
+        current_amt = max(0.0, float(gd.get('current_amount') or 0))
+        shortfall = max(0.0, target_amt - current_amt)
+        shortfall_int = int(math.ceil(shortfall))
+        surplus = max(0.0, current_amt - target_amt)
+        raw_pct = (current_amt / target_amt * 100.0) if target_amt > 0 else 0.0
+        clamped_pct = min(100.0, max(0.0, raw_pct))
+        is_achieved = (gd.get('status') == 'Achieved') or (target_amt > 0 and current_amt >= target_amt)
+
+        goals_total_target += target_amt
+        goals_total_saved += min(current_amt, target_amt) if is_achieved else current_amt
+        if is_achieved:
+            goals_achieved_count += 1
+        else:
+            goals_active_count += 1
+            goals_total_shortfall += shortfall
+
+        due_str = str(gd.get('due_date') or '').strip()[:10]
+        due_date_id = due_str or 'Tanpa Tenggat'
+        days_left = None
+        if due_str:
+            try:
+                due_dt = datetime.strptime(due_str, '%Y-%m-%d').date()
+                days_left = (due_dt - today).days
+                due_date_id = f"{due_dt.day} {_bulan_short_id[due_dt.month]} {due_dt.year}"
+            except ValueError:
+                days_left = None
+
+        daily_needed = None
+        weekly_needed = None
+        monthly_needed = None
+        overdue_days = 0
+        if is_achieved or shortfall <= 0:
+            deadline_state = 'achieved'
+            deadline_label = 'Tercapai'
+        elif days_left is None:
+            deadline_state = 'no_date'
+            deadline_label = 'Belum Ada Tenggat'
+        elif days_left < 0:
+            deadline_state = 'overdue'
+            overdue_days = abs(days_left)
+            deadline_label = f'Terlewat {overdue_days} hari'
+        elif days_left == 0:
+            deadline_state = 'today'
+            deadline_label = 'Tenggat Hari Ini'
+        else:
+            deadline_state = 'active'
+            deadline_label = 'Besok (1 hari lagi)' if days_left == 1 else f'Sisa {days_left} hari'
+            daily_needed = max(1, int(math.ceil(shortfall / days_left)))
+            if days_left >= 7:
+                weekly_needed = min(shortfall_int, max(1, int(math.ceil(shortfall * 7.0 / days_left))))
+            if days_left >= 30:
+                monthly_needed = min(shortfall_int, max(1, int(math.ceil(shortfall * 30.0 / days_left))))
+
+        def _fmt_ribuan(val):
+            return f"{int(val):,}".replace(',', '.') if val is not None else ''
+
+        gd.update({
+            'target_amount': target_amt,
+            'current_amount': current_amt,
+            'percentage': raw_pct,
+            'percentage_clamped': clamped_pct,
+            'shortfall': shortfall,
+            'shortfall_int': shortfall_int,
+            'shortfall_fmt': _fmt_ribuan(shortfall_int),
+            'surplus': surplus,
+            'is_achieved': is_achieved,
+            'due_date_id': due_date_id,
+            'days_left': days_left,
+            'overdue_days': overdue_days,
+            'deadline_state': deadline_state,
+            'deadline_label': deadline_label,
+            'daily_needed': daily_needed,
+            'daily_fmt': _fmt_ribuan(daily_needed),
+            'weekly_needed': weekly_needed,
+            'weekly_fmt': _fmt_ribuan(weekly_needed),
+            'monthly_needed': monthly_needed,
+            'monthly_fmt': _fmt_ribuan(monthly_needed),
+        })
+        goals_list.append(gd)
+
+    goals_summary = {
+        'total_target': goals_total_target,
+        'total_saved': goals_total_saved,
+        'total_shortfall': goals_total_shortfall,
+        'total_count': len(goals_list),
+        'active_count': goals_active_count,
+        'achieved_count': goals_achieved_count,
+        'overall_pct': min(100.0, (goals_total_saved / goals_total_target * 100.0)) if goals_total_target > 0 else 0.0,
+    }
 
     savings_rate = 0
     if income_custom_range > 0:
@@ -682,6 +783,16 @@ def financial_performance():
         'labels': [c[0] for c in sorted_cats],
         'data': [float(c[1]) for c in sorted_cats]
     }
+    donut_palette = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#10b981', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e']
+    analytics_top_categories = []
+    for idx, (cname, camount) in enumerate(sorted_cats[:5]):
+        share_pct = (float(camount) / analytics_total_expense * 100.0) if analytics_total_expense > 0 else 0.0
+        analytics_top_categories.append({
+            'name': cname or 'Lainnya',
+            'amount': float(camount),
+            'pct': round(share_pct, 1),
+            'color': donut_palette[idx % len(donut_palette)],
+        })
     
     analytics_insights = []
     if analytics_total_income > 0:
@@ -712,7 +823,8 @@ def financial_performance():
                            max_expense=max_expense, min_expense=min_expense, days_range=days_range,
                            distribution_list=distribution_list, records_active=records_active, records_history=records_history, 
                            accounts=clean_accounts, liability_accounts=liability_accounts, installments=installments, installments_completed=installments_completed,
-                           assets_list=assets_list, total_asset_value=total_asset_value, asset_allocation_breakdown=asset_allocation_breakdown, goals_list=goals_list,
+                           assets_list=assets_list, total_asset_value=total_asset_value, asset_allocation_breakdown=asset_allocation_breakdown,
+                           goals_list=goals_list, goals_summary=goals_summary,
                            savings_rate=savings_rate, smart_insight=smart_insight, insight_type=insight_type,
                            credit_cards=credit_cards, net_worth=net_worth, total_saldo=total_saldo,
                            total_debt=total_debt, total_cc_usage=total_cc_usage, total_cc_limit=total_cc_limit,
@@ -720,7 +832,8 @@ def financial_performance():
                            analytics_period=period, analytics_total_income=analytics_total_income,
                            analytics_total_expense=analytics_total_expense, analytics_net_flow=analytics_net_flow,
                            analytics_savings_rate=analytics_savings_rate, analytics_time_series=analytics_time_series,
-                           analytics_donut=analytics_donut, analytics_insights=analytics_insights)
+                           analytics_donut=analytics_donut, analytics_top_categories=analytics_top_categories,
+                           analytics_insights=analytics_insights)
 
 @performance_bp.route('/manage_budget', methods=['POST'])
 @login_required

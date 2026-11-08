@@ -4,6 +4,20 @@ Seluruh perubahan penting, perbaikan bug, peningkatan keamanan, dan pembaruan an
 
 ---
 
+## [2.8.4] — 2026-11-09 — *Performa Keuangan Redesign & Tips Target Finansial*
+
+### Peningkatan Antarmuka & Fitur Target Finansial
+- **Desain Ulang Tab `Analytics`, `Arus Kas`, & Navigasi Performa Keuangan (`templates/financial_performance.html` & `routes/performance.py`)**:
+  - Merapikan bagian header, kartu Net Worth Hero, serta pill tab navigasi 1 baris responsif (`overflow-x-auto`) agar tidak menumpuk di layar HP.
+  - Memperbaiki atribut `x-cloak` yang sebelumnya hilang pada tab **Arus Kas** sehingga konten tidak berkedip saat halaman dimuat, serta memicu `.resize()` otomatis pada Chart.js saat berpindah tab.
+  - Menyusun ulang tab **Analytics** dengan ringkasan Top 5 Kategori Pengeluaran bertingkat warna, kartu KPI selaras, serta perbaikan kontras ikon dompet di Dark Mode (`templates/macros.html`).
+- **Tips Menabung Otomatis & Info Kekurangan Target (`Target Finansial`)**:
+  - Menampilkan ringkasan agregat seluruh target (`Total Target`, `Sudah Terkumpul`, `Total Kekurangan`, `Status Target`) serta nilai **`Kurang Lagi`** secara jelas di setiap kartu target.
+  - Menghitung rekomendasi menabung **Per Hari**, **Per Minggu**, dan **Per Bulan** secara langsung dari sisa kekurangan dana dan tanggal tenggat target (beserta penanganan kondisi tenggat hari ini, terlewat, tanpa tanggal, dan sudah tercapai).
+  - Menambahkan tombol klik-langsung pada kartu Tips Menabung dan pil **Pilih Cepat Rekomendasi** di dalam modal *Tambah Dana* (`savingModal`) agar pengguna bisa mengisi nominal tabungan dalam 1 klik.
+
+---
+
 ## [2.8.3] — 2026-11-08 — *Versi Aplikasi & Penyempurnaan Pengaturan*
 
 ### Peningkatan Antarmuka & Kebersihan Informasi

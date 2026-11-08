@@ -317,3 +317,113 @@ def test_category_deduplication_ordering_and_aesthetic_version_ui(client):
     assert 'Detail Rilis' not in set_html
     assert f"({build_sha})" not in set_html
     assert f"#{build_sha}" not in set_html
+
+
+def test_financial_performance_redesign_and_goal_saving_tips(client):
+    from datetime import timedelta
+    from utils import wib_now
+
+    uname, _ = _register_and_login(client)
+    today = wib_now().date()
+
+    client.post('/setup/accounts', data={
+        'action': 'add',
+        'category_key': 'BANK',
+        'name_detail': 'BCA',
+        'initial_balance': '5.000.000',
+    }, follow_redirects=True)
+
+    with client.application.app_context():
+        db = get_db()
+        uid = db.execute("SELECT id FROM users WHERE username = ?", (uname,)).fetchone()['id']
+        acc_id = db.execute("SELECT id FROM accounts WHERE user_id = ? LIMIT 1", (uid,)).fetchone()['id']
+
+        # Record a sample expense so Rincian Pengeluaran (top categories) renders
+        db.execute(
+            "INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) VALUES (?, ?, ?, 'expense', 250000, 'Makan Malam', 'Makanan & Minuman')",
+            (uid, today.strftime('%Y-%m-%d'), acc_id),
+        )
+
+        # 1. Active 60-day goal: Target 12.000.000, Current 3.000.000 -> Shortfall 9.000.000
+        # Daily = 150.000, Weekly = 1.050.000, Monthly = 4.500.000
+        d60 = (today + timedelta(days=60)).strftime('%Y-%m-%d')
+        db.execute(
+            "INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status) VALUES (?, ?, ?, ?, ?, 'In Progress')",
+            (uid, 'Dana Nikah', 12000000, 3000000, d60),
+        )
+
+        # 2. Short 5-day goal: Target 1.000.000, Current 500.000 -> Daily = 100.000, no weekly/monthly
+        d5 = (today + timedelta(days=5)).strftime('%Y-%m-%d')
+        db.execute(
+            "INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status) VALUES (?, ?, ?, ?, ?, 'In Progress')",
+            (uid, 'Service Motor', 1000000, 500000, d5),
+        )
+
+        # 3. Due today goal
+        d0 = today.strftime('%Y-%m-%d')
+        db.execute(
+            "INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status) VALUES (?, ?, ?, ?, ?, 'In Progress')",
+            (uid, 'Bayar Kursus', 800000, 200000, d0),
+        )
+
+        # 4. Overdue goal (-4 days)
+        d_over = (today - timedelta(days=4)).strftime('%Y-%m-%d')
+        db.execute(
+            "INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status) VALUES (?, ?, ?, ?, ?, 'In Progress')",
+            (uid, 'Beli Monitor', 2500000, 1000000, d_over),
+        )
+
+        # 5. Achieved goal with 300.000 surplus
+        d_future = (today + timedelta(days=90)).strftime('%Y-%m-%d')
+        db.execute(
+            "INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status) VALUES (?, ?, ?, ?, ?, 'Achieved')",
+            (uid, 'Sepeda Lipat', 2000000, 2300000, d_future),
+        )
+        db.commit()
+
+    # Check default Analytics tab & x-cloak on Cashflow tab
+    res_analytics = client.get('/financial_performance')
+    assert res_analytics.status_code == 200
+    html_a = res_analytics.data.decode('utf-8')
+    assert 'x-show="activeTab === \'cashflow\'"' in html_a
+    # Ensure cashflow panel carries x-cloak
+    cf_tag = html_a.split('x-show="activeTab === \'cashflow\'"')[1].split('>')[0]
+    assert 'x-cloak' in cf_tag
+    assert 'Makanan &amp; Minuman' in html_a or 'Makanan & Minuman' in html_a
+    assert 'Rp 250.000' in html_a
+
+    # Check Goals tab: shortfall, saving tips, deadline states, quick-fill hooks
+    res_goals = client.get('/financial_performance?tab=goals')
+    assert res_goals.status_code == 200
+    html_g = res_goals.data.decode('utf-8')
+    assert "activeTab: 'goals'" in html_g
+    assert 'Proyeksi Pencapaian Target' in html_g
+    assert 'Kurang Lagi' in html_g
+    assert 'openGoalSavingModal' in html_g
+    assert 'fillSavingAmount' in html_g
+
+    # Goal 1: 9.000.000 shortfall -> 150.000/hari, 1.050.000/minggu, 4.500.000/bulan
+    assert 'Sisa 60 hari' in html_g
+    assert 'Rp 9.000.000' in html_g
+    assert 'Rp 150.000' in html_g
+    assert 'Rp 1.050.000' in html_g
+    assert 'Rp 4.500.000' in html_g
+
+    # Goal 2: 5-day goal hides weekly/monthly cleanly
+    assert 'Sisa 5 hari' in html_g
+    assert 'Rp 100.000' in html_g
+    assert 'Tenggat &lt; 7 hari' in html_g
+    assert 'Tenggat &lt; 30 hari' in html_g
+
+    # Goal 3: Today
+    assert 'Tenggat Hari Ini!' in html_g
+    assert 'Rp 600.000' in html_g
+
+    # Goal 4: Overdue
+    assert 'Terlewat 4 hari' in html_g
+    assert 'Perbarui Tanggal' in html_g
+
+    # Goal 5: Achieved with surplus
+    assert 'Target Tercapai 100%!' in html_g
+    assert 'Rp 300.000' in html_g
+

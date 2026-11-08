@@ -1,9 +1,9 @@
 import os
 import subprocess
 
-APP_VERSION = "2.8.3"
-RELEASE_DATE = "2026-11-08"
-RELEASE_CODENAME = "Versi Aplikasi & Penyempurnaan Pengaturan"
+APP_VERSION = "2.8.4"
+RELEASE_DATE = "2026-11-09"
+RELEASE_CODENAME = "Performa Keuangan Redesign & Tips Target Finansial"
 
 _BULAN_ID = (
     "",
@@ -22,6 +22,16 @@ _BULAN_ID = (
 )
 
 RELEASE_HISTORY = [
+    {
+        "version": "2.8.4",
+        "date_id": "9 November 2026",
+        "title": "Penyegaran Performa Keuangan & Tips Target Tabungan",
+        "highlights": [
+            "Merapikan tata letak Analytics, Arus Kas, dan navigasi tab Performa Keuangan di layar HP maupun desktop serta memperbaiki kedipan awal tab Arus Kas.",
+            "Menampilkan sisa kekurangan dana (Kurang Lagi) secara jelas pada setiap target finansial serta ringkasan seluruh target.",
+            "Menghadirkan kalkulasi Tips Menabung otomatis (Per Hari, Per Minggu, Per Bulan) sesuai nominal kekurangan dan tanggal tenggat dengan pengisian cepat ke Tambah Dana.",
+        ],
+    },
     {
         "version": "2.8.3",
         "date_id": "8 November 2026",

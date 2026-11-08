@@ -3,48 +3,79 @@
 {% block page_title %}Performa Keuangan{% endblock %}
 
 {% block content %}
-<div x-data="{ activeTab: '{{ active_tab|default('analytics') }}' }">
-        <div class="space-y-6">
-            
-            <!-- NEW: Net Worth Hero Card -->
-            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-900 to-indigo-900 dark:from-indigo-950 dark:to-slate-900 text-white shadow-xl p-6 md:p-8">
+<style>
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+</style>
+<div x-data="{ activeTab: '{{ active_tab|default('analytics') }}' }"
+     x-init="$watch('activeTab', () => { requestAnimationFrame(() => { if (window._perfTimeSeriesChart) window._perfTimeSeriesChart.resize(); if (window._perfCashflowTabChart) window._perfCashflowTabChart.resize(); if (window._perfDonutChart) window._perfDonutChart.resize(); if (window.lucide) window.lucide.createIcons(); }); })">
+        <div class="space-y-6 pb-12">
 
-                <div class="absolute top-0 right-0 p-8 opacity-10">
-                    <i data-lucide="diamond" class="w-32 h-32"></i>
+            <!-- Page Header & Period Controls -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold tracking-tight text-foreground">Performa Keuangan</h2>
+                    <p class="text-sm text-muted-foreground mt-0.5">Pantau kekayaan bersih, arus kas, aset, kewajiban, dan rencana target tabungan Anda.</p>
                 </div>
-                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-                    <div>
-                        <p class="text-blue-200 font-medium tracking-wide text-sm md:text-base uppercase mb-1">Total Net Worth (Kekayaan Bersih)</p>
-                        <h2 class="text-4xl md:text-5xl font-bold mb-2">{{ net_worth | rupiah }}</h2>
-                        <div class="flex flex-wrap items-center gap-4 text-sm text-blue-100">
-                            <div class="flex items-center gap-1">
-                                <i data-lucide="piggy-bank" class="w-4 h-4"></i> Saldo: {{ total_saldo | rupiah }}
+                <form method="GET" class="flex items-center gap-2 self-start sm:self-auto">
+                    <input type="hidden" name="tab" :value="activeTab">
+                    <div class="relative flex items-center">
+                        <i data-lucide="calendar-range" class="w-4 h-4 text-muted-foreground absolute left-3 pointer-events-none"></i>
+                        <select name="days" class="h-10 pl-9 pr-4 py-2 text-sm font-medium rounded-lg border border-input bg-background text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring" onchange="this.form.submit()">
+                            <option value="3" {% if days_range == 3 %}selected{% endif %}>3 Hari Terakhir</option>
+                            <option value="7" {% if days_range == 7 %}selected{% endif %}>7 Hari Terakhir</option>
+                            <option value="30" {% if days_range == 30 %}selected{% endif %}>30 Hari Terakhir</option>
+                            <option value="90" {% if days_range == 90 %}selected{% endif %}>3 Bulan Terakhir</option>
+                            <option value="180" {% if days_range == 180 %}selected{% endif %}>6 Bulan Terakhir</option>
+                            <option value="365" {% if days_range == 365 %}selected{% endif %}>1 Tahun Terakhir</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Net Worth Hero Card -->
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-[#11237e] to-indigo-950 border border-indigo-900/60 text-white shadow-xl p-6 md:p-7">
+                <div class="pointer-events-none absolute -top-12 -right-12 w-56 h-56 rounded-full bg-indigo-400/10 blur-2xl"></div>
+                <div class="pointer-events-none absolute -bottom-16 left-1/3 w-48 h-48 rounded-full bg-blue-400/10 blur-2xl"></div>
+
+                <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div class="space-y-4">
+                        <div>
+                            <p class="text-blue-200/90 font-semibold tracking-wider text-xs uppercase mb-1">Total Kekayaan Bersih (Net Worth)</p>
+                            <h3 class="text-3xl sm:text-4xl md:text-5xl font-bold tracking-tight tabular-nums">{{ net_worth | rupiah }}</h3>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2.5 text-xs sm:text-sm">
+                            <div class="inline-flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/15 px-3 py-1.5 text-blue-50">
+                                <i data-lucide="piggy-bank" class="w-4 h-4 text-emerald-300"></i>
+                                <span class="font-semibold text-blue-100 tabular-nums">Saldo: {{ total_saldo | rupiah }}</span>
                             </div>
-                            <div class="flex items-center gap-1">
-                                <i data-lucide="building" class="w-4 h-4"></i> Aset: {{ total_asset_value | rupiah }}
+                            <div class="inline-flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/15 px-3 py-1.5 text-blue-50">
+                                <i data-lucide="building" class="w-4 h-4 text-indigo-300"></i>
+                                <span class="font-semibold text-blue-100 tabular-nums">Aset: {{ total_asset_value | rupiah }}</span>
                             </div>
-                            <div class="flex items-center gap-1 text-red-300">
-                                <i data-lucide="trending-down" class="w-4 h-4"></i> Beban: {{ total_debt | rupiah }}
+                            <div class="inline-flex items-center gap-1.5 rounded-lg bg-white/10 border border-white/15 px-3 py-1.5 text-rose-100">
+                                <i data-lucide="trending-down" class="w-4 h-4 text-rose-300"></i>
+                                <span class="font-semibold text-rose-100 tabular-nums">Beban: {{ total_debt | rupiah }}</span>
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- NEW: Financial Health AI Insights Box -->
-                    <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 md:max-w-xs shadow-inner">
+
+                    <!-- Unified Financial Health Insights Box -->
+                    <div class="bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-4 lg:max-w-sm shadow-inner shrink-0">
                         <div class="flex items-start gap-3">
-                            <div class="p-2 bg-blue-500/20 rounded-lg">
+                            <div class="p-2 bg-white/15 rounded-lg shrink-0">
                                 <i data-lucide="brain-circuit" class="w-5 h-5 text-blue-200"></i>
                             </div>
-                            <div>
-                                <p class="text-sm font-semibold text-white mb-1">AI Financial Insights</p>
-                                {% if total_cc_usage > (total_cc_limit * 0.4) %}
-                                <p class="text-xs text-blue-100">Penggunaan Kartu Kredit cukup tinggi (>40%). Pertimbangkan untuk segera melunasi agar terhindar dari bunga besar.</p>
+                            <div class="space-y-1">
+                                <p class="text-sm font-semibold text-white">Ringkasan Kesehatan Finansial</p>
+                                {% if total_cc_limit > 0 and total_cc_usage > (total_cc_limit * 0.4) %}
+                                <p class="text-xs leading-relaxed text-blue-100">Penggunaan limit kartu/kewajiban cukup tinggi (&gt;40%). Prioritaskan pelunasan agar terhindar dari bunga berlebih.</p>
                                 {% elif net_worth < 0 %}
-                                <p class="text-xs text-red-200">Total beban Anda melebihi jumlah saldo dan aset. Fokus pada pelunasan utang berbunga tinggi terlebih dahulu.</p>
-                                {% elif total_annual_subscriptions > (total_saldo * 0.1) and total_saldo > 0 %}
-                                <p class="text-xs text-yellow-200">Biaya langganan tahunan ({{ total_annual_subscriptions | rupiah }}) mengambil porsi besar dari dana liquid Anda. Cek kembali layanan yang jarang dipakai.</p>
+                                <p class="text-xs leading-relaxed text-rose-100">Total beban saat ini melebihi saldo dan aset. Fokuskan arus kas untuk melunasi kewajiban prioritas.</p>
+                                {% elif total_saldo > 0 and total_annual_subscriptions > (total_saldo * 0.1) %}
+                                <p class="text-xs leading-relaxed text-amber-100">Komitmen langganan &amp; cicilan tahunan ({{ total_annual_subscriptions | rupiah }}) cukup besar dibanding saldo likuid Anda.</p>
                                 {% else %}
-                                <p class="text-xs text-blue-100">Kondisi finansial Anda relatif sehat. Pertahankan rasio tabungan dan investasi untuk mencapai target lebih cepat!</p>
+                                <p class="text-xs leading-relaxed text-blue-100">Struktur kekayaan Anda dalam kondisi sehat. Pertahankan konsistensi menabung untuk mengejar target finansial.</p>
                                 {% endif %}
                             </div>
                         </div>
@@ -52,249 +83,298 @@
                 </div>
             </div>
 
-            <!-- Header Controls -->
-            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                    <h2 class="text-2xl font-bold tracking-tight">Kinerja Finansial</h2>
-                    <p class="text-muted-foreground text-sm">Analisis arus kas, portofolio aset, dan manajemen liabilitas Anda.</p>
-                </div>
-                <div class="flex items-center gap-2">
-                    <form method="GET" class="flex gap-2">
-                        <input type="hidden" name="tab" :value="activeTab">
-                        <select name="days" class="h-10 px-3 py-2 text-sm rounded-md border border-input bg-background focus:outline-none focus:ring-2 focus:ring-ring" onchange="this.form.submit()">
-                            <option value="3" {% if days_range == 3 %}selected{% endif %}>Rentang: 3 Hari Terakhir</option>
-                            <option value="7" {% if days_range == 7 %}selected{% endif %}>Rentang: 7 Hari Terakhir</option>
-                            <option value="30" {% if days_range == 30 %}selected{% endif %}>Rentang: 30 Hari Terakhir</option>
-                            <option value="90" {% if days_range == 90 %}selected{% endif %}>Rentang: 3 Bulan Terakhir</option>
-                            <option value="180" {% if days_range == 180 %}selected{% endif %}>Rentang: 6 Bulan Terakhir</option>
-                            <option value="365" {% if days_range == 365 %}selected{% endif %}>Rentang: 1 Tahun Terakhir</option>
-                        </select>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Smart Insight Banner -->
-            <div class="rounded-xl border border-border p-4 flex items-start sm:items-center space-x-4 bg-muted/20">
-                <div class="h-10 w-10 shrink-0 rounded-full flex items-center justify-center 
-                    {% if insight_type == 'success' %}bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400
-                    {% elif insight_type == 'warning' %}bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400
-                    {% else %}bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400{% endif %}">
-                    <i data-lucide="sparkles" class="h-5 w-5"></i>
-                </div>
-                <div>
-                    <h4 class="text-sm font-semibold">AI Period Insight</h4>
-                    <p class="text-sm text-muted-foreground">{{ smart_insight }}</p>
-                </div>
-            </div>
-
-            <!-- Tabs Navigation -->
-            <div class="bg-card border border-border p-1 rounded-xl flex flex-col md:flex-row gap-1 shadow-sm overflow-x-auto whitespace-nowrap">
-                                <button @click="activeTab = 'analytics'" :class="{'bg-background shadow-sm text-foreground': activeTab === 'analytics', 'text-muted-foreground hover:bg-muted/50': activeTab !== 'analytics'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 flex-1 justify-center">
-                    <i data-lucide="line-chart" class="w-4 h-4"></i> Analytics
+            <!-- Tabs Navigation (Sleek Responsive Pill Bar) -->
+            <div class="bg-muted/80 border border-border p-1.5 rounded-xl flex items-center gap-1 shadow-sm overflow-x-auto scrollbar-hide">
+                <button type="button" @click="activeTab = 'analytics'" :class="activeTab === 'analytics' ? 'bg-background text-foreground shadow-sm border border-border/60 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-background/50 border border-transparent'" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 md:flex-1 justify-center whitespace-nowrap">
+                    <i data-lucide="line-chart" class="w-4 h-4" :class="activeTab === 'analytics' ? 'text-primary' : ''"></i> Analytics
                 </button>
-                <button @click="activeTab = 'cashflow'" :class="{'bg-background shadow-sm text-foreground': activeTab === 'cashflow', 'text-muted-foreground hover:bg-muted/50': activeTab !== 'cashflow'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 flex-1 justify-center">
-                    <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Arus Kas
+                <button type="button" @click="activeTab = 'cashflow'" :class="activeTab === 'cashflow' ? 'bg-background text-foreground shadow-sm border border-border/60 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-background/50 border border-transparent'" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 md:flex-1 justify-center whitespace-nowrap">
+                    <i data-lucide="bar-chart-2" class="w-4 h-4" :class="activeTab === 'cashflow' ? 'text-blue-500' : ''"></i> Arus Kas
                 </button>
-                <button @click="activeTab = 'liabilities'" :class="{'bg-background shadow-sm text-foreground': activeTab === 'liabilities', 'text-muted-foreground hover:bg-muted/50': activeTab !== 'liabilities'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 flex-1 justify-center">
-                    <i data-lucide="credit-card" class="w-4 h-4"></i> Kewajiban & Langganan
+                <button type="button" @click="activeTab = 'liabilities'" :class="activeTab === 'liabilities' ? 'bg-background text-foreground shadow-sm border border-border/60 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-background/50 border border-transparent'" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 md:flex-1 justify-center whitespace-nowrap">
+                    <i data-lucide="credit-card" class="w-4 h-4" :class="activeTab === 'liabilities' ? 'text-rose-500' : ''"></i> Kewajiban &amp; Langganan
                 </button>
-                <button @click="activeTab = 'assets'" :class="{'bg-background shadow-sm text-foreground': activeTab === 'assets', 'text-muted-foreground hover:bg-muted/50': activeTab !== 'assets'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 flex-1 justify-center">
-                    <i data-lucide="pie-chart" class="w-4 h-4"></i> Portofolio Aset
+                <button type="button" @click="activeTab = 'assets'" :class="activeTab === 'assets' ? 'bg-background text-foreground shadow-sm border border-border/60 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-background/50 border border-transparent'" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 md:flex-1 justify-center whitespace-nowrap">
+                    <i data-lucide="pie-chart" class="w-4 h-4" :class="activeTab === 'assets' ? 'text-purple-500' : ''"></i> Portofolio Aset
                 </button>
-                <button @click="activeTab = 'goals'" :class="{'bg-background shadow-sm text-foreground': activeTab === 'goals', 'text-muted-foreground hover:bg-muted/50': activeTab !== 'goals'}" class="px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 flex-1 justify-center">
-                    <i data-lucide="target" class="w-4 h-4"></i> Target Finansial
+                <button type="button" @click="activeTab = 'goals'" :class="activeTab === 'goals' ? 'bg-background text-foreground shadow-sm border border-border/60 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-background/50 border border-transparent'" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 md:flex-1 justify-center whitespace-nowrap">
+                    <i data-lucide="target" class="w-4 h-4" :class="activeTab === 'goals' ? 'text-emerald-500' : ''"></i> Target Finansial
                 </button>
             </div>
 
             
-            <!-- TAB 0: ANALYTICS (MERGED) -->
+            <!-- TAB 0: ANALYTICS -->
             <div x-show="activeTab === 'analytics'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-cloak class="space-y-6">
                 
-                <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div class="flex flex-col">
-                        <h2 class="text-xl font-bold tracking-tight">Ringkasan Analitik Periode ({{ days_range }} Hari Terakhir)</h2>
-                        <p class="text-sm text-muted-foreground mt-1">Evaluasi mendalam arus kas, rasio tabungan, dan distribusi pengeluaran Anda</p>
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                    <div>
+                        <h3 class="text-lg sm:text-xl font-bold tracking-tight">Ringkasan Analitik ({{ days_range }} Hari Terakhir)</h3>
+                        <p class="text-sm text-muted-foreground">Evaluasi arus kas masuk-keluar, rasio tabungan, dan kategori pengeluaran terbesar.</p>
+                    </div>
+                    <div class="inline-flex items-center gap-2.5 rounded-xl border px-3.5 py-2 text-xs sm:text-sm max-w-xl
+                        {% if insight_type == 'success' %}border-emerald-500/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300
+                        {% elif insight_type == 'warning' %}border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-300
+                        {% else %}border-border bg-card text-muted-foreground{% endif %}">
+                        <i data-lucide="sparkles" class="w-4 h-4 shrink-0"></i>
+                        <span>{{ smart_insight }}</span>
                     </div>
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1 hover:shadow-md transition-shadow">
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="arrow-down-circle" class="h-4 w-4 text-emerald-500"></i>
-                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Total Pemasukan</h3>
-                        </div>
-                        <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400">Rp {{ "{:,.0f}".format(analytics_total_income).replace(',', '.') }}</div>
-                    </div>
-                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1 hover:shadow-md transition-shadow">
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="arrow-up-circle" class="h-4 w-4 text-destructive"></i>
-                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Total Pengeluaran</h3>
-                        </div>
-                        <div class="text-2xl font-bold text-destructive">Rp {{ "{:,.0f}".format(analytics_total_expense).replace(',', '.') }}</div>
-                    </div>
-                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1 hover:shadow-md transition-shadow">
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="wallet" class="h-4 w-4 text-blue-500"></i>
-                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Arus Kas Bersih</h3>
-                        </div>
-                        <div class="text-2xl font-bold {% if analytics_net_flow >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-destructive{% endif %}">
-                            Rp {{ "{:,.0f}".format(analytics_net_flow).replace(',', '.') }}
-                        </div>
-                    </div>
-                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col gap-1 hover:shadow-md transition-shadow">
-                        <div class="flex items-center space-x-2">
-                            <i data-lucide="piggy-bank" class="h-4 w-4 text-amber-500"></i>
-                            <h3 class="text-sm font-medium leading-none tracking-tight text-muted-foreground">Rasio Tabungan</h3>
-                        </div>
-                        <div class="text-2xl font-bold {% if analytics_savings_rate >= 20 %}text-emerald-600 dark:text-emerald-400{% elif analytics_savings_rate > 0 %}text-blue-500{% else %}text-destructive{% endif %}">
-                            {{ "{:,.1f}".format(analytics_savings_rate) }}%
-                        </div>
-                    </div>
-                </div>
-
-                {% if analytics_insights %}
-                <div class="grid gap-4 md:grid-cols-2">
-                    {% for insight in analytics_insights %}
-                    <div class="rounded-xl border border-border bg-card/50 text-card-foreground shadow-sm p-4 flex gap-4 items-start">
-                        <div class="p-2 rounded-full {% if insight.color == 'emerald-500' %}bg-emerald-500/10 text-emerald-500{% elif insight.color == 'blue-500' %}bg-blue-500/10 text-blue-500{% elif insight.color == 'amber-500' %}bg-amber-500/10 text-amber-500{% elif insight.color == 'destructive' %}bg-destructive/10 text-destructive{% else %}bg-muted text-muted-foreground{% endif %}">
-                            <i data-lucide="{{ insight.icon }}" class="h-5 w-5"></i>
+                <!-- 4 Executive KPI Cards -->
+                <div class="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-5 flex flex-col justify-between gap-3 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total Pemasukan</span>
+                            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                <i data-lucide="arrow-down-left" class="h-4 w-4"></i>
+                            </div>
                         </div>
                         <div>
-                            <h4 class="font-semibold text-sm">{{ insight.title }}</h4>
-                            <p class="text-sm text-muted-foreground mt-1">{{ insight.desc }}</p>
+                            <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{{ analytics_total_income | rupiah }}</div>
+                            <p class="text-xs text-muted-foreground mt-1 tabular-nums">Rata-rata {{ avg_income_daily | rupiah }} / hari</p>
                         </div>
                     </div>
-                    {% endfor %}
-                </div>
-                {% endif %}
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div class="lg:col-span-2 rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
-                        <div class="mb-4">
-                            <h3 class="font-semibold leading-none tracking-tight">Tren Arus Kas (Cash Flow Trends)</h3>
-                            <p class="text-sm text-muted-foreground">Perbandingan pemasukan & pengeluaran dari hari ke hari</p>
+                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-5 flex flex-col justify-between gap-3 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Total Pengeluaran</span>
+                            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-destructive/10 text-destructive">
+                                <i data-lucide="arrow-up-right" class="h-4 w-4"></i>
+                            </div>
                         </div>
-                        <div class="relative w-full h-[350px]">
+                        <div>
+                            <div class="text-2xl font-bold text-destructive tabular-nums">{{ analytics_total_expense | rupiah }}</div>
+                            <p class="text-xs text-muted-foreground mt-1 tabular-nums">Rata-rata {{ avg_expense_daily | rupiah }} / hari</p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-5 flex flex-col justify-between gap-3 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Arus Kas Bersih</span>
+                            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                                <i data-lucide="wallet" class="h-4 w-4"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold tabular-nums {% if analytics_net_flow >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-destructive{% endif %}">
+                                {{ analytics_net_flow | rupiah }}
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-1">{{ 'Surplus kas periode ini' if analytics_net_flow >= 0 else 'Defisit kas periode ini' }}</p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-5 flex flex-col justify-between gap-3 hover:shadow-md transition-shadow">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Rasio Tabungan</span>
+                            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                <i data-lucide="piggy-bank" class="h-4 w-4"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-2xl font-bold tabular-nums {% if analytics_savings_rate >= 20 %}text-emerald-600 dark:text-emerald-400{% elif analytics_savings_rate > 0 %}text-blue-600 dark:text-blue-400{% else %}text-destructive{% endif %}">
+                                {{ "{:,.1f}".format(analytics_savings_rate) }}%
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-1">Patokan sehat &ge; 20% pemasukan</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col">
+                        <div class="mb-4 flex items-center justify-between gap-2">
+                            <div>
+                                <h3 class="text-base font-semibold tracking-tight">Tren Arus Kas Harian</h3>
+                                <p class="text-xs sm:text-sm text-muted-foreground">Perbandingan pemasukan, pengeluaran, dan arus kas bersih kumulatif</p>
+                            </div>
+                        </div>
+                        <div class="relative w-full h-[320px] sm:h-[350px] flex-1">
                             <canvas id="timeSeriesChart"></canvas>
                         </div>
                     </div>
 
                     <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6 flex flex-col">
                         <div class="mb-4">
-                            <h3 class="font-semibold leading-none tracking-tight">Rincian Pengeluaran (Expense Breakdown)</h3>
-                            <p class="text-sm text-muted-foreground">Ke mana uang Anda paling banyak dihabiskan</p>
+                            <h3 class="text-base font-semibold tracking-tight">Rincian Pengeluaran</h3>
+                            <p class="text-xs sm:text-sm text-muted-foreground">Distribusi kategori pengeluaran terbesar</p>
                         </div>
-                        <div class="relative w-full flex-1 min-h-[300px] flex items-center justify-center">
-                            {% if analytics_donut and analytics_donut.data %}
+                        {% if analytics_donut and analytics_donut.data %}
+                        <div class="relative w-full h-[190px] flex items-center justify-center">
                             <canvas id="expenseDonutChart"></canvas>
-                            {% else %}
-                            <div class="flex flex-col items-center justify-center text-center text-muted-foreground h-full">
-                                <i data-lucide="pie-chart" class="h-10 w-10 mb-2 opacity-20"></i>
-                                <p class="text-sm">Belum ada pengeluaran pada periode ini.</p>
-                            </div>
-                            {% endif %}
                         </div>
+                        {% if analytics_top_categories %}
+                        <div class="mt-4 pt-4 border-t border-border space-y-2.5">
+                            {% for cat in analytics_top_categories %}
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-xs gap-2">
+                                    <div class="flex items-center gap-2 min-w-0">
+                                        <span class="w-2.5 h-2.5 rounded-full shrink-0" style="background-color: {{ cat.color }}"></span>
+                                        <span class="font-medium text-foreground truncate">{{ cat.name }}</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0 tabular-nums">
+                                        <span class="font-semibold text-foreground">{{ cat.amount | rupiah }}</span>
+                                        <span class="text-muted-foreground w-10 text-right">{{ cat.pct }}%</span>
+                                    </div>
+                                </div>
+                                <div class="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                                    <div class="h-full rounded-full" style="width: {{ cat.pct }}%; background-color: {{ cat.color }}"></div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <div class="flex-1 min-h-[240px] flex flex-col items-center justify-center text-center text-muted-foreground border-2 border-dashed border-border rounded-xl p-6">
+                            <i data-lucide="pie-chart" class="h-10 w-10 mb-2 opacity-30"></i>
+                            <p class="text-sm font-medium">Belum ada pengeluaran pada periode ini</p>
+                            <p class="text-xs mt-1">Catat transaksi pengeluaran agar grafik rincian muncul di sini.</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
+
+                {% if analytics_insights %}
+                <div class="grid gap-4 md:grid-cols-2">
+                    {% for insight in analytics_insights %}
+                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-4 flex gap-3.5 items-start">
+                        <div class="p-2.5 rounded-xl shrink-0 {% if insight.color == 'emerald-500' %}bg-emerald-500/10 text-emerald-600 dark:text-emerald-400{% elif insight.color == 'blue-500' %}bg-blue-500/10 text-blue-600 dark:text-blue-400{% elif insight.color == 'amber-500' %}bg-amber-500/10 text-amber-600 dark:text-amber-400{% elif insight.color == 'destructive' %}bg-destructive/10 text-destructive{% else %}bg-muted text-muted-foreground{% endif %}">
+                            <i data-lucide="{{ insight.icon }}" class="h-5 w-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-sm">{{ insight.title }}</h4>
+                            <p class="text-xs sm:text-sm text-muted-foreground mt-1 leading-relaxed">{{ insight.desc }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
             </div>
 
 
-            <!-- TAB 1: CASHFLOW -->
-            <div x-show="activeTab === 'cashflow'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" class="space-y-6">
-                <!-- Cash Flow Chart in Arus Kas Tab -->
-                <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
-                    <div class="mb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                        <div>
-                            <h3 class="text-lg font-semibold tracking-tight flex items-center gap-2">
-                                <i data-lucide="bar-chart-2" class="w-5 h-5 text-blue-500"></i> Grafik Arus Kas (Cash Flow)
-                            </h3>
-                            <p class="text-sm text-muted-foreground">Perbandingan pemasukan, pengeluaran, dan akumulasi arus kas bersih harian</p>
+            <!-- TAB 1: CASHFLOW (FIXED: x-cloak added) -->
+            <div x-show="activeTab === 'cashflow'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-cloak class="space-y-6">
+                <div>
+                    <h3 class="text-lg sm:text-xl font-bold tracking-tight">Kesehatan &amp; Distribusi Arus Kas</h3>
+                    <p class="text-sm text-muted-foreground">Ringkasan kecepatan arus masuk-keluar harian, proyeksi pengeluaran, dan sebaran dana di seluruh akun.</p>
+                </div>
+
+                <!-- Cashflow Summary Row -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Savings Rate Card -->
+                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-5 flex flex-col justify-between gap-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold">Rasio Tabungan (Savings Rate)</span>
+                            {% if savings_rate >= 20 %}
+                            <span class="inline-flex items-center rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">Ideal</span>
+                            {% elif savings_rate > 0 %}
+                            <span class="inline-flex items-center rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-blue-600 dark:text-blue-400">Positif</span>
+                            {% else %}
+                            <span class="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-[11px] font-semibold text-destructive">Perlu Rem</span>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-2">
+                            <div class="text-4xl font-bold tabular-nums {% if savings_rate >= 20 %}text-emerald-600 dark:text-emerald-400{% elif savings_rate > 0 %}text-blue-600 dark:text-blue-400{% else %}text-destructive{% endif %}">
+                                {{ "{:,.1f}".format(savings_rate) }}%
+                            </div>
+                            <div class="h-2 w-full rounded-full bg-muted overflow-hidden">
+                                {% set sr_bar = [[savings_rate, 0]|max, 100]|min %}
+                                <div class="h-full rounded-full transition-all duration-700 {% if savings_rate >= 20 %}bg-emerald-500{% elif savings_rate > 0 %}bg-blue-500{% else %}bg-destructive{% endif %}" style="width: {{ sr_bar }}%;"></div>
+                            </div>
+                        </div>
+                        <p class="text-xs text-muted-foreground">Persentase pemasukan yang berhasil dipertahankan dalam {{ days_range }} hari terakhir.</p>
+                    </div>
+
+                    <!-- Rata-rata Harian Card -->
+                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-5 flex flex-col justify-between gap-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold flex items-center gap-2">
+                                <i data-lucide="calculator" class="w-4 h-4 text-emerald-500"></i> Rata-rata Arus Harian
+                            </span>
+                            <span class="text-xs text-muted-foreground">{{ days_range }} hari</span>
+                        </div>
+                        <div class="space-y-2.5">
+                            <div class="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex justify-between items-center text-sm">
+                                <span class="font-medium text-emerald-700 dark:text-emerald-300">Pemasukan / hari</span>
+                                <span class="font-bold text-emerald-700 dark:text-emerald-300 tabular-nums">{{ avg_income_daily | rupiah }}</span>
+                            </div>
+                            <div class="p-3 rounded-lg bg-destructive/10 border border-destructive/20 flex justify-between items-center text-sm">
+                                <span class="font-medium text-destructive">Pengeluaran / hari</span>
+                                <span class="font-bold text-destructive tabular-nums">{{ avg_expense_daily | rupiah }}</span>
+                            </div>
+                        </div>
+                        {% set daily_net = avg_income_daily - avg_expense_daily %}
+                        <div class="flex items-center justify-between text-xs pt-1 border-t border-border/60">
+                            <span class="text-muted-foreground">Selisih Bersih / hari</span>
+                            <span class="font-semibold tabular-nums {% if daily_net >= 0 %}text-emerald-600 dark:text-emerald-400{% else %}text-destructive{% endif %}">{{ daily_net | rupiah }}</span>
                         </div>
                     </div>
-                    <div class="relative w-full h-[320px]">
-                        <canvas id="cashflowTabChart"></canvas>
+
+                    <!-- Proyeksi Beban Mendatang Card -->
+                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-5 flex flex-col justify-between gap-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm font-semibold flex items-center gap-2">
+                                <i data-lucide="fast-forward" class="w-4 h-4 text-blue-500"></i> Proyeksi Beban Mendatang
+                            </span>
+                        </div>
+                        <div class="space-y-2.5">
+                            <div class="p-3 rounded-lg border border-border bg-muted/20 flex justify-between items-center text-sm">
+                                <span class="text-muted-foreground">Estimasi 7 Hari</span>
+                                <span class="font-bold text-foreground tabular-nums">{{ proyeksi_seminggu_out | rupiah }}</span>
+                            </div>
+                            <div class="p-3 rounded-lg border border-border bg-muted/40 flex justify-between items-center text-sm">
+                                <span class="text-muted-foreground">Estimasi 30 Hari</span>
+                                <span class="font-bold text-foreground tabular-nums">{{ proyeksi_sebulan_out | rupiah }}</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-muted-foreground">Dihitung dari rata-rata pengeluaran harian periode {{ days_range }} hari.</p>
                     </div>
                 </div>
 
                 <!-- Dist Capital -->
-                <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-                    <div class="p-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold tracking-tight flex items-center gap-2">
-                                <i data-lucide="network" class="w-5 h-5 text-indigo-500"></i> Distribusi Penempatan Kapital
-                            </h3>
-                        </div>
-                        <p class="text-sm text-muted-foreground mb-6">Konsentrasi pembagian dana pada akun finansial Anda berdasarkan persentase total kapital.</p>
-                        
-                        <div class="space-y-4">
-                            {% if distribution_list %}
-                                {% for acc in distribution_list %}
-                                <div>
-                                    <div class="flex items-center justify-between text-sm mb-2">
-                                        <div class="flex items-center gap-2">
-                                            {{ macros.render_account_logo(acc.raw_name or acc.name) }}
-                                        </div>
-                                        <span class="font-bold">{{ acc.balance | rupiah }} ({{ acc.percentage }}%)</span>
-                                    </div>
-                                    <div class="h-3 w-full bg-muted rounded-full overflow-hidden">
-                                        <div class="h-full rounded-full transition-all duration-1000 bg-gradient-to-r from-blue-500 to-indigo-500" style="width: {{ [[acc.percentage, 0]|max, 100]|min }}%;"></div>
-                                    </div>
-                                </div>
-                                {% endfor %}
-                            {% else %}
-                                <div class="text-center py-8 text-muted-foreground border-2 border-dashed border-border rounded-xl">
-                                    <p class="text-sm">Tidak ada saldo tersedia untuk dianalisis.</p>
-                                </div>
-                            {% endif %}
-                        </div>
+                <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
+                    <div class="mb-5">
+                        <h3 class="text-base font-semibold tracking-tight flex items-center gap-2">
+                            <i data-lucide="network" class="w-4 h-4 text-indigo-500"></i> Distribusi Penempatan Kapital
+                        </h3>
+                        <p class="text-xs sm:text-sm text-muted-foreground mt-0.5">Sebaran dana pada setiap akun dan dompet aset berdasarkan persentase saldo aktif.</p>
                     </div>
+
+                    {% if distribution_list %}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for acc in distribution_list %}
+                        <div class="rounded-xl border border-border/80 bg-muted/20 p-4 space-y-2.5">
+                            <div class="flex items-center justify-between gap-3">
+                                <div class="min-w-0">
+                                    {{ macros.render_account_logo(acc.raw_name or acc.name) }}
+                                </div>
+                                <div class="text-right shrink-0">
+                                    <div class="text-sm font-bold text-foreground tabular-nums">{{ acc.balance | rupiah }}</div>
+                                    <span class="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">{{ acc.percentage }}%</span>
+                                </div>
+                            </div>
+                            <div class="h-2 w-full bg-muted rounded-full overflow-hidden">
+                                <div class="h-full rounded-full transition-all duration-700 bg-gradient-to-r from-blue-500 to-indigo-500" style="width: {{ [[acc.percentage, 0]|max, 100]|min }}%;"></div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8 text-muted-foreground border-2 border-dashed border-border rounded-xl">
+                        <p class="text-sm">Belum ada saldo akun positif yang tersedia untuk dianalisis.</p>
+                    </div>
+                    {% endif %}
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- Savings Rate -->
-                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-                        <div class="p-6 h-full flex flex-col justify-center items-center text-center">
-                            <h3 class="text-sm font-medium text-muted-foreground mb-4">Savings Rate (Rasio Tabungan)</h3>
-                            <div class="text-5xl font-bold text-primary mb-4">{{ "{:,.1f}".format(savings_rate) }}%</div>
-                            <p class="text-xs text-muted-foreground px-4">Persentase pendapatan yang berhasil dipertahankan pada periode ini.</p>
-                        </div>
+                <!-- Cash Flow Chart in Arus Kas Tab -->
+                <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm p-6">
+                    <div class="mb-4">
+                        <h3 class="text-base font-semibold tracking-tight flex items-center gap-2">
+                            <i data-lucide="bar-chart-2" class="w-4 h-4 text-blue-500"></i> Grafik Arus Kas Harian ({{ days_range }} Hari Terakhir)
+                        </h3>
+                        <p class="text-xs sm:text-sm text-muted-foreground">Visualisasi pemasukan, pengeluaran, dan akumulasi arus kas bersih harian.</p>
                     </div>
-                    <!-- Rata-rata -->
-                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-                        <div class="p-6">
-                            <h3 class="text-lg font-semibold tracking-tight flex items-center gap-2 mb-4">
-                                <i data-lucide="calculator" class="w-5 h-5 text-emerald-500"></i> Rata-rata Harian
-                            </h3>
-                            <div class="space-y-4">
-                                <div class="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex justify-between items-center">
-                                    <span class="text-sm font-medium text-red-600 dark:text-red-400">Pengeluaran Harian</span>
-                                    <span class="font-bold text-red-700 dark:text-red-300">{{ avg_expense_daily | rupiah }}</span>
-                                </div>
-                                <div class="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex justify-between items-center">
-                                    <span class="text-sm font-medium text-emerald-600 dark:text-emerald-400">Pemasukan Harian</span>
-                                    <span class="font-bold text-emerald-700 dark:text-emerald-300">{{ avg_income_daily | rupiah }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Proyeksi -->
-                    <div class="rounded-xl border border-border bg-card text-card-foreground shadow-sm">
-                        <div class="p-6">
-                            <h3 class="text-lg font-semibold tracking-tight flex items-center gap-2 mb-4">
-                                <i data-lucide="fast-forward" class="w-5 h-5 text-blue-500"></i> Proyeksi Mendatang
-                            </h3>
-                            <div class="space-y-4">
-                                <div class="p-4 rounded-lg border border-border flex justify-between items-center">
-                                    <span class="text-sm font-medium">Estimasi 7 Hari (Beban)</span>
-                                    <span class="font-bold">{{ proyeksi_seminggu_out | rupiah }}</span>
-                                </div>
-                                <div class="p-4 rounded-lg border border-border flex justify-between items-center bg-muted/30">
-                                    <span class="text-sm font-medium">Estimasi 30 Hari (Beban)</span>
-                                    <span class="font-bold">{{ proyeksi_sebulan_out | rupiah }}</span>
-                                </div>
-                            </div>
-                        </div>
+                    <div class="relative w-full h-[300px] sm:h-[340px]">
+                        <canvas id="cashflowTabChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -635,68 +715,263 @@
 
             <!-- TAB 4: GOALS -->
             <div x-show="activeTab === 'goals'" x-transition:enter="transition ease-out duration-200" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0" x-cloak class="space-y-6">
-                <div class="flex justify-between items-center mb-2">
-                    <h3 class="text-xl font-bold tracking-tight">Proyeksi Pencapaian</h3>
-                    <button @click="$dispatch('open-modal', 'formAddGoalModal')" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">
-                        Buat Target
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-lg sm:text-xl font-bold tracking-tight">Proyeksi Pencapaian Target</h3>
+                        <p class="text-sm text-muted-foreground">Pantau kekurangan dana dan estimasi tabungan harian, mingguan, atau bulanan agar target tercapai tepat waktu.</p>
+                    </div>
+                    <button type="button" @click="$dispatch('open-modal', 'formAddGoalModal')" class="inline-flex items-center justify-center rounded-lg text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 shadow-sm shrink-0 self-start sm:self-auto">
+                        <i data-lucide="plus" class="w-4 h-4 mr-2"></i> Buat Target
                     </button>
                 </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                {% if goals_list %}
+                <!-- Goals Summary Strip -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+                    <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
+                        <div class="flex items-center justify-between text-xs font-medium text-muted-foreground mb-1">
+                            <span>Total Target</span>
+                            <i data-lucide="flag" class="w-3.5 h-3.5 text-blue-500"></i>
+                        </div>
+                        <div class="text-lg sm:text-xl font-bold text-foreground tabular-nums">{{ goals_summary.total_target | rupiah }}</div>
+                        <p class="text-[11px] text-muted-foreground mt-0.5">{{ goals_summary.total_count }} target terdaftar</p>
+                    </div>
+
+                    <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
+                        <div class="flex items-center justify-between text-xs font-medium text-muted-foreground mb-1">
+                            <span>Sudah Terkumpul</span>
+                            <i data-lucide="piggy-bank" class="w-3.5 h-3.5 text-emerald-500"></i>
+                        </div>
+                        <div class="text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">{{ goals_summary.total_saved | rupiah }}</div>
+                        <p class="text-[11px] text-muted-foreground mt-0.5">{{ "%.1f"|format(goals_summary.overall_pct) }}% dari total target</p>
+                    </div>
+
+                    <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
+                        <div class="flex items-center justify-between text-xs font-medium text-muted-foreground mb-1">
+                            <span>Total Kekurangan</span>
+                            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-amber-500"></i>
+                        </div>
+                        <div class="text-lg sm:text-xl font-bold tabular-nums {% if goals_summary.total_shortfall > 0 %}text-amber-600 dark:text-amber-400{% else %}text-emerald-600 dark:text-emerald-400{% endif %}">
+                            {{ goals_summary.total_shortfall | rupiah }}
+                        </div>
+                        <p class="text-[11px] text-muted-foreground mt-0.5">{{ 'Sisa dana yang perlu dikumpulkan' if goals_summary.total_shortfall > 0 else 'Semua target sudah terpenuhi' }}</p>
+                    </div>
+
+                    <div class="rounded-xl border border-border bg-card p-4 shadow-sm">
+                        <div class="flex items-center justify-between text-xs font-medium text-muted-foreground mb-1">
+                            <span>Status Target</span>
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-indigo-500"></i>
+                        </div>
+                        <div class="text-lg sm:text-xl font-bold text-foreground tabular-nums">{{ goals_summary.achieved_count }} / {{ goals_summary.total_count }} Tercapai</div>
+                        <p class="text-[11px] text-muted-foreground mt-0.5">{{ goals_summary.active_count }} target masih berjalan</p>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Goals Cards Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {% if goals_list %}
                         {% for g in goals_list %}
-                        <div class="rounded-xl border border-border bg-card p-5 shadow-sm relative overflow-hidden flex flex-col group">
-                            <!-- Status Badge -->
-                            <div class="absolute top-4 right-4">
-                                {% if g.status == 'Achieved' %}
-                                    <span class="inline-flex items-center rounded-full border border-transparent bg-emerald-500/20 px-2.5 py-0.5 text-xs font-semibold text-emerald-600 transition-colors">Tercapai</span>
-                                {% else %}
-                                    <span class="inline-flex items-center rounded-full border border-transparent bg-blue-500/20 px-2.5 py-0.5 text-xs font-semibold text-blue-600 transition-colors">Aktif</span>
-                                {% endif %}
-                            </div>
-                            
-                            <h4 class="font-bold text-lg mb-1 pr-16">{{ g.name }}</h4>
-                            <p class="text-xs text-muted-foreground mb-4 flex items-center gap-1"><i data-lucide="calendar" class="w-3 h-3"></i> {{ g.due_date }}</p>
-                            
-                            <div class="flex justify-between items-end mb-1 text-sm">
-                                <span class="font-medium text-muted-foreground">Progress</span>
-                                <span class="font-bold {% if g.status == 'Achieved' %}text-emerald-500{% else %}text-blue-500{% endif %}">{{ "%.0f"|format(g.percentage) }}%</span>
-                            </div>
-                            <div class="h-2 w-full bg-muted rounded-full mb-4 overflow-hidden">
-                                <div class="h-full rounded-full transition-all {% if g.status == 'Achieved' %}bg-emerald-500{% else %}bg-blue-500{% endif %}" style="width: {{ g.percentage if g.percentage <= 100 else 100 }}%;"></div>
-                            </div>
-                            
-                            <div class="flex justify-between items-center text-xs mb-4 p-2 bg-muted/30 rounded-lg">
-                                <div>
-                                    <span class="block text-muted-foreground mb-0.5">Terkumpul</span>
-                                    <span class="font-bold text-foreground">{{ g.current_amount | rupiah }}</span>
+                        <div class="rounded-2xl border {% if g.is_achieved %}border-emerald-500/30{% elif g.deadline_state == 'overdue' %}border-rose-500/30{% else %}border-border{% endif %} bg-card text-card-foreground p-5 sm:p-6 shadow-sm flex flex-col gap-4 hover:shadow-md transition-shadow">
+                            <!-- Card Header -->
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex items-start gap-3 min-w-0">
+                                    <div class="p-2.5 rounded-xl shrink-0 {% if g.is_achieved %}bg-emerald-500/15 text-emerald-600 dark:text-emerald-400{% elif g.deadline_state == 'overdue' %}bg-rose-500/15 text-rose-600 dark:text-rose-400{% else %}bg-blue-500/15 text-blue-600 dark:text-blue-400{% endif %}">
+                                        <i data-lucide="{{ 'check-circle-2' if g.is_achieved else 'target' }}" class="w-5 h-5"></i>
+                                    </div>
+                                    <div class="min-w-0">
+                                        <h4 class="font-bold text-base sm:text-lg leading-snug break-words">{{ g.name }}</h4>
+                                        <div class="flex flex-wrap items-center gap-2 mt-1 text-xs text-muted-foreground">
+                                            <span class="inline-flex items-center gap-1">
+                                                <i data-lucide="calendar" class="w-3.5 h-3.5"></i>
+                                                <span>Tenggat: {{ g.due_date_id }}</span>
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="text-right">
-                                    <span class="block text-muted-foreground mb-0.5">Target</span>
-                                    <span class="font-bold text-foreground">{{ g.target_amount | rupiah }}</span>
+                                <div class="flex flex-col items-end gap-1.5 shrink-0">
+                                    {% if g.is_achieved %}
+                                        <span class="inline-flex items-center rounded-full bg-emerald-500/15 border border-emerald-500/25 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">Tercapai</span>
+                                    {% elif g.deadline_state == 'overdue' %}
+                                        <span class="inline-flex items-center rounded-full bg-rose-500/15 border border-rose-500/25 px-2.5 py-0.5 text-[11px] font-semibold text-rose-700 dark:text-rose-300">{{ g.deadline_label }}</span>
+                                    {% elif g.deadline_state == 'today' %}
+                                        <span class="inline-flex items-center rounded-full bg-amber-500/15 border border-amber-500/25 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">{{ g.deadline_label }}</span>
+                                    {% elif g.deadline_state == 'active' and g.days_left <= 7 %}
+                                        <span class="inline-flex items-center rounded-full bg-amber-500/15 border border-amber-500/25 px-2.5 py-0.5 text-[11px] font-semibold text-amber-700 dark:text-amber-300">{{ g.deadline_label }}</span>
+                                    {% elif g.deadline_state == 'active' %}
+                                        <span class="inline-flex items-center rounded-full bg-blue-500/15 border border-blue-500/25 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700 dark:text-blue-300">{{ g.deadline_label }}</span>
+                                    {% else %}
+                                        <span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-semibold text-muted-foreground">{{ g.deadline_label }}</span>
+                                    {% endif %}
                                 </div>
                             </div>
-                            
-                            <div class="mt-auto pt-2 flex gap-2">
-                                {% if g.status != 'Achieved' %}
-                                <button @click="$dispatch('open-modal', 'savingModal{{ g.id }}')" class="flex-1 inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background hover:bg-accent hover:text-accent-foreground h-8 shadow-sm">
-                                    <i data-lucide="plus" class="w-3 h-3 mr-1"></i> Tambah Dana
+
+                            <!-- Progress Bar -->
+                            <div class="space-y-1.5">
+                                <div class="flex justify-between items-center text-xs sm:text-sm">
+                                    <span class="font-medium text-muted-foreground">Progres Tabungan</span>
+                                    <span class="font-bold tabular-nums {% if g.is_achieved %}text-emerald-600 dark:text-emerald-400{% else %}text-blue-600 dark:text-blue-400{% endif %}">
+                                        {% if g.percentage_clamped >= 100 %}100%{% elif g.percentage_clamped > 0 and g.percentage_clamped < 1 %}{{ "%.1f"|format(g.percentage_clamped) }}%{% else %}{{ "%.0f"|format(g.percentage_clamped) }}%{% endif %}
+                                    </span>
+                                </div>
+                                <div class="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+                                    <div class="h-full rounded-full transition-all duration-500 {% if g.is_achieved %}bg-emerald-500{% elif g.deadline_state == 'overdue' %}bg-rose-500{% else %}bg-gradient-to-r from-blue-500 to-indigo-500{% endif %}" style="width: {{ g.percentage_clamped }}%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- 3-Metric Strip: Terkumpul, Target, Kurang Lagi -->
+                            <div class="grid grid-cols-3 gap-2 sm:gap-3">
+                                <div class="rounded-xl bg-muted/40 border border-border/60 p-2.5 sm:p-3">
+                                    <span class="block text-[11px] text-muted-foreground mb-0.5">Terkumpul</span>
+                                    <span class="font-bold text-xs sm:text-sm text-foreground tabular-nums">{{ g.current_amount | rupiah }}</span>
+                                </div>
+                                <div class="rounded-xl bg-muted/40 border border-border/60 p-2.5 sm:p-3">
+                                    <span class="block text-[11px] text-muted-foreground mb-0.5">Target</span>
+                                    <span class="font-bold text-xs sm:text-sm text-foreground tabular-nums">{{ g.target_amount | rupiah }}</span>
+                                </div>
+                                <div class="rounded-xl p-2.5 sm:p-3 border {% if g.shortfall > 0 %}bg-amber-500/10 border-amber-500/25{% else %}bg-emerald-500/10 border-emerald-500/25{% endif %}">
+                                    <span class="block text-[11px] {% if g.shortfall > 0 %}text-amber-700 dark:text-amber-300{% else %}text-emerald-700 dark:text-emerald-300{% endif %} font-medium mb-0.5">Kurang Lagi</span>
+                                    {% if g.shortfall > 0 %}
+                                    <span class="font-bold text-xs sm:text-sm text-amber-700 dark:text-amber-300 tabular-nums">{{ g.shortfall | rupiah }}</span>
+                                    {% else %}
+                                    <span class="font-bold text-xs sm:text-sm text-emerald-700 dark:text-emerald-300">Lunas</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Saving Projection Tips Box -->
+                            {% if g.deadline_state == 'active' and g.shortfall > 0 %}
+                            <div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3.5 sm:p-4 space-y-3">
+                                <div class="flex items-start gap-2">
+                                    <i data-lucide="lightbulb" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"></i>
+                                    <p class="text-xs leading-relaxed text-foreground">
+                                        <span class="font-semibold">Tips Menabung:</span> Agar kekurangan <strong class="tabular-nums">{{ g.shortfall | rupiah }}</strong> tercapai tepat pada <strong>{{ g.due_date_id }}</strong> ({{ g.days_left }} hari lagi), Anda bisa menyisihkan salah satu opsi berikut:
+                                    </p>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                    <button type="button"
+                                            onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.daily_fmt }}')"
+                                            class="text-left rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-2.5 transition-colors group/tip">
+                                        <span class="flex items-center justify-between text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
+                                            <span>Per Hari</span>
+                                            <i data-lucide="arrow-up-right" class="w-3 h-3 opacity-70 group-hover/tip:translate-x-0.5 transition-transform"></i>
+                                        </span>
+                                        <span class="block text-sm font-bold text-emerald-700 dark:text-emerald-300 tabular-nums mt-0.5">Rp {{ g.daily_fmt }}</span>
+                                        <span class="block text-[10px] text-emerald-700/80 dark:text-emerald-300/80 mt-0.5">Klik untuk input</span>
+                                    </button>
+
+                                    {% if g.weekly_needed %}
+                                    <button type="button"
+                                            onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.weekly_fmt }}')"
+                                            class="text-left rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-2.5 transition-colors group/tip">
+                                        <span class="flex items-center justify-between text-[11px] font-medium text-blue-700 dark:text-blue-300">
+                                            <span>Per Minggu</span>
+                                            <i data-lucide="arrow-up-right" class="w-3 h-3 opacity-70 group-hover/tip:translate-x-0.5 transition-transform"></i>
+                                        </span>
+                                        <span class="block text-sm font-bold text-blue-700 dark:text-blue-300 tabular-nums mt-0.5">Rp {{ g.weekly_fmt }}</span>
+                                        <span class="block text-[10px] text-blue-700/80 dark:text-blue-300/80 mt-0.5">Klik untuk input</span>
+                                    </button>
+                                    {% else %}
+                                    <div class="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2.5 flex flex-col justify-center">
+                                        <span class="text-[11px] font-medium text-muted-foreground">Per Minggu</span>
+                                        <span class="text-xs font-medium text-muted-foreground mt-0.5">Tenggat &lt; 7 hari</span>
+                                    </div>
+                                    {% endif %}
+
+                                    {% if g.monthly_needed %}
+                                    <button type="button"
+                                            onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.monthly_fmt }}')"
+                                            class="text-left rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-2.5 transition-colors group/tip">
+                                        <span class="flex items-center justify-between text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
+                                            <span>Per Bulan</span>
+                                            <i data-lucide="arrow-up-right" class="w-3 h-3 opacity-70 group-hover/tip:translate-x-0.5 transition-transform"></i>
+                                        </span>
+                                        <span class="block text-sm font-bold text-indigo-700 dark:text-indigo-300 tabular-nums mt-0.5">Rp {{ g.monthly_fmt }}</span>
+                                        <span class="block text-[10px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5">Klik untuk input</span>
+                                    </button>
+                                    {% else %}
+                                    <div class="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2.5 flex flex-col justify-center">
+                                        <span class="text-[11px] font-medium text-muted-foreground">Per Bulan</span>
+                                        <span class="text-xs font-medium text-muted-foreground mt-0.5">Tenggat &lt; 30 hari</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% elif g.deadline_state == 'today' and g.shortfall > 0 %}
+                            <div class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="flex items-start gap-2.5">
+                                    <i data-lucide="clock" class="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5"></i>
+                                    <p class="text-xs leading-relaxed text-amber-800 dark:text-amber-200">
+                                        <strong>Tenggat Hari Ini!</strong> Anda perlu menabung sisa <strong>{{ g.shortfall | rupiah }}</strong> hari ini untuk mencapai target tepat waktu.
+                                    </p>
+                                </div>
+                                <button type="button" onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.shortfall_fmt }}')" class="inline-flex items-center justify-center rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold px-3 py-2 shrink-0 transition-colors">
+                                    Lunasi Sisa
+                                </button>
+                            </div>
+                            {% elif g.deadline_state == 'overdue' and g.shortfall > 0 %}
+                            <div class="rounded-xl border border-rose-500/30 bg-rose-500/10 p-3.5 space-y-2.5">
+                                <div class="flex items-start gap-2.5">
+                                    <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5"></i>
+                                    <p class="text-xs leading-relaxed text-rose-800 dark:text-rose-200">
+                                        Tenggat <strong>{{ g.due_date_id }}</strong> telah terlewat {{ g.overdue_days }} hari. Masih kurang <strong>{{ g.shortfall | rupiah }}</strong> — perbarui tanggal target agar tips harian/mingguan dihitung ulang, atau lunasi sisanya.
+                                    </p>
+                                </div>
+                                <div class="flex flex-wrap gap-2">
+                                    <button type="button" @click="$dispatch('open-modal', 'editGoalModal{{ g.id }}')" class="inline-flex items-center justify-center rounded-lg border border-rose-500/30 bg-background/80 hover:bg-background text-xs font-medium px-3 py-1.5">
+                                        Perbarui Tanggal
+                                    </button>
+                                    <button type="button" onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.shortfall_fmt }}')" class="inline-flex items-center justify-center rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold px-3 py-1.5">
+                                        Lunasi Sisa ({{ g.shortfall | rupiah }})
+                                    </button>
+                                </div>
+                            </div>
+                            {% elif g.deadline_state == 'no_date' and g.shortfall > 0 %}
+                            <div class="rounded-xl border border-border bg-muted/30 p-3.5 flex items-start gap-2.5">
+                                <i data-lucide="info" class="w-4 h-4 text-muted-foreground shrink-0 mt-0.5"></i>
+                                <p class="text-xs leading-relaxed text-muted-foreground">
+                                    Masih kurang <strong>{{ g.shortfall | rupiah }}</strong>. Tambahkan tanggal tenggat target pada menu Edit untuk melihat estimasi tabungan per hari, minggu, dan bulan.
+                                </p>
+                            </div>
+                            {% else %}
+                            <div class="rounded-xl border border-emerald-500/25 bg-emerald-500/10 p-3.5 flex items-start gap-2.5">
+                                <i data-lucide="sparkles" class="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5"></i>
+                                <p class="text-xs leading-relaxed text-emerald-800 dark:text-emerald-200">
+                                    <strong>Target Tercapai 100%!</strong>
+                                    {% if g.surplus > 0 %}
+                                    Anda memiliki surplus sebesar <strong class="tabular-nums">{{ g.surplus | rupiah }}</strong> di atas target awal.
+                                    {% else %}
+                                    Selamat, dana sebesar <strong class="tabular-nums">{{ g.target_amount | rupiah }}</strong> sudah berhasil dikumpulkan.
+                                    {% endif %}
+                                </p>
+                            </div>
+                            {% endif %}
+
+                            <!-- Card Footer Actions -->
+                            <div class="mt-auto pt-2 border-t border-border/60 flex items-center gap-2">
+                                {% if g.shortfall > 0 %}
+                                <button type="button" onclick="window.openGoalSavingModal('{{ g.id }}', '')" class="flex-1 inline-flex items-center justify-center rounded-lg text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-3 shadow-sm">
+                                    <i data-lucide="plus" class="w-3.5 h-3.5 mr-1.5"></i> Tambah Dana
                                 </button>
                                 {% endif %}
-                                <button @click="$dispatch('open-modal', 'editGoalModal{{ g.id }}')" class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background hover:bg-accent hover:text-blue-500 h-8 w-8 shadow-sm" title="Edit Target">
-                                    <i data-lucide="edit" class="w-3 h-3"></i>
+                                <button type="button" @click="$dispatch('open-modal', 'editGoalModal{{ g.id }}')" class="inline-flex items-center justify-center rounded-lg text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background hover:bg-accent hover:text-blue-500 h-9 px-3 shadow-sm {% if g.shortfall <= 0 %}flex-1{% endif %}" title="Edit Target">
+                                    <i data-lucide="edit" class="w-3.5 h-3.5 {% if g.shortfall <= 0 %}mr-1.5{% endif %}"></i>{% if g.shortfall <= 0 %} Edit{% endif %}
                                 </button>
-                                <button @click="$dispatch('open-modal', 'deleteGoalModal{{ g.id }}')" class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background hover:bg-destructive hover:text-destructive-foreground h-8 w-8 shadow-sm" title="Hapus Target">
-                                    <i data-lucide="trash-2" class="w-3 h-3 text-red-500"></i>
+                                <button type="button" @click="$dispatch('open-modal', 'deleteGoalModal{{ g.id }}')" class="inline-flex items-center justify-center rounded-lg text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background hover:bg-destructive hover:text-destructive-foreground h-9 w-9 shadow-sm" title="Hapus Target">
+                                    <i data-lucide="trash-2" class="w-3.5 h-3.5 text-destructive"></i>
                                 </button>
                             </div>
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-xl">
-                            <i data-lucide="target" class="w-12 h-12 mx-auto text-muted mb-3"></i>
-                            <p class="font-medium">Belum ada target finansial.</p>
-                            <p class="text-sm mt-1">Buat proyeksi target untuk memulai perencanaan keuangan.</p>
+                        <div class="col-span-full text-center py-12 text-muted-foreground border-2 border-dashed border-border rounded-2xl p-6">
+                            <i data-lucide="target" class="w-12 h-12 mx-auto text-muted-foreground/40 mb-3"></i>
+                            <p class="font-semibold text-foreground">Belum ada target finansial</p>
+                            <p class="text-sm mt-1 max-w-md mx-auto">Buat target dan tanggal pencapaiannya agar Treasury Flow dapat menghitung berapa yang perlu ditabung setiap hari, minggu, dan bulan.</p>
+                            <button type="button" @click="$dispatch('open-modal', 'formAddGoalModal')" class="mt-4 inline-flex items-center justify-center rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-9 px-4">
+                                <i data-lucide="plus" class="w-4 h-4 mr-1.5"></i> Buat Target Pertama
+                            </button>
                         </div>
                     {% endif %}
                 </div>
@@ -1203,17 +1478,61 @@
                 <div @click.stop class="bg-card text-card-foreground rounded-xl shadow-lg border border-border w-full max-w-md overflow-hidden relative">
                     <div class="flex items-center justify-between p-4 border-b border-border">
                         <h3 class="font-semibold text-lg">Tambah Dana ({{ g.name }})</h3>
-                        <button @click="$dispatch('close-modal')" class="text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
+                        <button type="button" @click="$dispatch('close-modal')" class="text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
                     </div>
                     <form method="POST" action="{{ url_for('performance.financial_performance') }}" class="p-4 space-y-4">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" name="action" value="saving_goal">
                         <input type="hidden" name="goal_id" value="{{ g.id }}">
+
+                        <div class="grid grid-cols-3 gap-2 rounded-xl border border-border bg-muted/40 p-3 text-xs">
+                            <div>
+                                <span class="block text-muted-foreground">Terkumpul</span>
+                                <span class="font-semibold text-foreground tabular-nums">{{ g.current_amount | rupiah }}</span>
+                            </div>
+                            <div>
+                                <span class="block text-muted-foreground">Target</span>
+                                <span class="font-semibold text-foreground tabular-nums">{{ g.target_amount | rupiah }}</span>
+                            </div>
+                            <div>
+                                <span class="block text-amber-700 dark:text-amber-300 font-medium">Kurang Lagi</span>
+                                <span class="font-bold text-amber-700 dark:text-amber-300 tabular-nums">{{ g.shortfall | rupiah }}</span>
+                            </div>
+                        </div>
+
                         <div>
                             <label class="text-sm font-medium mb-1 block">Nominal Tabungan Baru</label>
-                            <input type="text" name="saving_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
-                            <p class="text-xs text-muted-foreground mt-2">Dana saat ini: {{ g.current_amount | rupiah }}</p>
+                            <input type="text" id="savingAmountInput{{ g.id }}" name="saving_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm tabular-nums" placeholder="Contoh: 100.000" required>
                         </div>
+
+                        {% if g.shortfall > 0 %}
+                        <div class="space-y-1.5">
+                            <span class="text-xs font-medium text-muted-foreground block">Pilih Cepat Rekomendasi:</span>
+                            <div class="flex flex-wrap gap-1.5">
+                                {% if g.daily_fmt %}
+                                <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.daily_fmt }}')" class="inline-flex items-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 transition-colors tabular-nums">
+                                    Harian: Rp {{ g.daily_fmt }}
+                                </button>
+                                {% endif %}
+                                {% if g.weekly_fmt %}
+                                <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.weekly_fmt }}')" class="inline-flex items-center rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 transition-colors tabular-nums">
+                                    Mingguan: Rp {{ g.weekly_fmt }}
+                                </button>
+                                {% endif %}
+                                {% if g.monthly_fmt %}
+                                <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.monthly_fmt }}')" class="inline-flex items-center rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:text-indigo-300 transition-colors tabular-nums">
+                                    Bulanan: Rp {{ g.monthly_fmt }}
+                                </button>
+                                {% endif %}
+                                {% if g.shortfall_fmt %}
+                                <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.shortfall_fmt }}')" class="inline-flex items-center rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 transition-colors tabular-nums">
+                                    Lunasi Sisa: Rp {{ g.shortfall_fmt }}
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
                         <div>
                             <label class="text-sm font-medium mb-1 block">Potong dari Akun / Dompet (Opsional)</label>
                             <select name="account_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
@@ -1290,8 +1609,8 @@
 
     <!-- Scripts -->
     <script>
-        lucide.createIcons();
-        
+        if (window.lucide) lucide.createIcons();
+
         // Rupiah formatter for inputs
         function formatRupiahLive(angka) {
             if (window.formatRibuanInput) {
@@ -1305,6 +1624,21 @@
             if (ribuan) { let separator = sisa ? '.' : ''; rupiah += separator + ribuan.join('.'); }
             return split[1] != undefined ? rupiah + ',' + split[1] : rupiah;
         }
+
+        window.fillSavingAmount = function(goalId, formattedAmount) {
+            const inp = document.getElementById('savingAmountInput' + goalId);
+            if (!inp) return;
+            inp.value = formattedAmount ? formatRupiahLive(String(formattedAmount)) : '';
+            inp.dispatchEvent(new Event('input', { bubbles: true }));
+            setTimeout(function() {
+                try { inp.focus(); } catch (e) {}
+            }, 60);
+        };
+
+        window.openGoalSavingModal = function(goalId, formattedAmount) {
+            window.dispatchEvent(new CustomEvent('open-modal', { detail: 'savingModal' + goalId }));
+            window.fillSavingAmount(goalId, formattedAmount || '');
+        };
 
         document.addEventListener('DOMContentLoaded', function() {
             document.body.addEventListener('input', function(e) {
@@ -1433,7 +1767,7 @@
                                 maintainAspectRatio: false,
                                 cutout: '70%',
                                 plugins: {
-                                    legend: { position: 'bottom', labels: { color: textColor, usePointStyle: true, padding: 20 } },
+                                    legend: { display: false },
                                     tooltip: {
                                         backgroundColor: isDark ? '#1f2937' : '#ffffff',
                                         titleColor: isDark ? '#f3f4f6' : '#111827',
@@ -1460,9 +1794,20 @@
                 const dark = e.detail && e.detail.dark;
                 const newText = dark ? '#9ca3af' : '#4b5563';
                 const newGrid = dark ? '#374151' : '#e5e7eb';
+                const tooltipBg = dark ? '#1f2937' : '#ffffff';
+                const tooltipTitle = dark ? '#f3f4f6' : '#111827';
+                const tooltipBody = dark ? '#d1d5db' : '#4b5563';
                 [window._perfTimeSeriesChart, window._perfCashflowTabChart].forEach(ch => {
                     if (!ch) return;
-                    ch.options.plugins.legend.labels.color = newText;
+                    if (ch.options.plugins.legend && ch.options.plugins.legend.labels) {
+                        ch.options.plugins.legend.labels.color = newText;
+                    }
+                    if (ch.options.plugins.tooltip) {
+                        ch.options.plugins.tooltip.backgroundColor = tooltipBg;
+                        ch.options.plugins.tooltip.titleColor = tooltipTitle;
+                        ch.options.plugins.tooltip.bodyColor = tooltipBody;
+                        ch.options.plugins.tooltip.borderColor = newGrid;
+                    }
                     ch.options.scales.x.ticks.color = newText;
                     ch.options.scales.y.ticks.color = newText;
                     ch.options.scales.y.grid.color = newGrid;
@@ -1470,7 +1815,12 @@
                 });
                 if (window._perfDonutChart) {
                     window._perfDonutChart.data.datasets[0].borderColor = dark ? '#020817' : '#ffffff';
-                    window._perfDonutChart.options.plugins.legend.labels.color = newText;
+                    if (window._perfDonutChart.options.plugins.tooltip) {
+                        window._perfDonutChart.options.plugins.tooltip.backgroundColor = tooltipBg;
+                        window._perfDonutChart.options.plugins.tooltip.titleColor = tooltipTitle;
+                        window._perfDonutChart.options.plugins.tooltip.bodyColor = tooltipBody;
+                        window._perfDonutChart.options.plugins.tooltip.borderColor = newGrid;
+                    }
                     window._perfDonutChart.update();
                 }
             });
