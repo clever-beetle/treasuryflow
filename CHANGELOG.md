@@ -4,6 +4,20 @@ Seluruh perubahan penting, perbaikan bug, peningkatan keamanan, dan pembaruan an
 
 ---
 
+## [2.8.1] — 2026-11-08 — *Post-Release Deep Audit & Dropdown Stability Hotfix*
+
+### Perbaikan Bug & Stabilitas Antarmuka
+- **Perbaikan Dropdown Kategori Pengeluaran Menutup Sendiri (`#shadcn-select-portal`)**:
+  - Mengganti listener `window.resize` yang sebelumnya memanggil `closePortal()` menjadi `positionPortal()` (termasuk dukungan `visualViewport`), sehingga munculnya keyboard virtual maupun perubahan tinggi bar alamat browser di HP **tidak lagi menutup dropdown secara tiba-tiba**.
+  - Menonaktifkan auto-focus input pencarian pada perangkat layar sentuh/mobile, menaikkan ambang kotak pencarian ke `>= 12` opsi, serta menggunakan ukuran font `16px` (`text-base sm:text-xs`) di mobile untuk mencegah auto-zoom pada iOS Safari & Android Chrome.
+  - Menambahkan `stopPropagation()` pada `#shadcn-select-portal` dan sinkronisasi event `close-modal` agar pemilihan dropdown di dalam modal Alpine (`@click.outside`) tidak pernah menutup modal secara tidak sengaja.
+- **Validasi Form Kustom untuk Dropdown Wajib (`required`)**: Menambahkan penanganan event `invalid` pada seluruh `<select required>` bertema Shadcn agar menampilkan highlight merah, notifikasi toast Bahasa Indonesia yang jelas, dan membuka pilihan dropdown secara otomatis.
+- **Perbaikan Validasi Tersembunyi Split Bill (`add_transaction.html`)**: Menghapus atribut `required` otomatis pada kolom Split Bill saat pengguna berpindah tab ke `Pemasukan` atau `Transfer`, serta mengunci mode tampilan saat mengedit transaksi pasangan `Transfer`.
+- **Perbaikan Tautan Aksi Kalender Finansial (`/api/calendar_events`)**: Mengarahkan tombol aksi Utang & Cicilan Rutin pada modal detail Kalender Finansial langsung ke tab `?tab=liabilities` di Performa Keuangan.
+- **Keamanan Koneksi Pool PostgreSQL (`init_db` & `handle_500`)**: Memastikan `autocommit = False` selalu dipulihkan setelah bootstrap database dan menutup koneksi error-logger pada blok `finally`.
+
+---
+
 ## [2.8.0] — 2026-11-08 — *Precision & Speed*
 
 ### Performa & Infrastruktur Database

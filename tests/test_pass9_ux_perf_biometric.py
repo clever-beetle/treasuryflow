@@ -142,8 +142,18 @@ def test_calendar_events_rupiah_format_window_and_cc_due_day(client):
 
     # Check Indonesian dot formatting (Rp 1.500.000, Rp 450.000, Rp 12.000.000) and future window support
     assert any('BCA Card (Rp 1.500.000)' in t for t in titles)
-    assert any('Internet Fiber (Rp 450.000)' in t and e['start'] == '2027-03-15' for e, t in zip(events, titles))
+    inst_ev = next((e for e in events if 'Internet Fiber (Rp 450.000)' in e['title'] and e['start'] == '2027-03-15'), None)
+    assert inst_ev is not None
+    assert inst_ev['extendedProps']['action_url'].endswith('?tab=liabilities')
     assert any('Dana Darurat (Rp 12.000.000)' in t for t in titles)
+
+    # Verify both ?tab=liabilities and legacy ?tab=debts open the liabilities tab cleanly
+    perf_liab = client.get('/financial_performance?tab=liabilities')
+    assert perf_liab.status_code == 200
+    assert b"activeTab: 'liabilities'" in perf_liab.data
+    perf_debts_alias = client.get('/financial_performance?tab=debts')
+    assert perf_debts_alias.status_code == 200
+    assert b"activeTab: 'liabilities'" in perf_debts_alias.data
 
     # Check /transactions/?view=calendar Indonesian day & month headers
     cal_tx = client.get('/transactions/?view=calendar&cal_year=2026&cal_month=8')
@@ -152,6 +162,76 @@ def test_calendar_events_rupiah_format_window_and_cc_due_day(client):
     assert 'Agustus 2026' in cal_html
     for day_lbl in ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min']:
         assert day_lbl in cal_html
+
+
+def test_dropdown_never_binds_resize_to_close_and_transfer_edit_mode(client):
+    uname, _ = _register_and_login(client)
+    client.post('/setup/accounts', data={
+        'action': 'add',
+        'category_key': 'BANK',
+        'name_detail': 'BCA',
+        'initial_balance': '2.000.000',
+    }, follow_redirects=True)
+    client.post('/setup/accounts', data={
+        'action': 'add',
+        'category_key': 'E-WALLET',
+        'name_detail': 'GoPay',
+        'initial_balance': '500.000',
+    }, follow_redirects=True)
+
+    with client.application.app_context():
+        db = get_db()
+        uid = db.execute("SELECT id FROM users WHERE username = ?", (uname,)).fetchone()['id']
+        accs = db.execute("SELECT id, name FROM accounts WHERE user_id = ? ORDER BY id ASC", (uid,)).fetchall()
+        bca_id, gopay_id = accs[0]['id'], accs[1]['id']
+
+    # Record a transfer between BCA and GoPay
+    tf_res = client.post('/transactions/add', data={
+        'type': 'transfer',
+        'date': '2026-11-08',
+        'amount': '250.000',
+        'account_id': str(bca_id),
+        'to_account_id': str(gopay_id),
+        'description': 'Topup GoPay',
+    }, follow_redirects=True)
+    assert tf_res.status_code == 200
+
+    with client.application.app_context():
+        db = get_db()
+        tf_leg = db.execute(
+            "SELECT id FROM transactions WHERE user_id = ? AND category = 'Transfer' ORDER BY id ASC LIMIT 1",
+            (uid,),
+        ).fetchone()
+        assert tf_leg is not None
+        tf_id = tf_leg['id']
+
+    # Verify /transactions/add renders the mobile-safe resize repositioner (not closePortal on resize)
+    add_page = client.get('/transactions/add')
+    add_html = add_page.data.decode('utf-8')
+    assert "window.addEventListener('resize', positionPortal)" in add_html
+    assert "window.addEventListener('resize', closePortal)" not in add_html
+    assert "syncSplitBillRequirements" in add_html
+
+    # Verify /transactions/edit/<transfer_id> locks Transfer mode cleanly and syncs both legs on update
+    edit_get = client.get(f'/transactions/edit/{tf_id}')
+    assert edit_get.status_code == 200
+    assert b'Transaksi Transfer Antar Akun' in edit_get.data
+
+    edit_post = client.post(f'/transactions/edit/{tf_id}', data={
+        'type': 'expense',
+        'date': '2026-11-08',
+        'amount': '300.000',
+        'account_id': str(bca_id),
+        'description': 'Topup GoPay Updated',
+    }, follow_redirects=True)
+    assert edit_post.status_code == 200
+
+    with client.application.app_context():
+        db = get_db()
+        bca_bal = db.execute("SELECT current_balance FROM accounts WHERE id = ?", (bca_id,)).fetchone()['current_balance']
+        gopay_bal = db.execute("SELECT current_balance FROM accounts WHERE id = ?", (gopay_id,)).fetchone()['current_balance']
+        assert bca_bal == 1700000
+        assert gopay_bal == 800000
 
 
 def test_smart_balance_recalculation_skips_clean_rows(client):

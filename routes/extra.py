@@ -137,7 +137,7 @@ def api_calendar_events():
                     'amount_formatted': fmt_val,
                     'raw_amount': rem,
                     'notes': d_row['notes'] or '',
-                    'action_url': f"{perf_url}?tab=debts",
+                    'action_url': f"{perf_url}?tab=liabilities",
                     'action_label': 'Kelola Utang & Piutang',
                 }
             })
@@ -174,7 +174,7 @@ def api_calendar_events():
                     'item_name': inst['name'],
                     'amount_formatted': fmt_val,
                     'raw_amount': amt,
-                    'action_url': f"{perf_url}?tab=debts",
+                    'action_url': f"{perf_url}?tab=liabilities",
                     'action_label': 'Kelola Cicilan Rutin',
                 }
             })

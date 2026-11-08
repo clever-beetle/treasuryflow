@@ -562,6 +562,7 @@ x-cloak>
         if (currentCategory && list.includes(currentCategory)) {
             sel.value = currentCategory;
         }
+        sel.disabled = (currentCategory === 'Transfer');
         sel.dispatchEvent(new CustomEvent('shadcn:refresh'));
     };
 

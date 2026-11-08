@@ -530,7 +530,7 @@
                         { element: 'nav button:last-child', popover: { title: 'Menu Utama', description: 'Di sini Anda dapat berpindah antar halaman seperti Dashboard, Transaksi, dan Performa Keuangan.', side: "bottom", align: 'end' }},
                         { element: 'nav button[title="Toggle Theme"]', popover: { title: 'Tema Layar & Tutorial', description: 'Ganti tema gelap/terang, dan putar ulang tutorial ini kapan saja Anda butuhkan.', side: "bottom", align: 'end' }},
                         { element: 'a[href*="/transactions/add"], a[href*="/add_transaction"]', popover: { title: 'Catat Transaksi', description: 'Akses cepat untuk mencatat setiap pemasukan atau pengeluaran Anda.', side: "bottom", align: 'center' }},
-                        { element: 'select', popover: { title: 'Filter Waktu', description: 'Ubah rentang waktu untuk melihat tren ringkasan keuangan pada periode tertentu.', side: "bottom", align: 'start' }},
+                        { element: '.shadcn-select-wrapper, select', popover: { title: 'Filter Waktu', description: 'Ubah rentang waktu untuk melihat tren ringkasan keuangan pada periode tertentu.', side: "bottom", align: 'start' }},
                         { element: '.grid.gap-4 > div:nth-child(1)', popover: { title: 'Kartu Total Saldo', description: 'Jumlah gabungan dari semua rekening dan dompet aset Anda. Angka ini adalah kekayaan likuid Anda saat ini.', side: "bottom", align: 'center' }},
                         { element: '.grid.gap-4 > div:nth-child(2)', popover: { title: 'Kartu Pemasukan', description: 'Akumulasi seluruh uang yang masuk (Gaji, Bonus, dll) dalam periode yang Anda pilih.', side: "bottom", align: 'center' }},
                         { element: '.grid.gap-4 > div:nth-child(3)', popover: { title: 'Kartu Pengeluaran', description: 'Total seluruh uang yang Anda belanjakan dalam periode waktu yang dipilih.', side: "bottom", align: 'center' }},
@@ -544,7 +544,7 @@
                     customSteps = [
                         { element: 'form', popover: { title: 'Formulir Pencatatan', description: 'Isi detail transaksi Anda di sini. Mulai dari jenis, tanggal, hingga nominalnya.', side: "top", align: 'center' }},
                         { element: 'input[name="amount"]', popover: { title: 'Nominal Uang', description: 'Masukkan jumlah uangnya. Sistem akan menata titik ribuan secara otomatis!', side: "bottom", align: 'start' }},
-                        { element: 'select[name="account_id"]', popover: { title: 'Pilih Dompet', description: 'Tentukan dompet mana yang uangnya bertambah atau berkurang (misal: Tunai atau BCA).', side: "top", align: 'start' }},
+                        { element: '#sourceAccountLabel + .shadcn-select-wrapper, .shadcn-select-wrapper', popover: { title: 'Pilih Dompet', description: 'Tentukan dompet mana yang uangnya bertambah atau berkurang (misal: Tunai atau BCA).', side: "top", align: 'start' }},
                         { element: 'button[type="submit"]', popover: { title: 'Simpan Data', description: 'Klik simpan untuk merekam transaksi ini secara permanen ke dalam sistem.', side: "top", align: 'center' }}
                     ];
                 } else if (path.includes('transactions')) {
@@ -677,6 +677,10 @@
             from { opacity: 0; transform: translateY(-4px) scale(0.98); }
             to { opacity: 1; transform: translateY(0) scale(1); }
         }
+        .shadcn-select-options {
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+        }
         .shadcn-select-options::-webkit-scrollbar {
             width: 6px;
         }
@@ -693,7 +697,22 @@
             let optionsContainer = null;
             let activeSelect = null;
             let activeTrigger = null;
+            let openedAt = 0;
+            const SEARCH_MIN_OPTIONS = 12;
             const enhancedRegistry = new Set();
+
+            function isMobileOrTouch() {
+                return Boolean(
+                    (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+                    window.innerWidth < 768
+                );
+            }
+
+            function clearTriggerInvalid(triggerBtn) {
+                if (!triggerBtn) return;
+                triggerBtn.classList.remove('border-destructive', 'ring-2', 'ring-destructive/30');
+                triggerBtn.removeAttribute('aria-invalid');
+            }
 
             function ensurePortal() {
                 if (portal) return portal;
@@ -701,17 +720,26 @@
                 portal.id = 'shadcn-select-portal';
                 portal.setAttribute('role', 'listbox');
 
+                // Prevent clicks inside the portal from triggering Alpine @click.outside on open modals
+                portal.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+                portal.addEventListener('mousedown', function(e) {
+                    e.stopPropagation();
+                });
+
                 searchWrap = document.createElement('div');
                 searchWrap.className = 'border-b border-border px-3 py-2 flex items-center gap-2 bg-muted/30';
                 searchWrap.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted-foreground shrink-0"><circle cx="11" cy="11" r="8"></circle><path d="m21 21-4.3-4.3"></path></svg>';
                 searchInput = document.createElement('input');
                 searchInput.type = 'text';
                 searchInput.placeholder = 'Cari pilihan...';
-                searchInput.className = 'w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground focus:outline-none';
+                // 16px (text-base) on mobile prevents iOS/Android browser auto-zoom & keyboard resize glitches
+                searchInput.className = 'w-full bg-transparent text-base sm:text-xs text-foreground placeholder:text-muted-foreground focus:outline-none';
                 searchWrap.appendChild(searchInput);
 
                 optionsContainer = document.createElement('div');
-                optionsContainer.className = 'shadcn-select-options max-h-64 overflow-y-auto p-1.5 space-y-0.5';
+                optionsContainer.className = 'shadcn-select-options max-h-72 overflow-y-auto p-1.5 space-y-0.5';
 
                 portal.appendChild(searchWrap);
                 portal.appendChild(optionsContainer);
@@ -734,8 +762,9 @@
                     }
                 });
 
-                document.addEventListener('mousedown', function(e) {
+                document.addEventListener('pointerdown', function(e) {
                     if (!portal || portal.style.display === 'none') return;
+                    if (performance.now() - openedAt < 65) return;
                     if (portal.contains(e.target)) return;
                     if (activeTrigger && activeTrigger.contains(e.target)) return;
                     closePortal();
@@ -747,12 +776,19 @@
                     }
                 });
 
-                window.addEventListener('resize', closePortal);
+                // Reposition (NEVER close!) on resize / mobile virtual-keyboard / mobile URL-bar changes
+                window.addEventListener('resize', positionPortal);
+                if (window.visualViewport) {
+                    window.visualViewport.addEventListener('resize', positionPortal);
+                    window.visualViewport.addEventListener('scroll', positionPortal);
+                }
                 window.addEventListener('scroll', function(e) {
                     if (!portal || portal.style.display === 'none') return;
                     if (optionsContainer && (e.target === optionsContainer || optionsContainer.contains(e.target))) return;
                     positionPortal();
                 }, true);
+
+                window.addEventListener('close-modal', closePortal);
 
                 return portal;
             }
@@ -780,6 +816,7 @@
                 } else {
                     labelSpan.classList.remove('text-muted-foreground', 'font-normal');
                     labelSpan.classList.add('text-foreground', 'font-medium');
+                    clearTriggerInvalid(triggerBtn);
                 }
                 triggerBtn.disabled = Boolean(selectEl.disabled);
             }
@@ -874,7 +911,7 @@
                     return;
                 }
                 const vw = window.innerWidth;
-                const vh = window.innerHeight;
+                const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
                 const menuWidth = Math.min(Math.max(rect.width, 190), vw - 16);
                 let left = rect.left;
                 if (left + menuWidth > vw - 8) {
@@ -885,14 +922,14 @@
 
                 const spaceBelow = vh - rect.bottom - 10;
                 const spaceAbove = rect.top - 10;
-                const portalHeight = Math.min(portal.offsetHeight || 260, 310);
+                const portalHeight = Math.min(portal.offsetHeight || 280, 340);
 
                 if (spaceBelow < portalHeight && spaceAbove > spaceBelow) {
                     portal.style.top = 'auto';
-                    portal.style.bottom = (vh - rect.top + 6) + 'px';
+                    portal.style.bottom = Math.max(8, window.innerHeight - rect.top + 6) + 'px';
                 } else {
                     portal.style.bottom = 'auto';
-                    portal.style.top = (rect.bottom + 6) + 'px';
+                    portal.style.top = Math.max(8, rect.bottom + 6) + 'px';
                 }
             }
 
@@ -905,9 +942,10 @@
                 }
                 activeSelect = selectEl;
                 activeTrigger = triggerBtn;
+                openedAt = performance.now();
 
                 const visibleOptsCount = Array.from(selectEl.options || []).filter(o => !o.hidden && o.style.display !== 'none').length;
-                if (visibleOptsCount >= 8) {
+                if (visibleOptsCount >= SEARCH_MIN_OPTIONS) {
                     searchWrap.style.display = 'flex';
                     searchInput.value = '';
                 } else {
@@ -927,8 +965,13 @@
                 if (selectedItem) {
                     selectedItem.scrollIntoView({ block: 'nearest' });
                 }
-                if (visibleOptsCount >= 8) {
-                    setTimeout(() => searchInput && searchInput.focus(), 20);
+                // Only auto-focus search on desktop (never pop up virtual keyboard automatically on mobile)
+                if (visibleOptsCount >= SEARCH_MIN_OPTIONS && !isMobileOrTouch()) {
+                    setTimeout(() => {
+                        if (searchInput && portal && portal.style.display !== 'none') {
+                            searchInput.focus({ preventScroll: true });
+                        }
+                    }, 20);
                 }
             }
 
@@ -941,6 +984,19 @@
                 }
                 activeSelect = null;
                 activeTrigger = null;
+            }
+
+            function findFieldLabel(selectEl, wrapper) {
+                if (selectEl.id) {
+                    const explicit = document.querySelector(`label[for="${selectEl.id}"]`);
+                    if (explicit && explicit.textContent.trim()) return explicit.textContent.trim();
+                }
+                const container = wrapper.parentElement;
+                if (container) {
+                    const lbl = container.querySelector('label');
+                    if (lbl && lbl.textContent.trim()) return lbl.textContent.replace(/\s+/g, ' ').trim();
+                }
+                return 'pilihan pada daftar';
             }
 
             function enhanceSelect(selectEl) {
@@ -983,6 +1039,20 @@
                     }
                 });
 
+                // Clean HTML5 required validation feedback on visible custom trigger
+                selectEl.addEventListener('invalid', function(e) {
+                    e.preventDefault();
+                    triggerBtn.classList.add('border-destructive', 'ring-2', 'ring-destructive/30');
+                    triggerBtn.setAttribute('aria-invalid', 'true');
+                    triggerBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    triggerBtn.focus({ preventScroll: true });
+                    openPortal(selectEl, triggerBtn);
+                    const fieldName = findFieldLabel(selectEl, wrapper);
+                    window.dispatchEvent(new CustomEvent('toast', {
+                        detail: { type: 'error', message: `Silakan pilih ${fieldName} terlebih dahulu.` }
+                    }));
+                });
+
                 const refreshFn = () => syncTrigger(selectEl, triggerBtn);
                 selectEl.addEventListener('change', refreshFn);
                 selectEl.addEventListener('input', refreshFn);
@@ -1005,6 +1075,7 @@
             }
 
             window.refreshShadcnSelects = syncAllTriggers;
+            window.closeShadcnSelect = closePortal;
 
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', () => scanAllSelects(document));
@@ -1026,8 +1097,8 @@
 
             ['open-modal', 'open-edit-modal', 'open-bulk-edit-modal'].forEach(evName => {
                 window.addEventListener(evName, () => {
-                    setTimeout(syncAllTriggers, 30);
-                    setTimeout(syncAllTriggers, 120);
+                    setTimeout(() => { scanAllSelects(document); syncAllTriggers(); }, 30);
+                    setTimeout(() => { scanAllSelects(document); syncAllTriggers(); }, 120);
                 });
             });
             document.addEventListener('click', () => requestAnimationFrame(syncAllTriggers));

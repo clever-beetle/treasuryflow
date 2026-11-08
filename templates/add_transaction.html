@@ -2,6 +2,7 @@
 {% block page_title %}{% if tx %}Edit Transaksi{% else %}Catat Transaksi{% endif %}{% endblock %}
 {% block content %}
 {% set active_init_type = tx.type if tx else 'expense' %}
+{% set is_transfer_edit = (tx and tx.category == 'Transfer') %}
 {% set income_all = categories['income'] + (custom_categories['income'] if custom_categories and custom_categories['income'] else []) %}
 {% set expense_all = categories['expense'] + (custom_categories['expense'] if custom_categories and custom_categories['expense'] else []) %}
 
@@ -16,6 +17,16 @@
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             
             <!-- Segmented Transaction Type Tabs (Responsive Grid, Zero Overlap) -->
+            {% if is_transfer_edit %}
+            <input type="hidden" name="type" value="{{ active_init_type }}">
+            <div class="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-3 text-xs sm:text-sm text-blue-700 dark:text-blue-300 flex items-start gap-2.5">
+                <i data-lucide="arrow-left-right" class="w-4 h-4 shrink-0 mt-0.5"></i>
+                <div>
+                    <p class="font-semibold">Transaksi Transfer Antar Akun</p>
+                    <p class="text-xs opacity-90 mt-0.5">Perubahan tanggal dan nominal akan disinkronkan otomatis dengan sisi pasangan transfernya.</p>
+                </div>
+            </div>
+            {% else %}
             <div class="space-y-2">
                 <label class="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Jenis Transaksi</label>
                 <div class="grid {% if tx %}grid-cols-2{% else %}grid-cols-3{% endif %} gap-1.5 p-1.5 rounded-xl bg-muted/80 border border-border w-full">
@@ -44,6 +55,7 @@
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
 
             <div class="space-y-4">
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -56,7 +68,7 @@
                         <label class="text-sm font-medium leading-none">Nominal (Rp)</label>
                         <div class="relative">
                             <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold text-sm">Rp</span>
-                            <input type="text" inputmode="decimal" name="amount" id="amountInput" required value="{% if tx %}{{ '{:,.0f}'.format(tx.amount).replace(',', '.') }}{% endif %}" class="flex h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 py-2 text-sm font-semibold ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="0">
+                            <input type="text" inputmode="decimal" name="amount" id="amountInput" required value="{% if tx %}{{ '{:,.0f}'.format(tx.amount).replace(',', '.') }}{% endif %}" class="auto-ribuan flex h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 py-2 text-sm font-semibold ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" placeholder="0">
                         </div>
                     </div>
                 </div>
@@ -241,9 +253,30 @@
         toAccountSelect.dispatchEvent(new CustomEvent('shadcn:refresh'));
     }
 
+    const IS_TRANSFER_EDIT = {{ 'true' if is_transfer_edit else 'false' }};
+
+    function syncSplitBillRequirements(isExpenseMode) {
+        if (!isSplitCheckbox || !splitInputs || !splitPerson || !splitAmount) return;
+        if (isExpenseMode && isSplitCheckbox.checked) {
+            splitInputs.classList.remove('hidden');
+            splitPerson.setAttribute('required', 'required');
+            splitAmount.setAttribute('required', 'required');
+        } else if (!isExpenseMode) {
+            // Never keep HTML5 required on hidden split-bill fields when switching to Pemasukan or Transfer
+            splitPerson.removeAttribute('required');
+            splitAmount.removeAttribute('required');
+        } else {
+            splitInputs.classList.add('hidden');
+            splitPerson.removeAttribute('required');
+            splitAmount.removeAttribute('required');
+        }
+    }
+
     function updateTransactionMode() {
+        if (window.closeShadcnSelect) window.closeShadcnSelect();
+
         const checkedRadio = document.querySelector('input[name="type"]:checked');
-        const selectedType = checkedRadio ? checkedRadio.value : 'expense';
+        const selectedType = checkedRadio ? checkedRadio.value : INITIAL_TX_TYPE;
         const categoryWrapper = document.getElementById('categoryFieldWrapper');
         const categorySelect = document.getElementById('categorySelect');
         const toAccountContainer = document.getElementById('toAccountContainer');
@@ -251,10 +284,22 @@
         const splitSection = document.getElementById('splitBillSection');
         const sourceLabel = document.getElementById('sourceAccountLabel');
 
+        if (IS_TRANSFER_EDIT) {
+            if (splitSection) splitSection.style.display = 'none';
+            syncSplitBillRequirements(false);
+            if (categoryWrapper) categoryWrapper.style.display = 'none';
+            if (categorySelect) categorySelect.removeAttribute('required');
+            if (toAccountContainer) toAccountContainer.style.display = 'none';
+            if (toAccountSelect) toAccountSelect.removeAttribute('required');
+            if (sourceLabel) sourceLabel.textContent = INITIAL_TX_TYPE === 'income' ? 'Akun Tujuan Transfer' : 'Akun Sumber Transfer';
+            return;
+        }
+
         const currentCat = categorySelect ? categorySelect.value : '';
 
         if (selectedType === 'income') {
             if (splitSection) splitSection.style.display = 'none';
+            syncSplitBillRequirements(false);
             if (categoryWrapper) categoryWrapper.style.display = '';
             if (toAccountContainer) toAccountContainer.style.display = 'none';
             if (toAccountSelect) toAccountSelect.removeAttribute('required');
@@ -262,7 +307,8 @@
             if (sourceLabel) sourceLabel.textContent = 'Masuk ke Akun / Dompet';
             populateCategorySelect('income', currentCat || (INITIAL_TX_TYPE === 'income' ? INITIAL_TX_CATEGORY : ''));
         } else if (selectedType === 'expense') {
-            if (splitSection) splitSection.style.display = 'block';
+            if (splitSection) splitSection.style.display = {% if tx %}'none'{% else %}'block'{% endif %};
+            syncSplitBillRequirements({% if tx %}false{% else %}true{% endif %});
             if (categoryWrapper) categoryWrapper.style.display = '';
             if (toAccountContainer) toAccountContainer.style.display = 'none';
             if (toAccountSelect) toAccountSelect.removeAttribute('required');
@@ -271,6 +317,7 @@
             populateCategorySelect('expense', currentCat || (INITIAL_TX_TYPE === 'expense' ? INITIAL_TX_CATEGORY : ''));
         } else if (selectedType === 'transfer') {
             if (splitSection) splitSection.style.display = 'none';
+            syncSplitBillRequirements(false);
             if (categoryWrapper) categoryWrapper.style.display = 'none';
             if (toAccountContainer) toAccountContainer.style.display = '';
             if (toAccountSelect) toAccountSelect.setAttribute('required', 'required');

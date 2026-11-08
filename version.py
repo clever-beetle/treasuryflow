@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-APP_VERSION = "2.8.0"
+APP_VERSION = "2.8.1"
 RELEASE_DATE = "2026-11-08"
 RELEASE_CODENAME = "Precision & Speed"
 

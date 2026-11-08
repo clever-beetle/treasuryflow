@@ -358,10 +358,10 @@ def init_db(force=False):
                 try:
                     cursor.execute('''
                         INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount)
-                        VALUES (%s, %s, %s, %s, %s, %s)
+                        VALUES (?, ?, ?, ?, ?, ?)
                     ''', (c['user_id'], f"[KARTU KREDIT] {c['name']}", 0.0, -float(c['current_usage']), 'liability', c['limit_amount']))
                     # Delete from credit cards
-                    cursor.execute("DELETE FROM credit_cards WHERE id = %s", (c['id'],))
+                    cursor.execute("DELETE FROM credit_cards WHERE id = ?", (c['id'],))
                 except Exception as ex:
                     logger.warning(f"Failed to migrate card {c['id']}: {ex}")
         except Exception as e:
@@ -630,6 +630,10 @@ def init_db(force=False):
             
         db.commit()
         _ensure_performance_indexes(cursor, db, is_pg=is_pg)
+        try:
+            db.conn.autocommit = False
+        except Exception:
+            pass
         _db_bootstrapped = True
 
 @app.cli.command("init-db")
@@ -854,15 +858,22 @@ def handle_500(e):
     err_str = f"Internal Server Error: {str(e)}\n{traceback.format_exc()}"
     print(err_str)
     
+    err_conn = None
     try:
         if utils.DATABASE_URL:
-            db = psycopg2.connect(utils.DATABASE_URL, sslmode='require')
-            db.autocommit = True
-            cursor = db.cursor()
+            err_conn = psycopg2.connect(utils.DATABASE_URL, sslmode='require', connect_timeout=4)
+            err_conn.autocommit = True
+            cursor = err_conn.cursor()
             cursor.execute("CREATE TABLE IF NOT EXISTS error_logs (id SERIAL PRIMARY KEY, error TEXT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)")
             cursor.execute("INSERT INTO error_logs (error) VALUES (%s)", (err_str,))
-    except Exception as db_err:
+    except Exception:
         pass
+    finally:
+        if err_conn is not None:
+            try:
+                err_conn.close()
+            except Exception:
+                pass
 
     # Instead of full crashing, return a friendly flash or 500
     try:

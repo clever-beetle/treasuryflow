@@ -701,6 +701,8 @@ def financial_performance():
         analytics_insights.append({"icon": "pie-chart", "color": "amber-500", "title": f"Pengeluaran Terbesar: {top_cat[0]}", "desc": f"Anda menghabiskan {fmt_top} untuk {top_cat[0]} ({pct:.1f}% dari total pengeluaran)."})
     # --- End Analytics Integration ---
     req_tab = request.args.get('tab', 'analytics')
+    if req_tab == 'debts':
+        req_tab = 'liabilities'
     active_tab = req_tab if req_tab in ('analytics', 'cashflow', 'liabilities', 'assets', 'goals') else 'analytics'
     return render_template('financial_performance.html', 
                            active_tab=active_tab,
