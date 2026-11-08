@@ -372,10 +372,12 @@ def setup_account():
             except:
                 pass
             if 'UNIQUE' in str(e) or 'IntegrityError' in str(type(e).__name__):
-                error = "Data integrity error occurred."
+                error = "Terjadi konflik data akun."
             else:
-                error = f"An error occurred: {e}"
+                error = f"Terjadi kesalahan: {e}"
 
+    from routes.dashboard import recalculate_account_balances
+    recalculate_account_balances(db, user_id)
     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()
     return render_template('setup_account.html', accounts=accounts, message=message, error=error, categories=ACCOUNT_TYPES, account_to_edit=account_to_edit)
 

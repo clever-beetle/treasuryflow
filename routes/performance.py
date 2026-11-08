@@ -41,16 +41,31 @@ def financial_performance():
         if action == 'add_debt':
             person_name = (request.form.get('person_name') or '').strip()
             type_record = request.form.get('type') if request.form.get('type') in ('debt', 'receivable') else 'debt'
-            total_amount = parse_amount(request.form.get('total_amount', '0'))
+            total_amount = parse_amount(request.form.get('total_amount') or request.form.get('amount') or '0')
             due_date = request.form.get('due_date')
             notes = request.form.get('notes')
+            source_acc_raw = request.form.get('account_id', '')
             
             if person_name and total_amount > 0:
                 db.execute('''
                     INSERT INTO debts_receivables (user_id, person_name, type, total_amount, remaining_amount, due_date, notes)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 ''', (user_id, person_name, type_record, total_amount, total_amount, due_date, notes))
+                if source_acc_raw and str(source_acc_raw).isdigit():
+                    src_acc = db.execute('SELECT id, name FROM accounts WHERE id = ? AND user_id = ?', (int(source_acc_raw), user_id)).fetchone()
+                    if src_acc:
+                        tx_date = wib_now().strftime('%Y-%m-%d')
+                        # Borrowing money (debt) increases wallet cash; lending money (receivable) decreases wallet cash
+                        tx_type = 'income' if type_record == 'debt' else 'expense'
+                        tx_label = 'Pencairan Utang' if type_record == 'debt' else 'Pemberian Piutang'
+                        tx_desc = f"{tx_label} ({person_name})" + (f": {notes}" if notes else "")
+                        db.execute('''
+                            INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
+                            VALUES (?, ?, ?, ?, ?, ?, 'Utang-Piutang')
+                        ''', (user_id, tx_date, src_acc['id'], tx_type, total_amount, tx_desc))
                 db.commit()
+                from routes.dashboard import recalculate_account_balances
+                recalculate_account_balances(db, user_id)
                 flash('Catatan utang/piutang berhasil ditambahkan.', 'success')
             
         elif action == 'pay_debt':
@@ -323,19 +338,30 @@ def financial_performance():
                 recalculate_account_balances(db, user_id)
 
         elif action == 'add_asset':
-            asset_name = (request.form.get('asset_name') or '').strip()
-            category = (request.form.get('category') or '').strip()
+            asset_name = (request.form.get('asset_name') or request.form.get('name') or '').strip()
+            category = (request.form.get('category') or request.form.get('asset_type') or '').strip()
             purchase_date = request.form.get('purchase_date')
             purchase_price = parse_amount(request.form.get('purchase_price', '0'))
             quantity = request.form.get('quantity')
             notes = request.form.get('notes')
+            source_acc_raw = request.form.get('account_id', '')
             
             if asset_name and purchase_price >= 0:
                 db.execute('''
                     INSERT INTO assets (user_id, asset_name, category, purchase_date, purchase_price, quantity, notes)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                 ''', (user_id, asset_name, category, purchase_date, purchase_price, quantity, notes))
+                if purchase_price > 0 and source_acc_raw and str(source_acc_raw).isdigit():
+                    src_acc = db.execute('SELECT id FROM accounts WHERE id = ? AND user_id = ?', (int(source_acc_raw), user_id)).fetchone()
+                    if src_acc:
+                        tx_date = (purchase_date or '').strip()[:10] or wib_now().strftime('%Y-%m-%d')
+                        db.execute('''
+                            INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
+                            VALUES (?, ?, ?, 'expense', ?, ?, 'Investasi')
+                        ''', (user_id, tx_date, src_acc['id'], purchase_price, f"Pembelian Aset: {asset_name}"))
                 db.commit()
+                from routes.dashboard import recalculate_account_balances
+                recalculate_account_balances(db, user_id)
                 flash('Aset berhasil ditambahkan ke portofolio.', 'success')
 
         elif action == 'edit_asset':
@@ -457,7 +483,10 @@ def financial_performance():
     today_str = today.strftime('%Y-%m-%d')
     days_ago_str = (today - timedelta(days=days_range)).strftime('%Y-%m-%d')
     
-    accounts_data = db.execute("SELECT name, initial_balance, current_balance FROM accounts WHERE user_id = ? AND account_type = 'asset'", (user_id,)).fetchall()
+    from routes.dashboard import recalculate_account_balances
+    recalculate_account_balances(db, user_id)
+
+    accounts_data = db.execute("SELECT name, initial_balance, current_balance FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL)", (user_id,)).fetchall()
     total_net_worth = sum((acc['current_balance'] or 0) for acc in accounts_data)
     theme_colors = ["#11237e", "#3f51b5", "#7986cb", "#9fa8da", "#c5cae9"]
     

@@ -740,6 +740,16 @@
                             <input type="date" name="due_date" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" required>
                         </div>
                         <div>
+                            <label class="text-sm font-medium mb-1 block">Mutasi ke Akun / Dompet <span class="text-xs text-muted-foreground font-normal">(Opsional)</span></label>
+                            <select name="account_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                <option value="">-- Tanpa mutasi saldo (Catatan saja) --</option>
+                                {% for acc in clean_accounts %}
+                                <option value="{{ acc.id }}">{{ acc.clean }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-xs text-muted-foreground mt-1">Jika dipilih: Utang menambah saldo dompet, Piutang memotong saldo dompet.</p>
+                        </div>
+                        <div>
                             <label class="text-sm font-medium mb-1 block">Catatan</label>
                             <textarea name="notes" class="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring min-h-[60px]"></textarea>
                         </div>
@@ -837,6 +847,16 @@
                                 <label class="text-sm font-medium mb-1 block">Kuantitas</label>
                                 <input type="number" step="any" name="quantity" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                             </div>
+                        </div>
+                        <div>
+                            <label class="text-sm font-medium mb-1 block">Potong dari Akun / Dompet <span class="text-xs text-muted-foreground font-normal">(Opsional)</span></label>
+                            <select name="account_id" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                                <option value="">-- Tanpa potong saldo (Aset lama) --</option>
+                                {% for acc in clean_accounts %}
+                                <option value="{{ acc.id }}">{{ acc.clean }}</option>
+                                {% endfor %}
+                            </select>
+                            <p class="text-xs text-muted-foreground mt-1">Pilih akun jika aset ini dibeli menggunakan saldo dompet Anda.</p>
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Catatan</label>

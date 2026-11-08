@@ -52,16 +52,51 @@ def dashboard():
         for inst in installments_sync:
             if today.day >= (inst['due_day_of_month'] or 1):
                 desc = f"Auto-Sync: {inst['name']}"
-                existing = db.execute("SELECT id FROM transactions WHERE user_id = ? AND description = ? AND date >= ? AND date <= ?", (user_id, desc, first_day_of_month, last_day_of_month)).fetchone()
+                manual_prefix = f"Pembayaran {inst['name']}%"
+                existing = db.execute(
+                    "SELECT id FROM transactions WHERE user_id = ? AND (description = ? OR description LIKE ?) AND date >= ? AND date <= ?",
+                    (user_id, desc, manual_prefix, first_day_of_month, last_day_of_month)
+                ).fetchone()
                 if not existing:
-                    account = db.execute("SELECT id FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL) LIMIT 1", (user_id,)).fetchone()
+                    account = db.execute("SELECT id, name FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL) ORDER BY id ASC LIMIT 1", (user_id,)).fetchone()
                     if account:
                         try:
                             safe_day = min(max(1, int(inst['due_day_of_month'] or 1)), last_day)
                             date_str = f"{current_month_str}-{safe_day:02d}"
-                            db.execute('''INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
-                                          VALUES (?, ?, ?, 'expense', ?, ?, 'Langganan & Cicilan')''', 
-                                       (user_id, date_str, account['id'], inst['amount_per_cycle'], desc))
+                            inst_dict = dict(inst)
+                            linked_id = inst_dict.get('linked_account_id')
+                            linked_acc = None
+                            if linked_id and int(linked_id) != int(account['id']):
+                                linked_acc = db.execute("SELECT id, name FROM accounts WHERE id = ? AND user_id = ?", (linked_id, user_id)).fetchone()
+
+                            if linked_acc:
+                                clean_src = account['name'].split('] ')[1] if '] ' in account['name'] else account['name']
+                                clean_dst = linked_acc['name'].split('] ')[1] if '] ' in linked_acc['name'] else linked_acc['name']
+                                tf_desc = f"{desc} ({clean_src} → {clean_dst})"
+                                db.execute('''INSERT INTO transactions (user_id, date, account_id, type, amount, description, category)
+                                              VALUES (?, ?, ?, 'expense', ?, ?, 'Transfer')''',
+                                           (user_id, date_str, account['id'], inst['amount_per_cycle'], tf_desc))
+                                r1 = db.execute("SELECT MAX(id) as id FROM transactions WHERE user_id = ?", (user_id,)).fetchone()
+                                tx1_id = r1['id'] if r1 else None
+                                db.execute('''INSERT INTO transactions (user_id, date, account_id, type, amount, description, category, linked_transaction_id)
+                                              VALUES (?, ?, ?, 'income', ?, ?, 'Transfer', ?)''',
+                                           (user_id, date_str, linked_acc['id'], inst['amount_per_cycle'], tf_desc, tx1_id))
+                                r2 = db.execute("SELECT MAX(id) as id FROM transactions WHERE user_id = ?", (user_id,)).fetchone()
+                                tx2_id = r2['id'] if r2 else None
+                                if tx1_id and tx2_id:
+                                    db.execute("UPDATE transactions SET linked_transaction_id = ? WHERE id = ?", (tx2_id, tx1_id))
+                            else:
+                                db.execute('''INSERT INTO transactions (user_id, date, account_id, type, amount, description, category) 
+                                              VALUES (?, ?, ?, 'expense', ?, ?, 'Langganan & Cicilan')''', 
+                                           (user_id, date_str, account['id'], inst['amount_per_cycle'], desc))
+
+                            if inst_dict.get('is_temporary_tenor'):
+                                new_tenor = (inst_dict.get('current_tenor') or 1) + 1
+                                total = inst_dict.get('total_tenor') or 999
+                                if new_tenor > total:
+                                    db.execute("UPDATE recurring_installments SET current_tenor = ?, is_active = 0 WHERE id = ?", (new_tenor, inst['id']))
+                                else:
+                                    db.execute("UPDATE recurring_installments SET current_tenor = ? WHERE id = ?", (new_tenor, inst['id']))
                             db.commit()
                         except Exception as e:
                             try:
@@ -86,7 +121,7 @@ def dashboard():
     # Bundle scalar queries into a single round-trip to reduce latency
     stats_query_compat = '''
         SELECT 
-            (SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND account_type = 'asset') as total_balance,
+            (SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL)) as total_balance,
             (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date >= ? AND COALESCE(category, '') != 'Transfer') as total_expense,
             (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'income' AND date >= ? AND COALESCE(category, '') != 'Transfer') as total_income,
             (SELECT SUM(amount) FROM transactions WHERE user_id = ? AND type = 'expense' AND date = ? AND COALESCE(category, '') != 'Transfer') as expense_today,

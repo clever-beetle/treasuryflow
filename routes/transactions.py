@@ -10,6 +10,68 @@ from openpyxl.chart import BarChart, Reference
 
 transactions_bp = Blueprint('transactions', __name__)
 
+def _sync_linked_goal_or_debt_on_tx_change(db, user_id, old_tx, new_amount=None):
+    """Keep financial_goals and debts_receivables synchronized when a linked transaction is edited or deleted."""
+    import re
+    if not old_tx:
+        return
+    tx_d = dict(old_tx)
+    desc = (tx_d.get('description') or '').strip()
+    cat = (tx_d.get('category') or '').strip()
+    old_amt = float(tx_d.get('amount') or 0.0)
+    if old_amt <= 0:
+        return
+
+    # 1. Financial Goal savings transaction: "Tabungan Target: <Goal Name>"
+    if desc.startswith('Tabungan Target: '):
+        goal_name = desc[len('Tabungan Target: '):].strip()
+        if goal_name:
+            goal = db.execute(
+                'SELECT id, target_amount, current_amount FROM financial_goals WHERE user_id = ? AND name = ? ORDER BY id DESC LIMIT 1',
+                (user_id, goal_name)
+            ).fetchone()
+            if goal:
+                delta = (float(new_amount) - old_amt) if new_amount is not None else (-old_amt)
+                updated_curr = max(0.0, float(goal['current_amount'] or 0.0) + delta)
+                target_amt = float(goal['target_amount'] or 0.0)
+                new_status = 'Achieved' if (target_amt > 0 and updated_curr >= target_amt) else 'In Progress'
+                db.execute(
+                    'UPDATE financial_goals SET current_amount = ?, status = ? WHERE id = ? AND user_id = ?',
+                    (updated_curr, new_status, goal['id'], user_id)
+                )
+
+    # 2. Debt / Receivable installment payment transaction: "Cicilan debt (<Person>) via <Account>: <Notes>"
+    elif cat == 'Utang-Piutang' and desc.startswith('Cicilan '):
+        m = re.match(r'^Cicilan\s+(debt|receivable)\s+\((.+?)\)\s+via\s+', desc)
+        if m:
+            d_type, person_name = m.group(1), m.group(2)
+            debt = db.execute(
+                'SELECT id, total_amount, remaining_amount FROM debts_receivables WHERE user_id = ? AND type = ? AND person_name = ? ORDER BY id DESC LIMIT 1',
+                (user_id, d_type, person_name)
+            ).fetchone()
+            if debt:
+                total_amt = float(debt['total_amount'] or 0.0)
+                curr_rem = float(debt['remaining_amount'] or 0.0)
+                if new_amount is None:
+                    updated_rem = min(total_amt, curr_rem + old_amt) if total_amt > 0 else (curr_rem + old_amt)
+                    pay_row = db.execute(
+                        'SELECT id FROM debt_payments WHERE debt_id = ? AND amount_paid = ? ORDER BY id DESC LIMIT 1',
+                        (debt['id'], old_amt)
+                    ).fetchone()
+                    if pay_row:
+                        db.execute('DELETE FROM debt_payments WHERE id = ?', (pay_row['id'],))
+                else:
+                    updated_rem = curr_rem + (old_amt - float(new_amount))
+                    if total_amt > 0:
+                        updated_rem = min(total_amt, max(0.0, updated_rem))
+                    else:
+                        updated_rem = max(0.0, updated_rem)
+                new_status = 'LUNAS' if updated_rem <= 0 else 'BELUM LUNAS'
+                db.execute(
+                    'UPDATE debts_receivables SET remaining_amount = ?, status = ? WHERE id = ? AND user_id = ?',
+                    (updated_rem, new_status, debt['id'], user_id)
+                )
+
 @transactions_bp.route('/calendar', strict_slashes=False, endpoint='transactions_calendar')
 @login_required
 def transactions_calendar():
@@ -215,7 +277,7 @@ def add_transaction():
 
         if t_type == 'transfer':
             if str(account_id) == str(to_account_id):
-                flash('Cannot transfer to same account', 'danger')
+                flash('Akun sumber dan tujuan transfer tidak boleh sama.', 'danger')
                 return redirect(url_for('transactions.add_transaction'))
                 
             to_acc = db.execute("SELECT id, name FROM accounts WHERE id = ? AND user_id = ?", (to_account_id, user_id)).fetchone()
@@ -281,7 +343,7 @@ def edit_transaction(id):
     user_id = session['user_id']
     tx = db.execute('SELECT * FROM transactions WHERE id = ? AND user_id = ?', (id, user_id)).fetchone()
     if not tx:
-        flash('Transaction not found', 'danger')
+        flash('Transaksi tidak ditemukan.', 'danger')
         return redirect(url_for('transactions.transactions_list'))
         
     if request.method == 'POST':
@@ -342,6 +404,7 @@ def edit_transaction(id):
                 SET account_id=?, date=?, type=?, amount=?, description=?, category=?
                 WHERE id=? AND user_id=?
             ''', (account_id, date, t_type, amount, description, category, id, user_id))
+            _sync_linked_goal_or_debt_on_tx_change(db, user_id, tx_dict, new_amount=amount)
 
             # If this transaction is linked to a transfer pair, keep paired leg date and amount in sync
             if linked_id:
@@ -414,11 +477,12 @@ def delete_transaction(transaction_id):
             if paired:
                 db.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (paired['id'], user_id))
 
+        _sync_linked_goal_or_debt_on_tx_change(db, user_id, tx_dict, new_amount=None)
         db.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (transaction_id, user_id))
         db.commit()
         from routes.dashboard import recalculate_account_balances
         recalculate_account_balances(db, user_id)
-        flash('Transaction deleted', 'success')
+        flash('Transaksi berhasil dihapus.', 'success')
     return redirect(url_for('transactions.transactions_list'))
 
 @transactions_bp.route('/bulk_delete', methods=['POST'])
@@ -444,6 +508,7 @@ def bulk_delete_transactions():
                 ''', (user_id, other_type, tx_dict.get('amount'), tx_dict.get('date'), tid)).fetchone()
                 if paired:
                     db.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (paired['id'], user_id))
+            _sync_linked_goal_or_debt_on_tx_change(db, user_id, tx_dict, new_amount=None)
             db.execute('DELETE FROM transactions WHERE id = ? AND user_id = ?', (tid, user_id))
     db.commit()
     from routes.dashboard import recalculate_account_balances
@@ -456,6 +521,10 @@ def bulk_delete_transactions():
 def delete_all_transactions():
     db = get_db()
     user_id = session['user_id']
+    # Sync linked goals/debts before deleting all transactions
+    all_txs = db.execute("SELECT * FROM transactions WHERE user_id = ? AND (description LIKE 'Tabungan Target: %' OR category = 'Utang-Piutang')", (user_id,)).fetchall()
+    for old_tx in all_txs:
+        _sync_linked_goal_or_debt_on_tx_change(db, user_id, old_tx, new_amount=None)
     # Delete all transactions
     db.execute('DELETE FROM transactions WHERE user_id = ?', (user_id,))
     db.commit()
@@ -1000,7 +1069,7 @@ def download_receipt(id):
     ''', (id, user_id)).fetchone()
     
     if not tx:
-        flash('Transaction not found', 'danger')
+        flash('Transaksi tidak ditemukan.', 'danger')
         return redirect(url_for('transactions.transactions_list'))
 
     user = db.execute('SELECT fullname, username FROM users WHERE id = ?', (user_id,)).fetchone()

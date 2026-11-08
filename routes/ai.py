@@ -27,6 +27,8 @@ def api_chat():
         message = data.get('message', '').lower()
         user_id = session['user_id']
         db = get_db()
+        from routes.dashboard import recalculate_account_balances
+        recalculate_account_balances(db, user_id)
         
         reply = "Maaf, saya tidak mengerti pertanyaan Anda. Coba tanya tentang 'saldo', 'utang', atau 'apakah saya boros?'"
         
@@ -36,7 +38,7 @@ def api_chat():
         # 1. Saldo Check
         if 'saldo' in message or 'uang' in message or 'sisa' in message:
             total_balance = db.execute("SELECT SUM(current_balance) FROM accounts WHERE user_id = ? AND (account_type = 'asset' OR account_type IS NULL)", (user_id,)).fetchone()[0] or 0
-            if total_balance > 0:
+            if total_balance != 0:
                 reply = f"Total saldo Anda di semua akun saat ini adalah **{format_rupiah(total_balance)}**. Tetap bijak mengelolanya ya!"
             else:
                 reply = "Saat ini saldo Anda tercatat Rp 0. Ayo catat pemasukan Anda terlebih dahulu."
@@ -53,13 +55,13 @@ def api_chat():
             if expense == 0:
                 reply = "Hebat! Anda belum ada pengeluaran sama sekali di bulan ini."
             elif income == 0:
-                reply = f"Bulan ini pengeluaran Anda sudah mencapai **Rp {expense:,.0f}**, tapi belum ada pemasukan yang dicatat. Hati-hati!"
+                reply = f"Bulan ini pengeluaran Anda sudah mencapai **{format_rupiah(expense)}**, tapi belum ada pemasukan yang dicatat. Hati-hati!"
             elif expense > income:
-                reply = f"Ya, Anda cukup boros. Pengeluaran bulan ini (**Rp {expense:,.0f}**) sudah melebihi pemasukan Anda (**Rp {income:,.0f}**). Segera rem pengeluaran Anda!"
+                reply = f"Ya, Anda cukup boros. Pengeluaran bulan ini (**{format_rupiah(expense)}**) sudah melebihi pemasukan Anda (**{format_rupiah(income)}**). Segera rem pengeluaran Anda!"
             elif expense > (income * 0.7):
-                reply = f"Lumayan tinggi. Pengeluaran Anda (**Rp {expense:,.0f}**) sudah mencapai lebih dari 70% dari pemasukan (**Rp {income:,.0f}**)."
+                reply = f"Lumayan tinggi. Pengeluaran Anda (**{format_rupiah(expense)}**) sudah mencapai lebih dari 70% dari pemasukan (**{format_rupiah(income)}**)."
             else:
-                reply = f"Kondisi Anda aman! Pengeluaran Anda (**Rp {expense:,.0f}**) masih jauh di bawah pemasukan Anda (**Rp {income:,.0f}**). Anda hebat dalam menabung!"
+                reply = f"Kondisi Anda aman! Pengeluaran Anda (**{format_rupiah(expense)}**) masih jauh di bawah pemasukan Anda (**{format_rupiah(income)}**). Anda hebat dalam menabung!"
                 
         # 3. Utang Check
         elif 'utang' in message or 'hutang' in message:
@@ -71,7 +73,7 @@ def api_chat():
             if total_debt == 0 and total_piutang == 0:
                 reply = "Bagus sekali! Anda tidak memiliki utang maupun piutang aktif."
             else:
-                reply = f"Anda memiliki total utang sebesar **Rp {total_debt:,.0f}** dan total piutang sebesar **Rp {total_piutang:,.0f}**."
+                reply = f"Anda memiliki total utang sebesar **{format_rupiah(total_debt)}** dan total piutang sebesar **{format_rupiah(total_piutang)}**."
 
         # 4. Budget Check
         elif 'budget' in message or 'anggaran' in message:
@@ -162,9 +164,9 @@ def api_rag_chat():
         for tx in top_matches:
             val = float(tx['amount'] or 0)
             total_found += val if tx['type'] == 'expense' else 0
-            details.append(f"- Rp {val:,.0f} pada {tx['date']} untuk {tx['category']} ({tx['description']})")
+            details.append(f"- {format_rupiah(val)} pada {tx['date']} untuk {tx['category']} ({tx['description']})")
             
-        reply = f"Berdasarkan mesin pencarian AI, saya menemukan data transaksi yang berkaitan dengan '{message}'.\n\nTotal Pengeluaran: **Rp {total_found:,.0f}**.\n\nRincian:\n"
+        reply = f"Berdasarkan mesin pencarian AI, saya menemukan data transaksi yang berkaitan dengan '{message}'.\n\nTotal Pengeluaran: **{format_rupiah(total_found)}**.\n\nRincian:\n"
         reply += "\n".join(details)
         
         return jsonify({'reply': reply})

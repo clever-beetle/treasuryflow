@@ -163,24 +163,24 @@ def forgot_password():
     if request.method == 'POST':
         email_input = (request.form.get('username') or request.form.get('email') or '').strip()
         if not email_input:
-            flash('Please enter your email address.', 'danger')
+            flash('Silakan masukkan alamat email atau username Anda.', 'danger')
             return render_template('forgot_password.html')
         db = get_db()
         user = db.execute('SELECT id, fullname, email FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)', (email_input, email_input)).fetchone()
         
         if user and user['email']:
+            from utils import send_reset_email, wib_now
             token = secrets.token_urlsafe(32)
-            expiry = (datetime.now() + timedelta(minutes=2)).strftime('%Y-%m-%d %H:%M:%S')
+            expiry = (wib_now() + timedelta(minutes=15)).strftime('%Y-%m-%d %H:%M:%S')
             
             db.execute('UPDATE users SET reset_token = ?, token_expiry = ? WHERE id = ?', (token, expiry, user['id']))
             db.commit()
             
-            from utils import send_reset_email
             reset_url = url_for('auth.reset_password', token=token, _external=True)
             send_reset_email(user['email'], user['fullname'], reset_url)
-            flash('Password reset link is being sent to your email. It may take a moment to arrive.', 'success')
+            flash('Tautan reset password sedang dikirim ke email Anda. Mohon periksa kotak masuk atau folder spam.', 'success')
         else:
-            flash('Email address not found in our system.', 'danger')
+            flash('Email atau username tidak ditemukan di sistem kami.', 'danger')
             
     return render_template('forgot_password.html')
 
@@ -190,7 +190,7 @@ def reset_password(token):
     user = db.execute('SELECT id, token_expiry FROM users WHERE reset_token = ?', (token,)).fetchone()
     
     if not user or not user['token_expiry']:
-        flash('Invalid or expired reset token.', 'danger')
+        flash('Tautan reset password tidak valid atau sudah kedaluwarsa.', 'danger')
         return redirect(url_for('auth.login'))
         
     try:
@@ -198,8 +198,9 @@ def reset_password(token):
     except (ValueError, TypeError):
         expiry_time = None
 
-    if not expiry_time or datetime.now() > expiry_time:
-        flash('Reset token has expired.', 'danger')
+    from utils import wib_now
+    if not expiry_time or wib_now() > expiry_time:
+        flash('Tautan reset password sudah kedaluwarsa. Silakan ajukan ulang.', 'danger')
         return redirect(url_for('auth.login'))
         
     if request.method == 'POST':
@@ -210,13 +211,13 @@ def reset_password(token):
             flash('Password minimal harus 6 karakter.', 'danger')
             return render_template('reset_password.html', token=token)
         if new_password != confirm_password:
-            flash('Passwords do not match.', 'danger')
+            flash('Password baru dan konfirmasi password tidak cocok.', 'danger')
             return render_template('reset_password.html', token=token)
             
         hashed_pw = generate_password_hash(new_password)
         db.execute('UPDATE users SET password = ?, reset_token = NULL, token_expiry = NULL WHERE id = ?', (hashed_pw, user['id']))
         db.commit()
-        flash('Your password has been successfully reset. Please log in.', 'success')
+        flash('Password Anda berhasil direset. Silakan masuk dengan password baru.', 'success')
         return redirect(url_for('auth.login'))
         
     return render_template('reset_password.html', token=token)

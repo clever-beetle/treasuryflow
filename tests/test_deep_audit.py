@@ -269,7 +269,7 @@ def test_ai_rag_and_prediction_suite(client):
     rag_res = client.post('/api/rag_chat', json={'message': 'padang'})
     assert rag_res.status_code == 200
     assert 'Padang' in rag_res.json['reply']
-    assert '25,000' in rag_res.json['reply']
+    assert '25.000' in rag_res.json['reply']
 
     # 2. Test predict_future with >= 3 data points
     pred_res = client.get('/api/predict_future')
@@ -466,7 +466,7 @@ def test_remaining_14_bugs_regression(client, monkeypatch):
         user_id = user['id']
         db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type) VALUES (?, '[BANK] BCA', 1000000, 1000000, 'asset')", (user_id,))
         db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type) VALUES (?, '[BANK] Mandiri', 500000, 500000, 'asset')", (user_id,))
-        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount) VALUES (?, '[KARTU KREDIT] BCA Card', 0, -200000, 'liability', 5000000)", (user_id,))
+        db.execute("INSERT INTO accounts (user_id, name, initial_balance, current_balance, account_type, limit_amount) VALUES (?, '[KARTU KREDIT] BCA Card', -200000, -200000, 'liability', 5000000)", (user_id,))
         db.commit()
         accs = db.execute("SELECT id, name FROM accounts WHERE user_id = ? ORDER BY id ASC", (user_id,)).fetchall()
         acc_bca, acc_mandiri = accs[0]['id'], accs[1]['id']

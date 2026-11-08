@@ -227,7 +227,7 @@ def admin_required(f):
         db = get_db()
         user = db.execute('SELECT role FROM users WHERE id = ?', (session['user_id'],)).fetchone()
         if not user or user['role'] != 'admin':
-            flash('Admin privilege required.', 'danger')
+            flash('Akses ditolak. Halaman ini membutuhkan hak akses Admin.', 'danger')
             return redirect(url_for('dashboard.dashboard'))
             
         return f(*args, **kwargs)
@@ -247,33 +247,46 @@ def _send_reset_email_task(email_input, fullname, reset_url):
     import smtplib
     from email.mime.text import MIMEText
     from email.mime.multipart import MIMEMultipart
-    
-    msg = MIMEMultipart()
-    msg['From'] = SMTP_EMAIL
-    msg['To'] = email_input
-    msg['Subject'] = "Treasury Flow - Password Reset Request"
-    
-    body = f"""Hi {fullname or email_input},
 
-We received a request to reset your password for your Treasury Flow account.
-Click the link below to set a new password:
+    smtp_server = os.environ.get("SMTP_SERVER", SMTP_SERVER)
+    smtp_port = int(os.environ.get("SMTP_PORT", SMTP_PORT))
+    smtp_email = os.environ.get("SMTP_EMAIL", SMTP_EMAIL)
+    smtp_password = os.environ.get("SMTP_PASSWORD", SMTP_PASSWORD)
+
+    if os.environ.get("TESTING") == "True" or os.environ.get("FLASK_ENV") == "testing":
+        logger.info(f"[TESTING] Skipping real SMTP send to {email_input}")
+        return
+
+    if not smtp_password:
+        logger.warning(f"SMTP_PASSWORD belum diatur di environment; batal mengirim email reset ke {email_input}")
+        return
+
+    msg = MIMEMultipart()
+    msg['From'] = smtp_email
+    msg['To'] = email_input
+    msg['Subject'] = "Treasury Flow - Permintaan Reset Password"
+
+    body = f"""Halo {fullname or email_input},
+
+Kami menerima permintaan untuk mereset password akun Treasury Flow Anda.
+Klik tautan berikut untuk membuat password baru:
 
 {reset_url}
 
-For your security, this reset link is only valid for the next 2 minutes. If you did not initiate this request, no further action is required and your account remains secure.
+Demi keamanan Anda, tautan ini hanya berlaku selama 15 menit. Jika Anda tidak merasa melakukan permintaan ini, abaikan email ini dan akun Anda tetap aman.
 
-Best regards,
+Salam hangat,
 Kevin Fernando
 Founder, Fernando Capital
 Treasury Flow"""
-    
-    msg.attach(MIMEText(body, 'plain'))
-    
+
+    msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
     try:
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+        server = smtplib.SMTP(smtp_server, smtp_port, timeout=15)
         server.starttls()
-        server.login(SMTP_EMAIL, SMTP_PASSWORD)
-        server.sendmail(SMTP_EMAIL, email_input, msg.as_string())
+        server.login(smtp_email, smtp_password)
+        server.sendmail(smtp_email, email_input, msg.as_string())
         server.quit()
         logger.info(f"Password reset email sent to {email_input}")
     except Exception as e:
