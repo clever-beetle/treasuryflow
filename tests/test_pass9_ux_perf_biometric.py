@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timedelta
 from routes.auth_biometric import _decode_stored_public_key, _get_rp_id
 from routes.dashboard import recalculate_account_balances
 from utils import get_db
@@ -402,16 +403,16 @@ def test_financial_performance_redesign_and_goal_saving_tips(client):
     assert 'openGoalSavingModal' in html_g
     assert 'fillSavingAmount' in html_g
 
-    # Goal 1: 9.000.000 shortfall -> 150.000/hari, 1.050.000/minggu, 4.500.000/bulan
+    # Goal 1: Target 12.000.000, 60 days -> Routine: 200.000/hari, 1.400.000/minggu, 6.000.000/bulan (Shortfall: 9.000.000)
     assert 'Sisa 60 hari' in html_g
     assert 'Rp 9.000.000' in html_g
-    assert 'Rp 150.000' in html_g
-    assert 'Rp 1.050.000' in html_g
-    assert 'Rp 4.500.000' in html_g
+    assert 'Rp 200.000' in html_g
+    assert 'Rp 1.400.000' in html_g
+    assert 'Rp 6.000.000' in html_g
 
-    # Goal 2: 5-day goal hides weekly/monthly cleanly
+    # Goal 2: 5-day goal (Target 1.000.000 / 5 days = 200.000/hari), hides weekly/monthly cleanly
     assert 'Sisa 5 hari' in html_g
-    assert 'Rp 100.000' in html_g
+    assert 'Rp 200.000' in html_g
     assert 'Tenggat &lt; 7 hari' in html_g
     assert 'Tenggat &lt; 30 hari' in html_g
 
@@ -622,3 +623,79 @@ def test_v285_passkey_login_lock_session_reset_and_calendar_guard(client):
         assert 'sm:group-hover:opacity-100' in fh.read()
     assert 'setTimeout(_resizeCharts' in perf
     assert 'Beban: Rp' in perf
+
+
+def test_v286_routine_savings_calculated_from_nominal_target_stays_constant(client):
+    """
+    Verifikasi bahwa rutinan menabung dihitung dari NOMINAL TARGET (bukan dari shortfall),
+    sehingga ketika dana target bertambah (misal shortfall berubah dari 5jt -> 3.8jt),
+    angka rutinan per hari, minggu, dan bulan TIDAK BERUBAH dan tetap konsisten.
+    """
+    uname, _ = _register_and_login(client)
+    today = datetime.now().date()
+    d100 = (today + timedelta(days=100)).strftime('%Y-%m-%d')
+    today_str = today.strftime('%Y-%m-%d')
+
+    # Buat goal: Target 5.000.000, 100 hari durasi
+    with client.application.app_context():
+        db = get_db()
+        uid = db.execute("SELECT id FROM users WHERE username = ?", (uname,)).fetchone()['id']
+        db.execute(
+            "INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status, created_at) "
+            "VALUES (?, 'Beli Laptop 5 Juta', 5000000, 0, ?, 'In Progress', ?)",
+            (uid, d100, today_str)
+        )
+        db.commit()
+        goal_id = db.execute("SELECT id FROM financial_goals WHERE user_id = ? AND name = 'Beli Laptop 5 Juta'", (uid,)).fetchone()['id']
+
+    # 1. Saat current_amount = 0 (shortfall = 5.000.000)
+    # Rutinan harian = 5.000.000 / 100 = 50.000
+    # Rutinan mingguan = 5.000.000 * 7 / 100 = 350.000
+    # Rutinan bulanan = 5.000.000 * 30 / 100 = 1.500.000
+    r1 = client.get('/financial_performance?tab=goals')
+    assert r1.status_code == 200
+    html1 = r1.data.decode('utf-8')
+    assert 'Beli Laptop 5 Juta' in html1
+    assert 'Rp 50.000' in html1
+    assert 'Rp 350.000' in html1
+    assert 'Rp 1.500.000' in html1
+    assert 'Kurang lagi: <strong class="text-amber-700 dark:text-amber-300 font-bold tabular-nums">Rp 5.000.000</strong>' in html1
+
+    # 2. Tambah dana tabungan Rp 1.200.000 (sehingga sisa shortfall menjadi 3.800.000)
+    post_res = client.post('/financial_performance', data={
+        'action': 'saving_goal',
+        'goal_id': str(goal_id),
+        'saving_amount': '1.200.000',
+    }, follow_redirects=True)
+    assert post_res.status_code == 200
+
+    r2 = client.get('/financial_performance?tab=goals')
+    assert r2.status_code == 200
+    html2 = r2.data.decode('utf-8')
+
+    # Terkumpul dan Kurang lagi terupdate dengan benar
+    assert 'Rp 1.200.000' in html2
+    assert 'Rp 3.800.000' in html2
+
+    # Rutinan menabung TETAP KONSISTEN (berdasarkan 5.000.000, BUKAN 3.800.000!)
+    # Tidak berubah menjadi 38.000 / 266.000 / 1.140.000
+    assert 'Rp 50.000' in html2, "Rutinan harian harus tetap Rp 50.000 berdasarkan target nominal 5 juta!"
+    assert 'Rp 350.000' in html2, "Rutinan mingguan harus tetap Rp 350.000 berdasarkan target nominal 5 juta!"
+    assert 'Rp 1.500.000' in html2, "Rutinan bulanan harus tetap Rp 1.500.000 berdasarkan target nominal 5 juta!"
+
+    # 3. Tambah dana tabungan lagi Rp 1.800.000 (total terkumpul 3.000.000, shortfall 2.000.000)
+    client.post('/financial_performance', data={
+        'action': 'saving_goal',
+        'goal_id': str(goal_id),
+        'saving_amount': '1.800.000',
+    }, follow_redirects=True)
+
+    r3 = client.get('/financial_performance?tab=goals')
+    html3 = r3.data.decode('utf-8')
+    assert 'Rp 3.000.000' in html3
+    assert 'Rp 2.000.000' in html3
+    # Tetap tidak berubah
+    assert 'Rp 50.000' in html3
+    assert 'Rp 350.000' in html3
+    assert 'Rp 1.500.000' in html3
+

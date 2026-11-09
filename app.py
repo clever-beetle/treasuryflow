@@ -253,6 +253,13 @@ def init_db(force=False):
             pass
             
         is_pg = bool(utils.DATABASE_URL)
+        try:
+            if is_pg:
+                cursor.execute("ALTER TABLE financial_goals ADD COLUMN IF NOT EXISTS created_at TEXT")
+            else:
+                cursor.execute("ALTER TABLE financial_goals ADD COLUMN created_at TEXT")
+        except Exception:
+            pass
         if not is_pg:
             try:
                 cursor.execute("ALTER TABLE accounts ADD COLUMN billing_due_day INTEGER")
@@ -414,6 +421,7 @@ def init_db(force=False):
                 current_amount REAL DEFAULT 0,
                 due_date TEXT NOT NULL,
                 status TEXT DEFAULT 'In Progress',
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             )
         ''')

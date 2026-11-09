@@ -844,10 +844,12 @@
                             <!-- Saving Projection Tips Box -->
                             {% if g.deadline_state == 'active' and g.shortfall > 0 %}
                             <div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3.5 sm:p-4 space-y-3">
-                                <div class="flex items-start gap-2">
-                                    <i data-lucide="lightbulb" class="w-4 h-4 text-amber-500 shrink-0 mt-0.5"></i>
+                                <div class="flex items-start gap-2.5">
+                                    <div class="p-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
+                                        <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+                                    </div>
                                     <p class="text-xs leading-relaxed text-foreground">
-                                        <span class="font-semibold">Tips Menabung:</span> Agar kekurangan <strong class="tabular-nums">{{ g.shortfall | rupiah }}</strong> tercapai tepat pada <strong>{{ g.due_date_id }}</strong> ({{ g.days_left }} hari lagi), Anda bisa menyisihkan salah satu opsi berikut:
+                                        <span class="font-semibold text-foreground">Rutinan Menabung:</span> Berdasarkan target nominal <strong class="tabular-nums">{{ g.target_amount | rupiah }}</strong> hingga <strong>{{ g.due_date_id }}</strong> (total {{ g.total_days }} hari), rutinitas tabungan yang perlu disisihkan:
                                     </p>
                                 </div>
 
@@ -898,6 +900,11 @@
                                         <span class="text-xs font-medium text-muted-foreground mt-0.5">Tenggat &lt; 30 hari</span>
                                     </div>
                                     {% endif %}
+                                </div>
+
+                                <div class="flex flex-wrap items-center justify-between gap-1.5 text-[11px] text-muted-foreground pt-1.5 border-t border-border/50">
+                                    <span>Kurang lagi: <strong class="text-amber-700 dark:text-amber-300 font-bold tabular-nums">{{ g.shortfall | rupiah }}</strong>{% if g.remaining_days_needed %} (~{{ g.remaining_days_needed }} hari rutin lagi){% endif %}</span>
+                                    <span class="text-[10px] text-muted-foreground">Nominal rutinan konsisten dari total target</span>
                                 </div>
                             </div>
                             {% elif g.deadline_state == 'today' and g.shortfall > 0 %}
@@ -1153,16 +1160,37 @@
                         <h3 class="font-semibold text-lg">Buat Target Finansial</h3>
                         <button @click="$dispatch('close-modal')" class="text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
                     </div>
-                    <form method="POST" action="{{ url_for('performance.financial_performance') }}" class="p-4 space-y-4">
+                    <form method="POST" action="{{ url_for('performance.financial_performance') }}" class="p-4 space-y-4"
+                          x-data="{
+                              targetVal: '',
+                              dateVal: '',
+                              calcRoutine() {
+                                  let raw = parseFloat(String(this.targetVal).replace(/\./g, '').replace(/,/g, '.')) || 0;
+                                  if (raw <= 0 || !this.dateVal) return null;
+                                  let t1 = new Date();
+                                  t1.setHours(0,0,0,0);
+                                  let t2 = new Date(this.dateVal + 'T00:00:00');
+                                  let diffDays = Math.max(1, Math.round((t2 - t1) / (1000 * 60 * 60 * 24)));
+                                  let daily = Math.ceil(raw / diffDays);
+                                  let weekly = diffDays >= 7 ? Math.ceil(raw * 7 / diffDays) : null;
+                                  let monthly = diffDays >= 30 ? Math.ceil(raw * 30 / diffDays) : null;
+                                  return {
+                                      days: diffDays,
+                                      daily: daily.toLocaleString('id-ID'),
+                                      weekly: weekly ? weekly.toLocaleString('id-ID') : null,
+                                      monthly: monthly ? monthly.toLocaleString('id-ID') : null
+                                  };
+                              }
+                          }">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" name="action" value="add_goal">
                         <div>
                             <label class="text-sm font-medium mb-1 block">Nama Target (Goal)</label>
-                            <input type="text" name="goal_name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
+                            <input type="text" name="goal_name" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Contoh: Dana Darurat, Beli Laptop" required>
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Total Target Dana</label>
-                            <input type="text" name="target_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
+                            <input type="text" name="target_amount" x-model="targetVal" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Contoh: 5.000.000" required>
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Dana Tersedia Saat Ini (Opsional)</label>
@@ -1170,8 +1198,26 @@
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Tenggat Waktu (Due Date)</label>
-                            <input type="date" name="due_date" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
+                            <input type="date" name="due_date" x-model="dateVal" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" required>
                         </div>
+                        <template x-if="calcRoutine()">
+                            <div class="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between text-foreground font-semibold">
+                                    <span class="flex items-center gap-1.5"><i data-lucide="calendar-clock" class="w-3.5 h-3.5 text-primary"></i> Estimasi Rutinan Menabung:</span>
+                                    <span class="text-[11px] text-muted-foreground" x-text="calcRoutine().days + ' hari durasi'"></span>
+                                </div>
+                                <div class="flex flex-wrap gap-2 text-foreground font-medium pt-0.5">
+                                    <span class="rounded bg-background border border-border px-2 py-0.5 text-[11px]">Harian: <strong class="text-emerald-600 dark:text-emerald-400" x-text="'Rp ' + calcRoutine().daily"></strong></span>
+                                    <template x-if="calcRoutine().weekly">
+                                        <span class="rounded bg-background border border-border px-2 py-0.5 text-[11px]">Mingguan: <strong class="text-blue-600 dark:text-blue-400" x-text="'Rp ' + calcRoutine().weekly"></strong></span>
+                                    </template>
+                                    <template x-if="calcRoutine().monthly">
+                                        <span class="rounded bg-background border border-border px-2 py-0.5 text-[11px]">Bulanan: <strong class="text-indigo-600 dark:text-indigo-400" x-text="'Rp ' + calcRoutine().monthly"></strong></span>
+                                    </template>
+                                </div>
+                                <p class="text-[10px] text-muted-foreground mt-0.5">Nominal rutinan konsisten dari total target dan tidak berubah saat Anda menyetor tabungan.</p>
+                            </div>
+                        </template>
                         <div class="pt-2">
                             <button type="submit" class="w-full inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">Buat Target</button>
                         </div>
@@ -1509,7 +1555,10 @@
 
                         {% if g.shortfall > 0 %}
                         <div class="space-y-1.5">
-                            <span class="text-xs font-medium text-muted-foreground block">Pilih Cepat Rekomendasi:</span>
+                            <div class="flex items-center justify-between text-xs text-muted-foreground">
+                                <span class="font-medium">Pilih Cepat Nominal:</span>
+                                <span class="text-[10px]">Rutinan dari target {{ g.target_amount | rupiah }}</span>
+                            </div>
                             <div class="flex flex-wrap gap-1.5">
                                 {% if g.daily_fmt %}
                                 <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.daily_fmt }}')" class="inline-flex items-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 transition-colors tabular-nums">
@@ -1559,7 +1608,28 @@
                         <h3 class="font-semibold text-lg">Edit Target Finansial</h3>
                         <button @click="$dispatch('close-modal')" class="text-muted-foreground hover:bg-muted p-1 rounded-md"><i data-lucide="x" class="w-5 h-5"></i></button>
                     </div>
-                    <form method="POST" action="{{ url_for('performance.financial_performance') }}" class="p-4 space-y-4">
+                    <form method="POST" action="{{ url_for('performance.financial_performance') }}" class="p-4 space-y-4"
+                          x-data="{
+                              targetVal: '{{ (g.target_amount or 0) | format_amount_input }}',
+                              dateVal: '{{ g.due_date }}',
+                              calcRoutine() {
+                                  let raw = parseFloat(String(this.targetVal).replace(/\./g, '').replace(/,/g, '.')) || 0;
+                                  if (raw <= 0 || !this.dateVal) return null;
+                                  let t1 = new Date();
+                                  t1.setHours(0,0,0,0);
+                                  let t2 = new Date(this.dateVal + 'T00:00:00');
+                                  let diffDays = Math.max(1, Math.round((t2 - t1) / (1000 * 60 * 60 * 24)));
+                                  let daily = Math.ceil(raw / diffDays);
+                                  let weekly = diffDays >= 7 ? Math.ceil(raw * 7 / diffDays) : null;
+                                  let monthly = diffDays >= 30 ? Math.ceil(raw * 30 / diffDays) : null;
+                                  return {
+                                      days: diffDays,
+                                      daily: daily.toLocaleString('id-ID'),
+                                      weekly: weekly ? weekly.toLocaleString('id-ID') : null,
+                                      monthly: monthly ? monthly.toLocaleString('id-ID') : null
+                                  };
+                              }
+                          }">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <input type="hidden" name="action" value="edit_goal">
                         <input type="hidden" name="goal_id" value="{{ g.id }}">
@@ -1569,7 +1639,7 @@
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Total Target Dana</label>
-                            <input type="text" name="target_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ (g.target_amount or 0) | format_amount_input }}" required>
+                            <input type="text" name="target_amount" x-model="targetVal" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ (g.target_amount or 0) | format_amount_input }}" required>
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Dana Terkumpul Saat Ini</label>
@@ -1577,8 +1647,26 @@
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Tenggat Waktu (Due Date)</label>
-                            <input type="date" name="due_date" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ g.due_date }}" required>
+                            <input type="date" name="due_date" x-model="dateVal" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ g.due_date }}" required>
                         </div>
+                        <template x-if="calcRoutine()">
+                            <div class="rounded-xl border border-primary/20 bg-primary/5 p-3 space-y-1.5 text-xs">
+                                <div class="flex items-center justify-between text-foreground font-semibold">
+                                    <span class="flex items-center gap-1.5"><i data-lucide="calendar-clock" class="w-3.5 h-3.5 text-primary"></i> Estimasi Rutinan Menabung:</span>
+                                    <span class="text-[11px] text-muted-foreground" x-text="calcRoutine().days + ' hari durasi'"></span>
+                                </div>
+                                <div class="flex flex-wrap gap-2 text-foreground font-medium pt-0.5">
+                                    <span class="rounded bg-background border border-border px-2 py-0.5 text-[11px]">Harian: <strong class="text-emerald-600 dark:text-emerald-400" x-text="'Rp ' + calcRoutine().daily"></strong></span>
+                                    <template x-if="calcRoutine().weekly">
+                                        <span class="rounded bg-background border border-border px-2 py-0.5 text-[11px]">Mingguan: <strong class="text-blue-600 dark:text-blue-400" x-text="'Rp ' + calcRoutine().weekly"></strong></span>
+                                    </template>
+                                    <template x-if="calcRoutine().monthly">
+                                        <span class="rounded bg-background border border-border px-2 py-0.5 text-[11px]">Bulanan: <strong class="text-indigo-600 dark:text-indigo-400" x-text="'Rp ' + calcRoutine().monthly"></strong></span>
+                                    </template>
+                                </div>
+                                <p class="text-[10px] text-muted-foreground mt-0.5">Nominal rutinan konsisten dari total target dan tidak berubah saat Anda menyetor tabungan.</p>
+                            </div>
+                        </template>
                         <div class="pt-2 flex gap-2">
                             <button type="button" @click="$dispatch('close-modal')" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium border border-input bg-background hover:bg-accent h-10">Batal</button>
                             <button type="submit" class="flex-1 inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10">Simpan</button>

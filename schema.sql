@@ -33,5 +33,6 @@ CREATE TABLE IF NOT EXISTS financial_goals (
     current_amount REAL DEFAULT 0,
     due_date TEXT NOT NULL,
     status TEXT DEFAULT 'In Progress',
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY(user_id) REFERENCES users(id)
 );

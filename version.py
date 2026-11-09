@@ -1,9 +1,9 @@
 import os
 import subprocess
 
-APP_VERSION = "2.8.5"
+APP_VERSION = "2.8.6"
 RELEASE_DATE = "2026-11-09"
-RELEASE_CODENAME = "Audit Stabilitas Fitur Baru"
+RELEASE_CODENAME = "Rutinan Target Finansial Stabil"
 
 _BULAN_ID = (
     "",
@@ -22,6 +22,17 @@ _BULAN_ID = (
 )
 
 RELEASE_HISTORY = [
+    {
+        "version": "2.8.6",
+        "date_id": "9 November 2026",
+        "title": "Rutinan Menabung Target Finansial Konsisten",
+        "highlights": [
+            "Kalkulasi rutinan menabung (per hari, per minggu, dan per bulan) kini dihitung dari nominal target penuh (misal Rp 5.000.000) bukan dari sisa kekurangan.",
+            "Nominal rutinan tabungan tetap stabil dan tidak berubah saat dana target bertambah / disetor, menjaga disiplin rencana menabung awal.",
+            "Estimasi rutinan menabung kini tampil langsung secara interaktif saat membuat atau mengedit target finansial.",
+            "Sisa kekurangan target (Kurang Lagi) tetap ditampilkan jelas dengan estimasi sisa hari rutinan hingga target tercapai.",
+        ],
+    },
     {
         "version": "2.8.5",
         "date_id": "9 November 2026",

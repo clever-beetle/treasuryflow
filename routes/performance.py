@@ -409,10 +409,11 @@ def financial_performance():
             due_date = request.form.get('due_date')
             if name and target > 0:
                 init_status = 'Achieved' if current >= target - 0.009 else 'In Progress'
+                now_str = wib_now().strftime('%Y-%m-%d %H:%M:%S')
                 db.execute('''
-                    INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status)
-                    VALUES (?, ?, ?, ?, ?, ?)
-                ''', (user_id, name, target, current, due_date, init_status))
+                    INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (user_id, name, target, current, due_date, init_status, now_str))
                 db.commit()
                 flash('Target finansial berhasil dibuat.', 'success')
             else:
@@ -593,7 +594,7 @@ def financial_performance():
         })
 
     goals_raw = db.execute('''
-        SELECT id, name, target_amount, current_amount, due_date, status,
+        SELECT id, name, target_amount, current_amount, due_date, status, created_at,
                COALESCE((current_amount / NULLIF(target_amount, 0) * 100), 0) as percentage
         FROM financial_goals WHERE user_id = ? ORDER BY status DESC, due_date ASC
     ''', (user_id,)).fetchall()
@@ -631,6 +632,7 @@ def financial_performance():
         due_str = str(gd.get('due_date') or '').strip()[:10]
         due_date_id = due_str or 'Tanpa Tenggat'
         days_left = None
+        due_dt = None
         if due_str:
             try:
                 due_dt = datetime.strptime(due_str, '%Y-%m-%d').date()
@@ -639,9 +641,26 @@ def financial_performance():
             except ValueError:
                 days_left = None
 
+        # Tentukan total durasi perencanaan (total_days) dari tanggal dibuat (created_at) ke tenggat (due_date)
+        created_str = str(gd.get('created_at') or '').strip()[:10]
+        start_dt = None
+        if created_str:
+            try:
+                start_dt = datetime.strptime(created_str, '%Y-%m-%d').date()
+            except ValueError:
+                start_dt = None
+
+        if start_dt and due_dt:
+            total_days = max(1, (due_dt - start_dt).days)
+        elif due_dt and days_left is not None:
+            total_days = max(1, days_left)
+        else:
+            total_days = 1
+
         daily_needed = None
         weekly_needed = None
         monthly_needed = None
+        remaining_days_needed = None
         overdue_days = 0
         if is_achieved or shortfall <= 0:
             deadline_state = 'achieved'
@@ -656,19 +675,26 @@ def financial_performance():
         elif days_left == 0:
             deadline_state = 'today'
             deadline_label = 'Tenggat Hari Ini'
+            daily_needed = shortfall_int if shortfall_int > 0 else int(math.ceil(target_amt))
         else:
             deadline_state = 'active'
             deadline_label = 'Besok (1 hari lagi)' if days_left == 1 else f'Sisa {days_left} hari'
-            daily_needed = max(1, int(math.ceil(shortfall / days_left)))
-            if days_left >= 7:
-                weekly_needed = min(shortfall_int, max(1, int(math.ceil(shortfall * 7.0 / days_left))))
-            if days_left >= 30:
-                monthly_needed = min(shortfall_int, max(1, int(math.ceil(shortfall * 30.0 / days_left))))
+            # Rutinan menabung dihitung dari NOMINAL TARGET (bukan dari shortfall),
+            # sehingga angka rutinan konsisten dan tidak berubah saat dana target bertambah
+            daily_needed = max(1, int(math.ceil(target_amt / total_days)))
+            if total_days >= 7:
+                weekly_needed = min(int(target_amt), max(1, int(math.ceil(target_amt * 7.0 / total_days))))
+            if total_days >= 30:
+                monthly_needed = min(int(target_amt), max(1, int(math.ceil(target_amt * 30.0 / total_days))))
+            if daily_needed > 0 and shortfall > 0:
+                remaining_days_needed = int(math.ceil(shortfall / daily_needed))
 
         def _fmt_ribuan(val):
             return f"{int(val):,}".replace(',', '.') if val is not None else ''
 
         gd.update({
+            'total_days': total_days,
+            'remaining_days_needed': remaining_days_needed,
             'target_amount': target_amt,
             'current_amount': current_amt,
             'percentage': raw_pct,

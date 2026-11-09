@@ -4,6 +4,20 @@ Seluruh perubahan penting, perbaikan bug, peningkatan keamanan, dan pembaruan an
 
 ---
 
+## [2.8.6] — 2026-11-09 — *Rutinan Target Finansial Stabil*
+
+### Peningkatan Fitur & Rutinan Target Finansial
+- **Rutinan Menabung dari Nominal Target Penuh (`routes/performance.py`, `templates/financial_performance.html`)**:
+  - Rekomendasi rutinan menabung (**Per Hari**, **Per Minggu**, **Per Bulan**) kini dihitung berdasarkan **total nominal target** (misal target Rp 5.000.000) dan total durasi perencanaan, bukan dari sisa kekurangan (shortfall).
+  - Nominal rutinan tetap **stabil dan tidak berubah** saat pengguna menambah dana / menyetor tabungan, sehingga komitmen disiplin menabung yang direncanakan sejak awal tetap konsisten terlihat.
+  - Sisa kekurangan target (**Kurang Lagi**) tetap ditampilkan secara akurat dan transparan, lengkap dengan estimasi sisa hari rutinan hingga target tercapai.
+  - Opsi *Pilih Cepat Nominal* di dalam modal *Tambah Dana* (`savingModal`) kini menyajikan pilihan nominal rutinan target serta tombol *Lunasi Sisa* secara praktis.
+  - Menambahkan *live preview* estimasi rutinan menabung langsung di dalam modal *Buat Target* (`formAddGoalModal`) dan *Edit Target* (`editGoalModal`) saat pengguna mengetik nominal target dan memilih tanggal tenggat.
+- **Skema Database & Migrasi**:
+  - Menambahkan kolom `created_at` pada tabel `financial_goals` (`app.py`, `schema.sql`) untuk melacak tanggal awal pembuatan target secara presisi bagi perhitungan rutinan jangka panjang.
+
+---
+
 ## [2.8.5] — 2026-11-09 — *Audit Stabilitas Fitur Baru*
 
 ### Perbaikan Bug (hasil audit mendalam v2.8.0–v2.8.4)
