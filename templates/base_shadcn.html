@@ -608,16 +608,29 @@
             
             // Global Auto-Ribuan Formatter
             window.formatRibuanInput = function(rawVal, isInitialLoad = false) {
-                let str = String(rawVal ?? '').trim();
+                let str;
+                if (typeof rawVal === 'number') {
+                    // Raw JS numbers (e.g. Quick Edit props) use "." as the decimal point: keep up to 2 decimals
+                    if (!isFinite(rawVal)) return '';
+                    const rounded = Math.round(Math.abs(rawVal) * 100) / 100;
+                    str = String(rounded).replace('.', ',');
+                } else {
+                    str = String(rawVal ?? '').trim();
+                }
                 if (!str) return '';
-                // Only on initial load, strip a single trailing ".0" from raw Python floats (e.g. "500000.0")
-                // Never strip ".000" (thousands separator)!
-                if (isInitialLoad && /^\d+\.0$/.test(str)) {
-                    str = str.slice(0, -2);
+                // Only on initial load, convert raw machine floats (e.g. "500000.0", "12500.5", "12500.25").
+                // Never touch "x.000" (3-digit thousands separator)!
+                if (isInitialLoad) {
+                    if (/^\d+\.0{1,2}$/.test(str)) {
+                        str = str.replace(/\.0{1,2}$/, '');
+                    } else if (/^\d+\.\d{1,2}$/.test(str)) {
+                        str = str.replace('.', ',');
+                    }
                 }
                 let value = str.replace(/[^,\d]/g, '');
                 let parts = value.split(',');
                 let intPart = parts[0].replace(/^0+(?=\d)/, '');
+                if (intPart === '' && parts[1] !== undefined) intPart = '0';
                 let sisa = intPart.length % 3;
                 let rupiah = intPart.substr(0, sisa);
                 let ribuan = intPart.substr(sisa).match(/\d{3}/gi);

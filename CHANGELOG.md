@@ -4,6 +4,19 @@ Seluruh perubahan penting, perbaikan bug, peningkatan keamanan, dan pembaruan an
 
 ---
 
+## [2.8.5] — 2026-11-09 — *Audit Stabilitas Fitur Baru*
+
+### Perbaikan Bug (hasil audit mendalam v2.8.0–v2.8.4)
+- **Nominal Desimal Rusak 10x/100x saat Edit (`base_shadcn.html`, `transactions_list.html`, `add_transaction.html`)**: `formatRibuanInput` kini memperlakukan angka JS & float mentah (`12500.5`, `12500.25`) sebagai desimal yang benar, dan halaman Edit memakai filter baru `format_amount_input` sehingga desimal tidak dibulatkan.
+- **Kategori Bertanda Petik Memecah Aksi Alpine (`settings.html`, `transactions_list.html`)**: Data kategori/transaksi dikirim lewat `data-*` dan `|tojson` sehingga nama seperti `Jum'at Berkah` aman untuk tombol Hapus & Quick Edit.
+- **Validasi ID Non-Angka (PostgreSQL 500)**: `add_transaction`, `edit_transaction`, `delete_category`, `setup_account` (edit), dan `manage_budget` (delete) kini menolak ID kosong/non-angka dengan pesan yang jelas, serta whitelist jenis transaksi (`income`/`expense`/`transfer`).
+- **Login Passkey Ketukan Ganda (`login.html`, `auth_biometric.py`)**: Tombol dikunci selama verifikasi agar challenge server tidak tertimpa, dan sesi dibersihkan (`session.clear()`) sebelum login biometrik.
+- **Target Finansial**: Selisih float sub-rupiah tidak lagi menampilkan "Kurang Lagi Rp 0 + Rp 1/hari"; validasi form Target/Utang/Cicilan/Tabungan kini menampilkan pesan error, bukan gagal diam-diam. Modal edit Target & Utang mempertahankan nilai desimal.
+- **Tampilan Performa Keuangan**: Ikon kalender periode tidak lagi tertutup dropdown, tombol kelola kartu kredit terlihat di HP, dan grafik di-resize ulang setelah animasi pindah tab.
+- **Lainnya**: Ikon fallback logo akun terlihat di Dark Mode (`macros.html`) dan Kalender Finansial mengabaikan tanggal tenggat yang tidak valid (`/api/calendar_events`).
+
+---
+
 ## [2.8.4] — 2026-11-09 — *Performa Keuangan Redesign & Tips Target Finansial*
 
 ### Peningkatan Antarmuka & Fitur Target Finansial

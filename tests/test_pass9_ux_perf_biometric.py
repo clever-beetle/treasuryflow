@@ -427,3 +427,198 @@ def test_financial_performance_redesign_and_goal_saving_tips(client):
     assert 'Target Tercapai 100%!' in html_g
     assert 'Rp 300.000' in html_g
 
+
+
+def _setup_bca(client, uname, balance='5.000.000'):
+    client.post('/setup/accounts', data={
+        'action': 'add',
+        'category_key': 'BANK',
+        'name_detail': 'BCA',
+        'initial_balance': balance,
+    }, follow_redirects=True)
+    with client.application.app_context():
+        db = get_db()
+        uid = db.execute("SELECT id FROM users WHERE username = ?", (uname,)).fetchone()['id']
+        acc_id = db.execute("SELECT id FROM accounts WHERE user_id = ? ORDER BY id ASC LIMIT 1", (uid,)).fetchone()['id']
+    return uid, acc_id
+
+
+def test_v285_decimal_amounts_preserved_in_edit_flows(client):
+    from utils import format_amount_input
+    assert format_amount_input(12500.5) == '12.500,5'
+    assert format_amount_input(12500.25) == '12.500,25'
+    assert format_amount_input(500000.0) == '500.000'
+    assert format_amount_input(None) == '0'
+
+    uname, _ = _register_and_login(client)
+    uid, acc_id = _setup_bca(client, uname)
+    with client.application.app_context():
+        db = get_db()
+        db.execute(
+            "INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-11-08', 'expense', 12500.5, 'Kopi', 'Makanan & Minuman')",
+            (uid, acc_id),
+        )
+        db.commit()
+        tx_id = db.execute("SELECT id FROM transactions WHERE user_id = ? ORDER BY id DESC LIMIT 1", (uid,)).fetchone()['id']
+
+    # Full edit page keeps the decimal instead of rounding it away
+    edit_html = client.get(f'/transactions/edit/{tx_id}').data.decode('utf-8')
+    assert 'value="12.500,5"' in edit_html
+
+    # Quick Edit passes a clean JS number; the global formatter must keep "." as the decimal point
+    list_html = client.get('/transactions/').data.decode('utf-8')
+    assert 'amount: 12500.5,' in list_html
+    base_js = list_html.split('window.formatRibuanInput = function')[1].split('};')[0]
+    assert "typeof rawVal === 'number'" in base_js
+    assert '\\d{1,2}' in base_js
+
+    # Saving "12.500,5" round-trips exactly
+    client.post(f'/transactions/edit/{tx_id}', data={
+        'type': 'expense', 'date': '2026-11-08', 'amount': '12.500,5',
+        'account_id': str(acc_id), 'category': 'Makanan & Minuman', 'description': 'Kopi',
+    }, follow_redirects=True)
+    with client.application.app_context():
+        amt = get_db().execute("SELECT amount FROM transactions WHERE id = ?", (tx_id,)).fetchone()['amount']
+        assert abs(float(amt) - 12500.5) < 1e-6
+
+
+def test_v285_apostrophe_category_safe_in_alpine_handlers(client):
+    uname, _ = _register_and_login(client)
+    uid, acc_id = _setup_bca(client, uname)
+    client.post('/settings', data={'action': 'add_category', 'type': 'expense', 'name': "Jum'at Berkah"}, follow_redirects=True)
+
+    set_html = client.get('/settings?tab=categories').data.decode('utf-8')
+    assert 'data-cat-name="Jum&#39;at Berkah"' in set_html
+    assert '$el.dataset.catName' in set_html
+    assert "name: 'Jum" not in set_html
+
+    client.post('/transactions/add', data={
+        'type': 'expense', 'date': '2026-11-08', 'amount': '50.000',
+        'account_id': str(acc_id), 'category': "Jum'at Berkah", 'description': 'Sedekah',
+    }, follow_redirects=True)
+    list_html = client.get('/transactions/').data.decode('utf-8')
+    assert 'category: "Jum\\u0027at Berkah"' in list_html
+    assert 'type: "expense"' in list_html
+
+    # Deleting the apostrophe category still works end-to-end
+    with client.application.app_context():
+        cat_id = get_db().execute("SELECT id FROM user_categories WHERE user_id = ? AND name = ?", (uid, "Jum'at Berkah")).fetchone()['id']
+    del_res = client.post('/settings', data={'action': 'delete_category', 'category_id': str(cat_id)}, follow_redirects=True)
+    assert "berhasil dihapus" in del_res.data.decode('utf-8')
+
+
+def test_v285_non_integer_ids_and_invalid_type_rejected_cleanly(client):
+    uname, _ = _register_and_login(client)
+    uid, acc_id = _setup_bca(client, uname)
+
+    bad_type = client.post('/transactions/add', data={
+        'type': 'hack', 'date': '2026-11-08', 'amount': '10.000', 'account_id': str(acc_id), 'category': 'Gaji',
+    }, follow_redirects=True)
+    assert bad_type.status_code == 200
+    assert 'Jenis transaksi tidak valid' in bad_type.data.decode('utf-8')
+
+    bad_acc = client.post('/transactions/add', data={
+        'type': 'expense', 'date': '2026-11-08', 'amount': '10.000', 'account_id': 'abc', 'category': 'Belanja',
+    }, follow_redirects=True)
+    assert bad_acc.status_code == 200
+    assert 'Akun sumber tidak valid' in bad_acc.data.decode('utf-8')
+
+    bad_to = client.post('/transactions/add', data={
+        'type': 'transfer', 'date': '2026-11-08', 'amount': '10.000', 'account_id': str(acc_id), 'to_account_id': '',
+    }, follow_redirects=True)
+    assert bad_to.status_code == 200
+    assert 'Akun tujuan transfer tidak valid' in bad_to.data.decode('utf-8')
+
+    with client.application.app_context():
+        db = get_db()
+        assert db.execute("SELECT COUNT(*) AS c FROM transactions WHERE user_id = ?", (uid,)).fetchone()['c'] == 0
+        db.execute(
+            "INSERT INTO transactions (user_id, account_id, date, type, amount, description, category) VALUES (?, ?, '2026-11-08', 'expense', 1000, 'x', 'Belanja')",
+            (uid, acc_id),
+        )
+        db.commit()
+        tx_id = db.execute("SELECT id FROM transactions WHERE user_id = ?", (uid,)).fetchone()['id']
+
+    bad_edit = client.post(f'/transactions/edit/{tx_id}', data={
+        'type': 'expense', 'date': '2026-11-08', 'amount': '2.000', 'account_id': 'xyz',
+    }, follow_redirects=True)
+    assert bad_edit.status_code == 200
+    assert 'Akun yang dipilih tidak valid' in bad_edit.data.decode('utf-8')
+
+    bad_cat = client.post('/settings', data={'action': 'delete_category', 'category_id': 'abc'}, follow_redirects=True)
+    assert bad_cat.status_code == 200
+    assert 'ID kategori tidak valid' in bad_cat.data.decode('utf-8')
+
+    bad_acc_edit = client.post('/setup/accounts', data={'action': 'edit', 'edit_account_id': 'abc', 'initial_balance': '1.000'}, follow_redirects=True)
+    assert bad_acc_edit.status_code == 200
+    assert 'Akun tidak ditemukan' in bad_acc_edit.data.decode('utf-8')
+
+    bad_budget = client.post('/manage_budget', data={'action': 'delete', 'budget_id': 'abc'}, follow_redirects=True)
+    assert bad_budget.status_code == 200
+
+
+def test_v285_goal_float_dust_and_validation_feedback(client):
+    uname, _ = _register_and_login(client)
+    with client.application.app_context():
+        db = get_db()
+        uid = db.execute("SELECT id FROM users WHERE username = ?", (uname,)).fetchone()['id']
+        db.execute(
+            "INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status) VALUES (?, 'Laptop Baru', 1000000, 999999.999, '2099-01-01', 'In Progress')",
+            (uid,),
+        )
+        db.commit()
+
+    html = client.get('/financial_performance?tab=goals').data.decode('utf-8')
+    assert 'Target Tercapai 100%!' in html
+    assert 'Rp 1/hari' not in html
+
+    zero = client.post('/financial_performance', data={
+        'action': 'add_goal', 'goal_name': 'Kosong', 'target_amount': '0', 'current_amount': '0', 'due_date': '2099-01-01',
+    }, follow_redirects=True)
+    assert 'total target dana harus lebih dari 0' in zero.data.decode('utf-8')
+
+    near = client.post('/financial_performance', data={
+        'action': 'add_goal', 'goal_name': 'Pas', 'target_amount': '100.000', 'current_amount': '100.000', 'due_date': '2099-01-01',
+    }, follow_redirects=True)
+    assert near.status_code == 200
+    with client.application.app_context():
+        st = get_db().execute("SELECT status FROM financial_goals WHERE user_id = ? AND name = 'Pas'", (uid,)).fetchone()['status']
+        assert st == 'Achieved'
+
+
+def test_v285_passkey_login_lock_session_reset_and_calendar_guard(client):
+    import inspect
+    from routes import auth_biometric
+
+    login_html = client.get('/login').data.decode('utf-8')
+    assert 'id="biometricLoginBtn"' in login_html
+    assert '_biometricLoginBusy' in login_html
+    assert 'finally' in login_html
+    assert 'session.clear()' in inspect.getsource(auth_biometric.login_verify)
+
+    uname, _ = _register_and_login(client)
+    with client.application.app_context():
+        db = get_db()
+        uid = db.execute("SELECT id FROM users WHERE username = ?", (uname,)).fetchone()['id']
+        db.execute(
+            "INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status) VALUES (?, 'Rusak', 100000, 0, 'bukan-tanggal', 'In Progress')",
+            (uid,),
+        )
+        db.execute(
+            "INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status) VALUES (?, 'Valid', 100000, 0, '2027-03-10', 'In Progress')",
+            (uid,),
+        )
+        db.commit()
+    ev = client.get('/api/calendar_events?start=2027-03-01&end=2027-03-31')
+    assert ev.status_code == 200
+    titles = [e['title'] for e in ev.get_json()]
+    assert any('Valid' in t for t in titles)
+    assert not any('Rusak' in t for t in titles)
+
+    perf = client.get('/financial_performance').data.decode('utf-8')
+    import os
+    tpl_path = os.path.join(client.application.root_path, 'templates', 'financial_performance.html')
+    with open(tpl_path, encoding='utf-8') as fh:
+        assert 'sm:group-hover:opacity-100' in fh.read()
+    assert 'setTimeout(_resizeCharts' in perf
+    assert 'Beban: Rp' in perf

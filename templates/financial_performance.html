@@ -8,7 +8,7 @@
     .scrollbar-hide::-webkit-scrollbar { display: none; }
 </style>
 <div x-data="{ activeTab: '{{ active_tab|default('analytics') }}' }"
-     x-init="$watch('activeTab', () => { requestAnimationFrame(() => { if (window._perfTimeSeriesChart) window._perfTimeSeriesChart.resize(); if (window._perfCashflowTabChart) window._perfCashflowTabChart.resize(); if (window._perfDonutChart) window._perfDonutChart.resize(); if (window.lucide) window.lucide.createIcons(); }); })">
+     x-init="$watch('activeTab', () => { const _resizeCharts = () => { if (window._perfTimeSeriesChart) window._perfTimeSeriesChart.resize(); if (window._perfCashflowTabChart) window._perfCashflowTabChart.resize(); if (window._perfDonutChart) window._perfDonutChart.resize(); }; requestAnimationFrame(() => { _resizeCharts(); if (window.lucide) window.lucide.createIcons(); }); setTimeout(_resizeCharts, 240); })">
         <div class="space-y-6 pb-12">
 
             <!-- Page Header & Period Controls -->
@@ -19,9 +19,11 @@
                 </div>
                 <form method="GET" class="flex items-center gap-2 self-start sm:self-auto">
                     <input type="hidden" name="tab" :value="activeTab">
-                    <div class="relative flex items-center">
-                        <i data-lucide="calendar-range" class="w-4 h-4 text-muted-foreground absolute left-3 pointer-events-none"></i>
-                        <select name="days" class="h-10 pl-9 pr-4 py-2 text-sm font-medium rounded-lg border border-input bg-background text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring" onchange="this.form.submit()">
+                    <div class="flex items-center gap-2">
+                        <span class="inline-flex items-center justify-center h-10 w-10 rounded-lg border border-input bg-background text-muted-foreground shadow-sm shrink-0" aria-hidden="true">
+                            <i data-lucide="calendar-range" class="w-4 h-4"></i>
+                        </span>
+                        <select name="days" aria-label="Periode analisis" class="h-10 px-3 py-2 text-sm font-medium rounded-lg border border-input bg-background text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-ring" onchange="this.form.submit()">
                             <option value="3" {% if days_range == 3 %}selected{% endif %}>3 Hari Terakhir</option>
                             <option value="7" {% if days_range == 7 %}selected{% endif %}>7 Hari Terakhir</option>
                             <option value="30" {% if days_range == 30 %}selected{% endif %}>30 Hari Terakhir</option>
@@ -412,7 +414,7 @@
                                 {% set cc_usage = cc.current_usage or 0 %}
                                 {% set cc_percent = (cc_usage / cc_limit * 100) if cc_limit > 0 else 0 %}
                                 <div class="rounded-xl border border-border bg-card p-5 relative overflow-hidden group">
-                                    <div class="absolute top-0 right-0 p-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div class="absolute top-0 right-0 p-3 flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100 transition-opacity">
                                         <a href="{{ url_for('settings.setup_account') }}" class="p-1.5 bg-background border border-border rounded text-muted-foreground hover:text-blue-500 shadow-sm" title="Manage Account"><i data-lucide="settings" class="w-3 h-3"></i></a>
                                     </div>
                                     <div class="flex items-center gap-3 mb-4">
@@ -1193,7 +1195,7 @@
                         <input type="hidden" name="debt_id" value="{{ row.id }}">
                         <div>
                             <label class="text-sm font-medium mb-1 block">Nominal Pembayaran</label>
-                            <input type="text" name="amount_paid" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ '{:,.0f}'.format(row.remaining_amount or 0).replace(',', '.') }}" required>
+                            <input type="text" name="amount_paid" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ (row.remaining_amount or 0) | format_amount_input }}" required>
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Sumber/Tujuan Akun</label>
@@ -1259,11 +1261,11 @@
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="text-sm font-medium mb-1 block">Total Nominal</label>
-                                <input type="text" name="total_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ '{:,.0f}'.format(row.total_amount or 0).replace(',', '.') }}" required>
+                                <input type="text" name="total_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ (row.total_amount or 0) | format_amount_input }}" required>
                             </div>
                             <div>
                                 <label class="text-sm font-medium mb-1 block">Sisa Belum Lunas</label>
-                                <input type="text" name="remaining_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ '{:,.0f}'.format(row.remaining_amount if row.remaining_amount is not none else (row.total_amount or 0)).replace(',', '.') }}" required>
+                                <input type="text" name="remaining_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ (row.remaining_amount if row.remaining_amount is not none else (row.total_amount or 0)) | format_amount_input }}" required>
                             </div>
                         </div>
                         <div>
@@ -1567,11 +1569,11 @@
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Total Target Dana</label>
-                            <input type="text" name="target_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ '{:,.0f}'.format(g.target_amount or 0).replace(',', '.') }}" required>
+                            <input type="text" name="target_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ (g.target_amount or 0) | format_amount_input }}" required>
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Dana Terkumpul Saat Ini</label>
-                            <input type="text" name="current_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ '{:,.0f}'.format(g.current_amount or 0).replace(',', '.') }}">
+                            <input type="text" name="current_amount" class="input-rupiah-modal flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" value="{{ (g.current_amount or 0) | format_amount_input }}">
                         </div>
                         <div>
                             <label class="text-sm font-medium mb-1 block">Tenggat Waktu (Due Date)</label>

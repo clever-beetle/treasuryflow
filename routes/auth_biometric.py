@@ -253,6 +253,8 @@ def login_verify():
         if not user:
             return jsonify({"status": "error", "message": "Akun pengguna tidak ditemukan."}), 404
 
+        # Prevent session fixation / stale keys from a previous account (mirrors password login)
+        session.clear()
         session['user_id'] = user['id']
         session['username'] = user['username']
         session['fullname'] = user['fullname']

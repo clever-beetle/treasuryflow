@@ -160,7 +160,10 @@ def settings():
                 error = "Nama kategori dan jenis kategori wajib diisi."
 
         elif action == 'delete_category':
-            cat_id = request.form.get('category_id')
+            cat_id_raw = str(request.form.get('category_id') or '').strip()
+            cat_id = int(cat_id_raw) if cat_id_raw.isdigit() else None
+            if cat_id_raw and cat_id is None:
+                error = "ID kategori tidak valid."
             if cat_id:
                 row = db.execute("SELECT id, name, type FROM user_categories WHERE id = ? AND user_id = ?", (cat_id, user_id)).fetchone()
                 if row:
@@ -317,10 +320,13 @@ def setup_account():
             balance = parse_amount(request.form.get('initial_balance') or request.form.get('balance') or '0')
             
             if action == 'edit':
-                edit_account_id = request.form.get('edit_account_id')
+                edit_account_id_raw = str(request.form.get('edit_account_id') or '').strip()
+                edit_account_id = int(edit_account_id_raw) if edit_account_id_raw.isdigit() else None
                 
                 # Check if liability account — negate balance (debt)
-                acc_row = db.execute('SELECT account_type FROM accounts WHERE id = ? AND user_id = ?', (edit_account_id, user_id)).fetchone()
+                acc_row = None
+                if edit_account_id is not None:
+                    acc_row = db.execute('SELECT account_type FROM accounts WHERE id = ? AND user_id = ?', (edit_account_id, user_id)).fetchone()
                 if not acc_row:
                     error = "Akun tidak ditemukan atau Anda tidak memiliki akses."
                     accounts = db.execute('SELECT * FROM accounts WHERE user_id = ?', (user_id,)).fetchall()

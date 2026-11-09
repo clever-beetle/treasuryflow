@@ -193,7 +193,7 @@
                                         {% endif %}
                                     </td>
                                     <td class="p-4 align-middle text-right">
-                                        <button type="button" @click="$dispatch('open-delete-category-modal', { id: '{{ cat.id }}', name: '{{ cat.name|escape }}' })" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-9 w-9 text-muted-foreground" title="Hapus Kategori">
+                                        <button type="button" data-cat-id="{{ cat.id }}" data-cat-name="{{ cat.name }}" @click="$dispatch('open-delete-category-modal', { id: $el.dataset.catId, name: $el.dataset.catName })" class="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 hover:bg-accent hover:text-accent-foreground h-9 w-9 text-muted-foreground" title="Hapus Kategori">
                                             <i data-lucide="trash-2" class="h-4 w-4"></i>
                                         </button>
                                     </td>

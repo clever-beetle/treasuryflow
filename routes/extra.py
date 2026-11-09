@@ -69,6 +69,14 @@ def _months_in_window(start_str: str, end_str: str, today: date) -> list:
 @extra_bp.route('/api/calendar_events')
 @login_required
 def api_calendar_events():
+    def _iso_date_or_none(raw):
+        s = str(raw or '').strip()[:10]
+        try:
+            datetime.strptime(s, '%Y-%m-%d')
+            return s
+        except ValueError:
+            return None
+
     db = get_db()
     user_id = session['user_id']
     events = []
@@ -88,10 +96,10 @@ def api_calendar_events():
         (user_id,)
     ).fetchall()
     for g_row in goals:
-        if g_row['due_date']:
+        d_str = _iso_date_or_none(g_row['due_date'])
+        if d_str:
             target_val = float(g_row['target_amount'] or 0)
             fmt_val = format_rupiah(target_val)
-            d_str = str(g_row['due_date'])[:10]
             events.append({
                 'title': f"Target: {g_row['name']} ({fmt_val})",
                 'start': d_str,
@@ -116,13 +124,13 @@ def api_calendar_events():
         (user_id,)
     ).fetchall()
     for d_row in debts:
-        if d_row['due_date']:
+        d_str = _iso_date_or_none(d_row['due_date'])
+        if d_str:
             rem = float(d_row['remaining_amount'] or 0)
             fmt_val = format_rupiah(rem)
             is_debt = d_row['type'] == 'debt'
             label = "Utang" if is_debt else "Piutang"
             color = '#e11d48' if is_debt else '#059669'
-            d_str = str(d_row['due_date'])[:10]
             events.append({
                 'title': f"{label}: {d_row['person_name']} ({fmt_val})",
                 'start': d_str,

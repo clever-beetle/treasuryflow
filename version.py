@@ -1,9 +1,9 @@
 import os
 import subprocess
 
-APP_VERSION = "2.8.4"
+APP_VERSION = "2.8.5"
 RELEASE_DATE = "2026-11-09"
-RELEASE_CODENAME = "Performa Keuangan Redesign & Tips Target Finansial"
+RELEASE_CODENAME = "Audit Stabilitas Fitur Baru"
 
 _BULAN_ID = (
     "",
@@ -22,6 +22,18 @@ _BULAN_ID = (
 )
 
 RELEASE_HISTORY = [
+    {
+        "version": "2.8.5",
+        "date_id": "9 November 2026",
+        "title": "Perbaikan Stabilitas Fitur Terbaru",
+        "highlights": [
+            "Nominal berdesimal (misal Rp 12.500,5) tidak lagi berubah menjadi 10x/100x lipat saat mengedit transaksi.",
+            "Kategori dengan tanda petik (misal Jum'at Berkah) kini bisa diedit dan dihapus tanpa error.",
+            "Tombol Passkey / Biometrik dikunci saat proses verifikasi agar tidak gagal karena ketukan ganda.",
+            "Perhitungan Kurang Lagi pada Target Finansial lebih presisi serta pesan validasi yang lebih jelas.",
+            "Ikon periode, tombol kelola kartu di HP, dan grafik saat berpindah tab Performa Keuangan kini tampil rapi.",
+        ],
+    },
     {
         "version": "2.8.4",
         "date_id": "9 November 2026",

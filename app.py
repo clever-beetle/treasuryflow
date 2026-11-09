@@ -198,6 +198,7 @@ def test_db():
 
 app.jinja_env.filters['rupiah'] = utils.format_rupiah
 app.jinja_env.filters['format_rupiah_input'] = utils.format_rupiah_input
+app.jinja_env.filters['format_amount_input'] = utils.format_amount_input
 
 try:
     locale.setlocale(locale.LC_ALL, 'id_ID.utf8')

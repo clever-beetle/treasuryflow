@@ -67,6 +67,8 @@ def financial_performance():
                 from routes.dashboard import recalculate_account_balances
                 recalculate_account_balances(db, user_id)
                 flash('Catatan utang/piutang berhasil ditambahkan.', 'success')
+            else:
+                flash('Nama pihak wajib diisi dan nominal harus lebih dari 0.', 'danger')
             
         elif action == 'pay_debt':
             try:
@@ -138,6 +140,8 @@ def financial_performance():
                 ''', (person_name, type_record, total_amount, new_remaining, new_status, due_date, notes, debt_id, user_id))
                 db.commit()
                 flash('Catatan utang/piutang berhasil diperbarui.', 'success')
+            elif debt:
+                flash('Nama pihak wajib diisi dan total nominal harus lebih dari 0.', 'danger')
 
         elif action == 'delete_debt':
             try:
@@ -184,6 +188,8 @@ def financial_performance():
                     ''', (user_id, name, amount_per_cycle, due_day, is_tenor, total_tenor))
                 db.commit()
                 flash('Layanan berlangganan/cicilan berhasil ditambahkan.', 'success')
+            else:
+                flash('Nama layanan wajib diisi dan biaya per bulan harus lebih dari 0.', 'danger')
 
         elif action == 'edit_installment':
             try:
@@ -224,6 +230,8 @@ def financial_performance():
                     ''', (name, amount_per_cycle, due_day, is_tenor, total_tenor, inst_id, user_id))
                 db.commit()
                 flash('Layanan berlangganan/cicilan berhasil diperbarui.', 'success')
+            else:
+                flash('Nama layanan wajib diisi dan biaya per bulan harus lebih dari 0.', 'danger')
 
         elif action == 'delete_installment':
             try:
@@ -400,13 +408,15 @@ def financial_performance():
             current = max(0.0, parse_amount(request.form.get('current_amount', '0')))
             due_date = request.form.get('due_date')
             if name and target > 0:
-                init_status = 'Achieved' if current >= target else 'In Progress'
+                init_status = 'Achieved' if current >= target - 0.009 else 'In Progress'
                 db.execute('''
                     INSERT INTO financial_goals (user_id, name, target_amount, current_amount, due_date, status)
                     VALUES (?, ?, ?, ?, ?, ?)
                 ''', (user_id, name, target, current, due_date, init_status))
                 db.commit()
                 flash('Target finansial berhasil dibuat.', 'success')
+            else:
+                flash('Nama target wajib diisi dan total target dana harus lebih dari 0.', 'danger')
 
         elif action == 'edit_goal':
             try:
@@ -418,7 +428,7 @@ def financial_performance():
             current = max(0.0, parse_amount(request.form.get('current_amount', '0')))
             due_date = request.form.get('due_date')
             if name and target > 0:
-                new_status = 'Achieved' if current >= target else 'In Progress'
+                new_status = 'Achieved' if current >= target - 0.009 else 'In Progress'
                 db.execute('''
                     UPDATE financial_goals
                     SET name = ?, target_amount = ?, current_amount = ?, due_date = ?, status = ?
@@ -426,6 +436,8 @@ def financial_performance():
                 ''', (name, target, current, due_date, new_status, goal_id, user_id))
                 db.commit()
                 flash('Target finansial berhasil diperbarui.', 'success')
+            else:
+                flash('Nama target wajib diisi dan total target dana harus lebih dari 0.', 'danger')
 
         elif action == 'saving_goal':
             try:
@@ -444,7 +456,7 @@ def financial_performance():
                     ''', (amount, goal_id, user_id))
                     
                     goal = db.execute('SELECT target_amount, current_amount FROM financial_goals WHERE id = ? AND user_id = ?', (goal_id, user_id)).fetchone()
-                    if goal and goal['current_amount'] >= goal['target_amount']:
+                    if goal and float(goal['current_amount'] or 0) >= float(goal['target_amount'] or 0) - 0.009:
                         db.execute("UPDATE financial_goals SET status = 'Achieved' WHERE id = ? AND user_id = ?", (goal_id, user_id))
                     
                     if source_acc_raw and str(source_acc_raw).isdigit():
@@ -463,6 +475,10 @@ def financial_performance():
                     else:
                         db.commit()
                     flash('Dana tabungan target berhasil ditambahkan.', 'success')
+                else:
+                    flash('Target finansial tidak ditemukan.', 'danger')
+            else:
+                flash('Nominal tabungan harus lebih dari 0.', 'danger')
 
         elif action == 'delete_goal':
             try:
@@ -594,12 +610,15 @@ def financial_performance():
         gd = dict(g_row)
         target_amt = max(0.0, float(gd.get('target_amount') or 0))
         current_amt = max(0.0, float(gd.get('current_amount') or 0))
-        shortfall = max(0.0, target_amt - current_amt)
+        shortfall = target_amt - current_amt
+        # Clamp sub-rupiah float dust (e.g. 0.0000001) so the UI never shows "Kurang Lagi: Rp 0" + "Rp 1/hari"
+        if shortfall < 0.01:
+            shortfall = 0.0
         shortfall_int = int(math.ceil(shortfall))
         surplus = max(0.0, current_amt - target_amt)
         raw_pct = (current_amt / target_amt * 100.0) if target_amt > 0 else 0.0
         clamped_pct = min(100.0, max(0.0, raw_pct))
-        is_achieved = (gd.get('status') == 'Achieved') or (target_amt > 0 and current_amt >= target_amt)
+        is_achieved = (gd.get('status') == 'Achieved') or (target_amt > 0 and shortfall <= 0)
 
         goals_total_target += target_amt
         goals_total_saved += min(current_amt, target_amt) if is_achieved else current_amt
@@ -868,8 +887,11 @@ def manage_budget():
             flash(f'Gagal menyimpan anggaran: {e}', 'danger')
             
     elif action == 'delete':
-        budget_id = request.form.get('budget_id')
-        db.execute('DELETE FROM budgets WHERE id = ? AND user_id = ?', (budget_id, user_id))
+        budget_id_raw = str(request.form.get('budget_id') or '').strip()
+        if not budget_id_raw.isdigit():
+            flash('ID anggaran tidak valid.', 'danger')
+            return redirect(url_for('dashboard.dashboard'))
+        db.execute('DELETE FROM budgets WHERE id = ? AND user_id = ?', (int(budget_id_raw), user_id))
         db.commit()
         flash('Anggaran berhasil dihapus.', 'success')
         

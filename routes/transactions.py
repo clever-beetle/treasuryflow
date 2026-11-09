@@ -250,7 +250,10 @@ def add_transaction():
     db = get_db()
     user_id = session['user_id']
     if request.method == 'POST':
-        t_type = request.form.get('type')
+        t_type = (request.form.get('type') or '').strip()
+        if t_type not in ('income', 'expense', 'transfer'):
+            flash('Jenis transaksi tidak valid.', 'danger')
+            return redirect(url_for('transactions.add_transaction'))
         raw_date = (request.form.get('date') or '').strip()[:10]
         try:
             datetime.strptime(raw_date, '%Y-%m-%d')
@@ -267,10 +270,17 @@ def add_transaction():
         category = (request.form.get('category') or '').strip()
         if not category and t_type in ('income', 'expense'):
             category = 'Lainnya (Pemasukan)' if t_type == 'income' else 'Lainnya (Pengeluaran)'
-        account_id = request.form.get('account_id')
+        account_id_raw = str(request.form.get('account_id') or '').strip()
         description = request.form.get('description', '')
-        to_account_id = request.form.get('to_account_id')
-        
+        to_account_id_raw = str(request.form.get('to_account_id') or '').strip()
+
+        # Validate numeric IDs first (PostgreSQL raises InvalidTextRepresentation on non-integer IDs)
+        if not account_id_raw.isdigit():
+            flash('Akun sumber tidak valid atau tidak ditemukan.', 'danger')
+            return redirect(url_for('transactions.add_transaction'))
+        account_id = int(account_id_raw)
+        to_account_id = int(to_account_id_raw) if to_account_id_raw.isdigit() else None
+
         # Ownership check on source account
         acc = db.execute("SELECT id, name FROM accounts WHERE id = ? AND user_id = ?", (account_id, user_id)).fetchone()
         if not acc:
@@ -278,7 +288,10 @@ def add_transaction():
             return redirect(url_for('transactions.add_transaction'))
 
         if t_type == 'transfer':
-            if str(account_id) == str(to_account_id):
+            if to_account_id is None:
+                flash('Akun tujuan transfer tidak valid atau tidak ditemukan.', 'danger')
+                return redirect(url_for('transactions.add_transaction'))
+            if account_id == to_account_id:
                 flash('Akun sumber dan tujuan transfer tidak boleh sama.', 'danger')
                 return redirect(url_for('transactions.add_transaction'))
                 
@@ -387,7 +400,10 @@ def edit_transaction(id):
             description = tx_dict.get('description') or ''
 
         account_id = request.form.get('account_id') or tx_dict.get('account_id')
-        acc = db.execute('SELECT id FROM accounts WHERE id = ? AND user_id = ?', (account_id, user_id)).fetchone()
+        if not str(account_id or '').strip().isdigit():
+            flash('Akun yang dipilih tidak valid.', 'danger')
+            return redirect(next_url)
+        acc = db.execute('SELECT id FROM accounts WHERE id = ? AND user_id = ?', (int(str(account_id).strip()), user_id)).fetchone()
         if not acc:
             flash('Akun yang dipilih tidak valid.', 'danger')
             return redirect(next_url)

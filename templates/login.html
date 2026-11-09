@@ -123,8 +123,8 @@
             <button type="submit" class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full mt-2">
                 Masuk
             </button>
-            <button type="button" onclick="loginWithBiometric()" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full transition-colors">
-                <i data-lucide="fingerprint" class="h-4 w-4"></i> Masuk dengan Passkey / Biometrik
+            <button type="button" id="biometricLoginBtn" onclick="loginWithBiometric()" class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 w-full transition-colors disabled:pointer-events-none disabled:opacity-60">
+                <i data-lucide="fingerprint" class="h-4 w-4"></i> <span id="biometricLoginLabel">Masuk dengan Passkey / Biometrik</span>
             </button>
         </form>
 
@@ -170,6 +170,16 @@
                 showMsg('Perangkat atau browser ini belum mendukung login Passkey / Biometrik.', false);
                 return;
             }
+
+            // Lock against double-taps: a second /generate call would overwrite the pending server challenge
+            if (window._biometricLoginBusy) return;
+            window._biometricLoginBusy = true;
+            const bioBtn = document.getElementById('biometricLoginBtn');
+            const bioLabel = document.getElementById('biometricLoginLabel');
+            const bioOrigLabel = bioLabel ? bioLabel.textContent : '';
+            if (bioBtn) bioBtn.disabled = true;
+            if (bioLabel) bioLabel.textContent = 'Menunggu verifikasi...';
+            let bioRedirecting = false;
 
             try {
                 const csrfToken = "{{ csrf_token() }}";
@@ -223,6 +233,7 @@
                 const verifyData = await verifyRes.json().catch(() => ({}));
                 if (verifyRes.ok && verifyData.status === 'ok') {
                     showMsg('Login biometrik berhasil! Mengalihkan...', true);
+                    bioRedirecting = true;
                     window.location.href = verifyData.redirect || '/dashboard';
                 } else {
                     showMsg(verifyData.message || 'Passkey belum terdaftar atau tidak cocok.', false);
@@ -232,6 +243,12 @@
                     showMsg('Verifikasi biometrik dibatalkan atau tidak menemukan Passkey terdaftar.', false);
                 } else {
                     showMsg('Gagal memverifikasi Passkey: ' + (err.message || err), false);
+                }
+            } finally {
+                if (!bioRedirecting) {
+                    window._biometricLoginBusy = false;
+                    if (bioBtn) bioBtn.disabled = false;
+                    if (bioLabel) bioLabel.textContent = bioOrigLabel;
                 }
             }
         }
