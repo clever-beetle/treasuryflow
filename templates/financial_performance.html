@@ -844,37 +844,45 @@
                             <!-- Saving Projection Tips Box -->
                             {% if g.deadline_state == 'active' and g.shortfall > 0 %}
                             <div class="rounded-xl border border-blue-500/20 bg-blue-500/5 p-3.5 sm:p-4 space-y-3">
-                                <div class="flex items-start gap-2.5">
-                                    <div class="p-1 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
-                                        <i data-lucide="calendar-clock" class="w-4 h-4"></i>
+                                <div class="flex items-start justify-between gap-2">
+                                    <div class="flex items-start gap-2.5">
+                                        <div class="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5">
+                                            <i data-lucide="target" class="w-4 h-4"></i>
+                                        </div>
+                                        <div class="space-y-0.5">
+                                            <div class="flex flex-wrap items-center gap-1.5">
+                                                <h5 class="text-xs font-bold text-foreground">Rutinan Menabung (Dari Nol s/d Selesai)</h5>
+                                                <span class="inline-flex items-center rounded-full bg-blue-500/15 border border-blue-500/25 px-2 py-0.5 text-[10px] font-semibold text-blue-700 dark:text-blue-300">Konsisten</span>
+                                            </div>
+                                            <p class="text-[11px] leading-relaxed text-muted-foreground">
+                                                Patokan komitmen menabung dari nol sampai target penuh <strong class="text-foreground tabular-nums">{{ g.target_amount | rupiah }}</strong> hingga <strong>{{ g.due_date_id }}</strong> (total {{ g.total_days }} hari). Nominal rutinan ini <strong>tetap konsisten dan tidak berkurang</strong> walaupun dana tabungan sudah bertambah:
+                                            </p>
+                                        </div>
                                     </div>
-                                    <p class="text-xs leading-relaxed text-foreground">
-                                        <span class="font-semibold text-foreground">Rutinan Menabung:</span> Berdasarkan target nominal <strong class="tabular-nums">{{ g.target_amount | rupiah }}</strong> hingga <strong>{{ g.due_date_id }}</strong> (total {{ g.total_days }} hari), rutinitas tabungan yang perlu disisihkan:
-                                    </p>
                                 </div>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                                     <button type="button"
-                                            onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.daily_fmt }}')"
+                                            onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.daily_base_fmt }}')"
                                             class="text-left rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-2.5 transition-colors group/tip">
                                         <span class="flex items-center justify-between text-[11px] font-medium text-emerald-700 dark:text-emerald-300">
                                             <span>Per Hari</span>
                                             <i data-lucide="arrow-up-right" class="w-3 h-3 opacity-70 group-hover/tip:translate-x-0.5 transition-transform"></i>
                                         </span>
-                                        <span class="block text-sm font-bold text-emerald-700 dark:text-emerald-300 tabular-nums mt-0.5">Rp {{ g.daily_fmt }}</span>
-                                        <span class="block text-[10px] text-emerald-700/80 dark:text-emerald-300/80 mt-0.5">Klik untuk input</span>
+                                        <span class="block text-sm font-bold text-emerald-700 dark:text-emerald-300 tabular-nums mt-0.5">Rp {{ g.daily_base_fmt }}</span>
+                                        <span class="block text-[10px] text-emerald-700/80 dark:text-emerald-300/80 mt-0.5">Dari nol s/d selesai</span>
                                     </button>
 
-                                    {% if g.weekly_needed %}
+                                    {% if g.weekly_base %}
                                     <button type="button"
-                                            onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.weekly_fmt }}')"
+                                            onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.weekly_base_fmt }}')"
                                             class="text-left rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-3 py-2.5 transition-colors group/tip">
                                         <span class="flex items-center justify-between text-[11px] font-medium text-blue-700 dark:text-blue-300">
                                             <span>Per Minggu</span>
                                             <i data-lucide="arrow-up-right" class="w-3 h-3 opacity-70 group-hover/tip:translate-x-0.5 transition-transform"></i>
                                         </span>
-                                        <span class="block text-sm font-bold text-blue-700 dark:text-blue-300 tabular-nums mt-0.5">Rp {{ g.weekly_fmt }}</span>
-                                        <span class="block text-[10px] text-blue-700/80 dark:text-blue-300/80 mt-0.5">Klik untuk input</span>
+                                        <span class="block text-sm font-bold text-blue-700 dark:text-blue-300 tabular-nums mt-0.5">Rp {{ g.weekly_base_fmt }}</span>
+                                        <span class="block text-[10px] text-blue-700/80 dark:text-blue-300/80 mt-0.5">Dari nol s/d selesai</span>
                                     </button>
                                     {% else %}
                                     <div class="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2.5 flex flex-col justify-center">
@@ -883,16 +891,16 @@
                                     </div>
                                     {% endif %}
 
-                                    {% if g.monthly_needed %}
+                                    {% if g.monthly_base %}
                                     <button type="button"
-                                            onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.monthly_fmt }}')"
+                                            onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.monthly_base_fmt }}')"
                                             class="text-left rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 px-3 py-2.5 transition-colors group/tip">
                                         <span class="flex items-center justify-between text-[11px] font-medium text-indigo-700 dark:text-indigo-300">
                                             <span>Per Bulan</span>
                                             <i data-lucide="arrow-up-right" class="w-3 h-3 opacity-70 group-hover/tip:translate-x-0.5 transition-transform"></i>
                                         </span>
-                                        <span class="block text-sm font-bold text-indigo-700 dark:text-indigo-300 tabular-nums mt-0.5">Rp {{ g.monthly_fmt }}</span>
-                                        <span class="block text-[10px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5">Klik untuk input</span>
+                                        <span class="block text-sm font-bold text-indigo-700 dark:text-indigo-300 tabular-nums mt-0.5">Rp {{ g.monthly_base_fmt }}</span>
+                                        <span class="block text-[10px] text-indigo-700/80 dark:text-indigo-300/80 mt-0.5">Dari nol s/d selesai</span>
                                     </button>
                                     {% else %}
                                     <div class="rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2.5 flex flex-col justify-center">
@@ -902,9 +910,26 @@
                                     {% endif %}
                                 </div>
 
-                                <div class="flex flex-wrap items-center justify-between gap-1.5 text-[11px] text-muted-foreground pt-1.5 border-t border-border/50">
-                                    <span>Kurang lagi: <strong class="text-amber-700 dark:text-amber-300 font-bold tabular-nums">{{ g.shortfall | rupiah }}</strong>{% if g.remaining_days_needed %} (~{{ g.remaining_days_needed }} hari rutin lagi){% endif %}</span>
-                                    <span class="text-[10px] text-muted-foreground">Nominal rutinan konsisten dari total target</span>
+                                <!-- Baris Status Sisa Kekurangan & Opsi Penyesuaian -->
+                                <div class="rounded-lg border border-border/70 bg-background/60 p-2.5 space-y-1.5 text-xs">
+                                    <div class="flex flex-wrap items-center justify-between gap-1.5">
+                                        <span class="text-muted-foreground">Sisa yang belum terkumpul: <strong class="text-amber-700 dark:text-amber-300 font-bold tabular-nums">{{ g.shortfall | rupiah }}</strong> (Sisa {{ g.days_left }} hari)</span>
+                                        {% if g.remaining_days_needed %}
+                                        <span class="text-[11px] font-medium text-muted-foreground">~{{ g.remaining_days_needed }} hari lagi via rutinan harian</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if g.current_amount > 0 and g.shortfall > 0 and g.shortfall_daily and g.shortfall_daily != g.daily_base %}
+                                    <div class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-border/40 text-[11px] text-muted-foreground">
+                                        <span class="font-medium text-foreground">Opsi kejar sisa kekurangan:</span>
+                                        <button type="button" onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.shortfall_daily_fmt }}')" class="underline hover:text-primary font-semibold tabular-nums text-foreground" title="Setor sisa dibagi sisa hari">Rp {{ g.shortfall_daily_fmt }}/hari</button>
+                                        {% if g.shortfall_weekly and g.shortfall_weekly != g.weekly_base %}
+                                        <span>•</span>
+                                        <button type="button" onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.shortfall_weekly_fmt }}')" class="underline hover:text-primary font-semibold tabular-nums text-foreground" title="Setor sisa mingguan">Rp {{ g.shortfall_weekly_fmt }}/minggu</button>
+                                        {% endif %}
+                                        <span>•</span>
+                                        <button type="button" onclick="window.openGoalSavingModal('{{ g.id }}', '{{ g.shortfall_fmt }}')" class="text-primary hover:underline font-bold tabular-nums">Lunasi Sisa (Rp {{ g.shortfall_fmt }})</button>
+                                    </div>
+                                    {% endif %}
                                 </div>
                             </div>
                             {% elif g.deadline_state == 'today' and g.shortfall > 0 %}
@@ -1554,32 +1579,48 @@
                         </div>
 
                         {% if g.shortfall > 0 %}
-                        <div class="space-y-1.5">
-                            <div class="flex items-center justify-between text-xs text-muted-foreground">
-                                <span class="font-medium">Pilih Cepat Nominal:</span>
-                                <span class="text-[10px]">Rutinan dari target {{ g.target_amount | rupiah }}</span>
+                        <div class="space-y-2.5">
+                            <div class="space-y-1">
+                                <div class="flex items-center justify-between text-xs text-muted-foreground">
+                                    <span class="font-medium text-foreground">Rutinan Dari Nol s/d Target Selesai:</span>
+                                    <span class="text-[10px]">Basis {{ g.target_amount | rupiah }}</span>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    {% if g.daily_base_fmt %}
+                                    <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.daily_base_fmt }}')" class="inline-flex items-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 transition-colors tabular-nums">
+                                        Harian: Rp {{ g.daily_base_fmt }}
+                                    </button>
+                                    {% endif %}
+                                    {% if g.weekly_base_fmt %}
+                                    <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.weekly_base_fmt }}')" class="inline-flex items-center rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 transition-colors tabular-nums">
+                                        Mingguan: Rp {{ g.weekly_base_fmt }}
+                                    </button>
+                                    {% endif %}
+                                    {% if g.monthly_base_fmt %}
+                                    <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.monthly_base_fmt }}')" class="inline-flex items-center rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:text-indigo-300 transition-colors tabular-nums">
+                                        Bulanan: Rp {{ g.monthly_base_fmt }}
+                                    </button>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <div class="flex flex-wrap gap-1.5">
-                                {% if g.daily_fmt %}
-                                <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.daily_fmt }}')" class="inline-flex items-center rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-300 transition-colors tabular-nums">
-                                    Harian: Rp {{ g.daily_fmt }}
-                                </button>
-                                {% endif %}
-                                {% if g.weekly_fmt %}
-                                <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.weekly_fmt }}')" class="inline-flex items-center rounded-lg border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 px-2.5 py-1 text-xs font-medium text-blue-700 dark:text-blue-300 transition-colors tabular-nums">
-                                    Mingguan: Rp {{ g.weekly_fmt }}
-                                </button>
-                                {% endif %}
-                                {% if g.monthly_fmt %}
-                                <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.monthly_fmt }}')" class="inline-flex items-center rounded-lg border border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1 text-xs font-medium text-indigo-700 dark:text-indigo-300 transition-colors tabular-nums">
-                                    Bulanan: Rp {{ g.monthly_fmt }}
-                                </button>
-                                {% endif %}
-                                {% if g.shortfall_fmt %}
-                                <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.shortfall_fmt }}')" class="inline-flex items-center rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 transition-colors tabular-nums">
-                                    Lunasi Sisa: Rp {{ g.shortfall_fmt }}
-                                </button>
-                                {% endif %}
+
+                            <div class="space-y-1 pt-1.5 border-t border-border/40">
+                                <div class="flex items-center justify-between text-xs text-muted-foreground">
+                                    <span class="font-medium">Opsi Sisa Kekurangan:</span>
+                                    <span class="text-[10px]">Kurang {{ g.shortfall | rupiah }}</span>
+                                </div>
+                                <div class="flex flex-wrap gap-1.5">
+                                    {% if g.shortfall_daily_fmt and g.shortfall_daily != g.daily_base %}
+                                    <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.shortfall_daily_fmt }}')" class="inline-flex items-center rounded-lg border border-border bg-muted/60 hover:bg-muted px-2.5 py-1 text-xs font-medium text-foreground transition-colors tabular-nums">
+                                        Sisa Harian: Rp {{ g.shortfall_daily_fmt }}
+                                    </button>
+                                    {% endif %}
+                                    {% if g.shortfall_fmt %}
+                                    <button type="button" onclick="window.fillSavingAmount('{{ g.id }}', '{{ g.shortfall_fmt }}')" class="inline-flex items-center rounded-lg border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 transition-colors tabular-nums">
+                                        Lunasi Sisa: Rp {{ g.shortfall_fmt }}
+                                    </button>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                         {% endif %}

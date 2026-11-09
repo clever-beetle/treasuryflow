@@ -650,18 +650,26 @@ def financial_performance():
             except ValueError:
                 start_dt = None
 
-        if start_dt and due_dt:
+        if start_dt and due_dt and due_dt > start_dt:
             total_days = max(1, (due_dt - start_dt).days)
-        elif due_dt and days_left is not None:
+        elif due_dt and days_left is not None and days_left > 0:
             total_days = max(1, days_left)
         else:
-            total_days = 1
+            total_days = 30
 
-        daily_needed = None
-        weekly_needed = None
-        monthly_needed = None
+        # 1. Rencana Rutin Dari Nol Sampai Target Selesai (berdasarkan target penuh target_amt)
+        # Angka ini konsisten, murni dari nol s/d target penuh tanpa berkurang saat tabungan bertambah
+        daily_base = max(1, int(math.ceil(target_amt / total_days))) if total_days > 0 else int(target_amt)
+        weekly_base = min(int(target_amt), max(1, int(math.ceil(target_amt * 7.0 / total_days)))) if total_days >= 7 else None
+        monthly_base = min(int(target_amt), max(1, int(math.ceil(target_amt * 30.0 / total_days)))) if total_days >= 30 else None
+
+        # 2. Penyesuaian Kebutuhan Sisa Kekurangan (kalkulasi dinamis dari sisa kekurangan)
+        shortfall_daily = None
+        shortfall_weekly = None
+        shortfall_monthly = None
         remaining_days_needed = None
         overdue_days = 0
+
         if is_achieved or shortfall <= 0:
             deadline_state = 'achieved'
             deadline_label = 'Tercapai'
@@ -675,19 +683,22 @@ def financial_performance():
         elif days_left == 0:
             deadline_state = 'today'
             deadline_label = 'Tenggat Hari Ini'
-            daily_needed = shortfall_int if shortfall_int > 0 else int(math.ceil(target_amt))
+            shortfall_daily = shortfall_int if shortfall_int > 0 else int(math.ceil(target_amt))
         else:
             deadline_state = 'active'
             deadline_label = 'Besok (1 hari lagi)' if days_left == 1 else f'Sisa {days_left} hari'
-            # Rutinan menabung dihitung dari NOMINAL TARGET (bukan dari shortfall),
-            # sehingga angka rutinan konsisten dan tidak berubah saat dana target bertambah
-            daily_needed = max(1, int(math.ceil(target_amt / total_days)))
-            if total_days >= 7:
-                weekly_needed = min(int(target_amt), max(1, int(math.ceil(target_amt * 7.0 / total_days))))
-            if total_days >= 30:
-                monthly_needed = min(int(target_amt), max(1, int(math.ceil(target_amt * 30.0 / total_days))))
-            if daily_needed > 0 and shortfall > 0:
-                remaining_days_needed = int(math.ceil(shortfall / daily_needed))
+            if shortfall > 0:
+                shortfall_daily = max(1, int(math.ceil(shortfall / days_left)))
+                if days_left >= 7:
+                    shortfall_weekly = min(shortfall_int, max(1, int(math.ceil(shortfall * 7.0 / days_left))))
+                if days_left >= 30:
+                    shortfall_monthly = min(shortfall_int, max(1, int(math.ceil(shortfall * 30.0 / days_left))))
+                if daily_base > 0:
+                    remaining_days_needed = int(math.ceil(shortfall / daily_base))
+
+        daily_needed = daily_base
+        weekly_needed = weekly_base
+        monthly_needed = monthly_base
 
         def _fmt_ribuan(val):
             return f"{int(val):,}".replace(',', '.') if val is not None else ''
@@ -709,6 +720,18 @@ def financial_performance():
             'overdue_days': overdue_days,
             'deadline_state': deadline_state,
             'deadline_label': deadline_label,
+            'daily_base': daily_base,
+            'daily_base_fmt': _fmt_ribuan(daily_base),
+            'weekly_base': weekly_base,
+            'weekly_base_fmt': _fmt_ribuan(weekly_base),
+            'monthly_base': monthly_base,
+            'monthly_base_fmt': _fmt_ribuan(monthly_base),
+            'shortfall_daily': shortfall_daily,
+            'shortfall_daily_fmt': _fmt_ribuan(shortfall_daily),
+            'shortfall_weekly': shortfall_weekly,
+            'shortfall_weekly_fmt': _fmt_ribuan(shortfall_weekly),
+            'shortfall_monthly': shortfall_monthly,
+            'shortfall_monthly_fmt': _fmt_ribuan(shortfall_monthly),
             'daily_needed': daily_needed,
             'daily_fmt': _fmt_ribuan(daily_needed),
             'weekly_needed': weekly_needed,

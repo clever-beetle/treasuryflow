@@ -256,8 +256,10 @@ def init_db(force=False):
         try:
             if is_pg:
                 cursor.execute("ALTER TABLE financial_goals ADD COLUMN IF NOT EXISTS created_at TEXT")
+                cursor.execute("UPDATE financial_goals SET created_at = CURRENT_TIMESTAMP WHERE created_at IS NULL")
             else:
                 cursor.execute("ALTER TABLE financial_goals ADD COLUMN created_at TEXT")
+                cursor.execute("UPDATE financial_goals SET created_at = date('now') WHERE created_at IS NULL")
         except Exception:
             pass
         if not is_pg:

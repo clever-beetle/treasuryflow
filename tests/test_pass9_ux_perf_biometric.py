@@ -656,16 +656,18 @@ def test_v286_routine_savings_calculated_from_nominal_target_stays_constant(clie
     assert r1.status_code == 200
     html1 = r1.data.decode('utf-8')
     assert 'Beli Laptop 5 Juta' in html1
+    assert 'Rutinan Menabung (Dari Nol s/d Selesai)' in html1
+    assert 'Dari nol s/d selesai' in html1
     assert 'Rp 50.000' in html1
     assert 'Rp 350.000' in html1
     assert 'Rp 1.500.000' in html1
-    assert 'Kurang lagi: <strong class="text-amber-700 dark:text-amber-300 font-bold tabular-nums">Rp 5.000.000</strong>' in html1
+    assert 'Rp 5.000.000' in html1
 
-    # 2. Tambah dana tabungan Rp 1.200.000 (sehingga sisa shortfall menjadi 3.800.000)
+    # 2. Tambah dana tabungan Rp 3.800.000 (sesuai contoh user: dana terkumpul 3.800.000, shortfall 1.200.000)
     post_res = client.post('/financial_performance', data={
         'action': 'saving_goal',
         'goal_id': str(goal_id),
-        'saving_amount': '1.200.000',
+        'saving_amount': '3.800.000',
     }, follow_redirects=True)
     assert post_res.status_code == 200
 
@@ -673,28 +675,31 @@ def test_v286_routine_savings_calculated_from_nominal_target_stays_constant(clie
     assert r2.status_code == 200
     html2 = r2.data.decode('utf-8')
 
-    # Terkumpul dan Kurang lagi terupdate dengan benar
-    assert 'Rp 1.200.000' in html2
+    # Terkumpul Rp 3.800.000 dan Kurang lagi Rp 1.200.000 terupdate dengan benar
     assert 'Rp 3.800.000' in html2
+    assert 'Rp 1.200.000' in html2
 
-    # Rutinan menabung TETAP KONSISTEN (berdasarkan 5.000.000, BUKAN 3.800.000!)
-    # Tidak berubah menjadi 38.000 / 266.000 / 1.140.000
+    # Rutinan menabung TETAP KONSISTEN dengan target 5 juta (TIDAK BERKURANG!)
     assert 'Rp 50.000' in html2, "Rutinan harian harus tetap Rp 50.000 berdasarkan target nominal 5 juta!"
     assert 'Rp 350.000' in html2, "Rutinan mingguan harus tetap Rp 350.000 berdasarkan target nominal 5 juta!"
     assert 'Rp 1.500.000' in html2, "Rutinan bulanan harus tetap Rp 1.500.000 berdasarkan target nominal 5 juta!"
 
-    # 3. Tambah dana tabungan lagi Rp 1.800.000 (total terkumpul 3.000.000, shortfall 2.000.000)
+    # Opsi kejar sisa kekurangan juga tersedia sebagai opsi tambahan
+    assert 'Opsi kejar sisa kekurangan:' in html2
+    assert 'Lunasi Sisa (Rp 1.200.000)' in html2
+
+    # 3. Tambah dana tabungan lagi Rp 500.000 (total terkumpul 4.300.000, shortfall 700.000)
     client.post('/financial_performance', data={
         'action': 'saving_goal',
         'goal_id': str(goal_id),
-        'saving_amount': '1.800.000',
+        'saving_amount': '500.000',
     }, follow_redirects=True)
 
     r3 = client.get('/financial_performance?tab=goals')
     html3 = r3.data.decode('utf-8')
-    assert 'Rp 3.000.000' in html3
-    assert 'Rp 2.000.000' in html3
-    # Tetap tidak berubah
+    assert 'Rp 4.300.000' in html3
+    assert 'Rp 700.000' in html3
+    # Tetap konsisten tidak berkurang
     assert 'Rp 50.000' in html3
     assert 'Rp 350.000' in html3
     assert 'Rp 1.500.000' in html3
