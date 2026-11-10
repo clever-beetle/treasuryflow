@@ -656,8 +656,9 @@ def test_v286_routine_savings_calculated_from_nominal_target_stays_constant(clie
     assert r1.status_code == 200
     html1 = r1.data.decode('utf-8')
     assert 'Beli Laptop 5 Juta' in html1
-    assert 'Rutinan Menabung (Dari Nol s/d Selesai)' in html1
+    assert 'Rutinan Menabung' in html1
     assert 'Dari nol s/d selesai' in html1
+    assert 'Tetap' in html1
     assert 'Rp 50.000' in html1
     assert 'Rp 350.000' in html1
     assert 'Rp 1.500.000' in html1
@@ -685,7 +686,7 @@ def test_v286_routine_savings_calculated_from_nominal_target_stays_constant(clie
     assert 'Rp 1.500.000' in html2, "Rutinan bulanan harus tetap Rp 1.500.000 berdasarkan target nominal 5 juta!"
 
     # Opsi kejar sisa kekurangan juga tersedia sebagai opsi tambahan
-    assert 'Opsi kejar sisa kekurangan:' in html2
+    assert 'Kejar sisa kekurangan' in html2
     assert 'Lunasi Sisa (Rp 1.200.000)' in html2
 
     # 3. Tambah dana tabungan lagi Rp 500.000 (total terkumpul 4.300.000, shortfall 700.000)
