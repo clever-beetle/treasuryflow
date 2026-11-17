@@ -2,9 +2,9 @@ import os
 import re
 import subprocess
 
-_BASE_VERSION = "2.8.9"
+_BASE_VERSION = "2.8.10"
 _BASE_RELEASE_DATE = "2026-11-17"
-_BASE_CODENAME = "Penyederhanaan Kartu Target Finansial, Privasi Detail Versi & Auto-Update"
+_BASE_CODENAME = "Proyeksi Sisa Tabungan Dari Saldo Terkumpul s/d Tercapai"
 _PUBLIC_CODENAME = "Rilis Stabil • Pembaruan Otomatis Aktif"
 
 _BULAN_ID = (
@@ -24,6 +24,16 @@ _BULAN_ID = (
 )
 
 _BASE_RELEASE_HISTORY = [
+    {
+        "version": "2.8.10",
+        "date_id": "17 November 2026",
+        "title": "Proyeksi Sisa Tabungan Dari Saldo Terkumpul s/d Tercapai",
+        "highlights": [
+            "Menampilkan kembali tabel proyeksi 'Dari Saldo Terkumpul s/d Tercapai' (Per Hari, Per Minggu, dan Per Bulan) tepat di bawah tabel Rutinan Menabung pada kartu Target Finansial.",
+            "Memudahkan pemantauan berapa dana yang perlu disisihkan per hari, minggu, dan bulan dari sisa kekurangan saat saldo tabungan sudah bertambah.",
+            "Menambahkan pilihan tombol cepat Sisa / Hari, Sisa / Minggu, dan Sisa / Bulan pada modal Tambah Dana.",
+        ],
+    },
     {
         "version": "2.8.9",
         "date_id": "17 November 2026",

@@ -685,8 +685,11 @@ def test_v286_routine_savings_calculated_from_nominal_target_stays_constant(clie
     assert 'Rp 350.000' in html2, "Rutinan mingguan harus tetap Rp 350.000 berdasarkan target nominal 5 juta!"
     assert 'Rp 1.500.000' in html2, "Rutinan bulanan harus tetap Rp 1.500.000 berdasarkan target nominal 5 juta!"
 
-    # Opsi kejar sisa kekurangan juga tersedia sebagai opsi tambahan
-    assert 'Kejar sisa kekurangan' in html2
+    # Opsi dari saldo terkumpul terakhir s/d tercapai juga tersedia lengkap (Per Hari, Minggu, Bulan)
+    assert 'Dari Saldo Terkumpul s/d Tercapai' in html2
+    assert 'Rp 12.000' in html2
+    assert 'Rp 84.000' in html2
+    assert 'Rp 360.000' in html2
     assert 'Lunasi Sisa (Rp 1.200.000)' in html2
 
     # 3. Tambah dana tabungan lagi Rp 500.000 (total terkumpul 4.300.000, shortfall 700.000)
