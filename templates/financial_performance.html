@@ -8,7 +8,7 @@
     .scrollbar-hide::-webkit-scrollbar { display: none; }
 </style>
 <div x-data="{ activeTab: '{{ active_tab|default('analytics') }}' }"
-     x-init="$watch('activeTab', () => { const _resizeCharts = () => { if (window._perfTimeSeriesChart) window._perfTimeSeriesChart.resize(); if (window._perfCashflowTabChart) window._perfCashflowTabChart.resize(); if (window._perfDonutChart) window._perfDonutChart.resize(); }; requestAnimationFrame(() => { _resizeCharts(); if (window.lucide) window.lucide.createIcons(); }); setTimeout(_resizeCharts, 240); })">
+     x-init="$watch('activeTab', () => { const _resizeCharts = () => { if (window._perfTimeSeriesChart) window._perfTimeSeriesChart.resize(); if (window._perfCashflowTabChart) window._perfCashflowTabChart.resize(); if (window._perfDonutChart) window._perfDonutChart.resize(); }; requestAnimationFrame(() => { _resizeCharts(); if (window.lucide && document.querySelector('i[data-lucide]')) window.lucide.createIcons(); }); setTimeout(_resizeCharts, 240); })">
         <div class="space-y-6 pb-12">
 
             <!-- Page Header & Period Controls -->
@@ -88,19 +88,19 @@
             <!-- Tabs Navigation (Sleek Responsive Pill Bar) -->
             <div class="bg-muted/80 border border-border p-1.5 rounded-xl flex items-center gap-1 shadow-sm overflow-x-auto scrollbar-hide">
                 <button type="button" @click="activeTab = 'analytics'" :class="activeTab === 'analytics' ? 'bg-background text-foreground shadow-sm border border-border/60 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-background/50 border border-transparent'" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 md:flex-1 justify-center whitespace-nowrap">
-                    <i data-lucide="line-chart" class="w-4 h-4" :class="activeTab === 'analytics' ? 'text-primary' : ''"></i> Analytics
+                    <span class="inline-flex shrink-0 transition-colors" :class="activeTab === 'analytics' ? 'text-primary' : 'text-muted-foreground'"><i data-lucide="line-chart" class="w-4 h-4"></i></span> Analytics
                 </button>
                 <button type="button" @click="activeTab = 'cashflow'" :class="activeTab === 'cashflow' ? 'bg-background text-foreground shadow-sm border border-border/60 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-background/50 border border-transparent'" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 md:flex-1 justify-center whitespace-nowrap">
-                    <i data-lucide="bar-chart-2" class="w-4 h-4" :class="activeTab === 'cashflow' ? 'text-blue-500' : ''"></i> Arus Kas
+                    <span class="inline-flex shrink-0 transition-colors" :class="activeTab === 'cashflow' ? 'text-blue-500' : 'text-muted-foreground'"><i data-lucide="bar-chart-2" class="w-4 h-4"></i></span> Arus Kas
                 </button>
                 <button type="button" @click="activeTab = 'liabilities'" :class="activeTab === 'liabilities' ? 'bg-background text-foreground shadow-sm border border-border/60 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-background/50 border border-transparent'" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 md:flex-1 justify-center whitespace-nowrap">
-                    <i data-lucide="credit-card" class="w-4 h-4" :class="activeTab === 'liabilities' ? 'text-rose-500' : ''"></i> Kewajiban &amp; Langganan
+                    <span class="inline-flex shrink-0 transition-colors" :class="activeTab === 'liabilities' ? 'text-rose-500' : 'text-muted-foreground'"><i data-lucide="credit-card" class="w-4 h-4"></i></span> Kewajiban &amp; Langganan
                 </button>
                 <button type="button" @click="activeTab = 'assets'" :class="activeTab === 'assets' ? 'bg-background text-foreground shadow-sm border border-border/60 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-background/50 border border-transparent'" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 md:flex-1 justify-center whitespace-nowrap">
-                    <i data-lucide="pie-chart" class="w-4 h-4" :class="activeTab === 'assets' ? 'text-purple-500' : ''"></i> Portofolio Aset
+                    <span class="inline-flex shrink-0 transition-colors" :class="activeTab === 'assets' ? 'text-purple-500' : 'text-muted-foreground'"><i data-lucide="pie-chart" class="w-4 h-4"></i></span> Portofolio Aset
                 </button>
                 <button type="button" @click="activeTab = 'goals'" :class="activeTab === 'goals' ? 'bg-background text-foreground shadow-sm border border-border/60 font-semibold' : 'text-muted-foreground hover:text-foreground hover:bg-background/50 border border-transparent'" class="px-3.5 py-2 rounded-lg text-xs sm:text-sm transition-all flex items-center gap-2 shrink-0 md:flex-1 justify-center whitespace-nowrap">
-                    <i data-lucide="target" class="w-4 h-4" :class="activeTab === 'goals' ? 'text-emerald-500' : ''"></i> Target Finansial
+                    <span class="inline-flex shrink-0 transition-colors" :class="activeTab === 'goals' ? 'text-emerald-500' : 'text-muted-foreground'"><i data-lucide="target" class="w-4 h-4"></i></span> Target Finansial
                 </button>
             </div>
 
@@ -515,7 +515,7 @@
                         <div x-data="{ showHistory: false }" class="border-t border-border">
                             <button @click="showHistory = !showHistory" class="w-full p-4 flex items-center justify-between text-sm text-muted-foreground hover:bg-muted/30 transition-colors">
                                 <span class="flex items-center gap-2"><i data-lucide="history" class="w-4 h-4"></i> Riwayat Lunas ({{ records_history|length }})</span>
-                                <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" :class="showHistory && 'rotate-180'"></i>
+                                <span class="inline-flex shrink-0 transition-transform" :class="showHistory ? 'rotate-180' : ''"><i data-lucide="chevron-down" class="w-4 h-4"></i></span>
                             </button>
                             <div x-show="showHistory" x-transition x-cloak class="px-4 pb-4">
                                 <div class="space-y-2">
@@ -612,7 +612,7 @@
                         <div x-data="{ showCompleted: false }" class="border-t border-border">
                             <button @click="showCompleted = !showCompleted" class="w-full p-4 flex items-center justify-between text-sm text-muted-foreground hover:bg-muted/30 transition-colors">
                                 <span class="flex items-center gap-2"><i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i> Cicilan Selesai ({{ installments_completed|length }})</span>
-                                <i data-lucide="chevron-down" class="w-4 h-4 transition-transform" :class="showCompleted && 'rotate-180'"></i>
+                                <span class="inline-flex shrink-0 transition-transform" :class="showCompleted ? 'rotate-180' : ''"><i data-lucide="chevron-down" class="w-4 h-4"></i></span>
                             </button>
                             <div x-show="showCompleted" x-transition x-cloak class="px-4 pb-4">
                                 <div class="space-y-2">

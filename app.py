@@ -677,10 +677,11 @@ def api_version():
 
 @app.context_processor
 def inject_app_version():
+    v_info = get_version_info()
     return dict(
-        app_version=APP_VERSION,
-        app_build=BUILD_SHA,
-        version_info=get_version_info(),
+        app_version=v_info["version"],
+        app_build=v_info["build"],
+        version_info=v_info,
     )
 
 from routes.auth import auth_bp

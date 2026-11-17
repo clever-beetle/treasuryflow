@@ -705,3 +705,41 @@ def test_v286_routine_savings_calculated_from_nominal_target_stays_constant(clie
     assert 'Rp 350.000' in html3
     assert 'Rp 1.500.000' in html3
 
+
+def test_v288_tab_icon_colors_do_not_stick_and_auto_version_sync(client):
+    import re
+    from version import _bump_semver_patch, _clean_commit_subject, get_version_info
+
+    _register_and_login(client)
+    res = client.get('/financial_performance')
+    assert res.status_code == 200
+    html = res.data.decode('utf-8')
+
+    # Pastikan tidak ada elemen <i data-lucide="..."> yang memiliki atribut :class langsung,
+    # karena lucide.createIcons() akan menyalin kelas aktif ke <svg> baru dan membuat warna nyangkut.
+    lucide_with_dynamic_class = re.findall(r'<i\b[^>]*data-lucide=[^>]*:class=|<i\b[^>]*:class=[^>]*data-lucide=', html)
+    assert lucide_with_dynamic_class == [], f"Found data-lucide with :class directly on <i>: {lucide_with_dynamic_class}"
+
+    # Pastikan setiap ikon tab dibungkus <span ... :class="activeTab === '...' ? '...' : 'text-muted-foreground'">
+    for tab_key, active_cls in [
+        ('analytics', 'text-primary'),
+        ('cashflow', 'text-blue-500'),
+        ('liabilities', 'text-rose-500'),
+        ('assets', 'text-purple-500'),
+        ('goals', 'text-emerald-500'),
+    ]:
+        expected = f"activeTab === '{tab_key}' ? '{active_cls}' : 'text-muted-foreground'"
+        assert expected in html, f"Missing reactive wrapper class for tab {tab_key}"
+
+    # Verifikasi helper auto-version & riwayat versi terbaru
+    assert _bump_semver_patch("2.8.8", 1) == "2.8.9"
+    assert _clean_commit_subject("UI: Selaraskan tampilan Rutinan") == "Selaraskan tampilan Rutinan"
+    assert _clean_commit_subject("Release v2.8.8: Perbaikan Tab") == "Perbaikan Tab"
+
+    v_info = get_version_info()
+    versions_in_history = [item['version'] for item in v_info['history']]
+    assert '2.8.8' in versions_in_history
+    assert '2.8.7' in versions_in_history
+    assert '2.8.6' in versions_in_history
+
+
