@@ -2,9 +2,10 @@ import os
 import re
 import subprocess
 
-_BASE_VERSION = "2.8.8"
+_BASE_VERSION = "2.8.9"
 _BASE_RELEASE_DATE = "2026-11-17"
-_BASE_CODENAME = "Perbaikan Navigasi Tab & Sinkronisasi Versi Otomatis"
+_BASE_CODENAME = "Penyederhanaan Kartu Target Finansial, Privasi Detail Versi & Auto-Update"
+_PUBLIC_CODENAME = "Rilis Stabil • Pembaruan Otomatis Aktif"
 
 _BULAN_ID = (
     "",
@@ -23,6 +24,17 @@ _BULAN_ID = (
 )
 
 _BASE_RELEASE_HISTORY = [
+    {
+        "version": "2.8.9",
+        "date_id": "17 November 2026",
+        "title": "Penyederhanaan Kartu Target Finansial, Privasi Detail Versi & Auto-Update",
+        "highlights": [
+            "Menyederhanakan tata letak kartu Proyeksi Pencapaian Target (Target Finansial) agar ringkas, mudah dibaca sekilas, dan selaras dengan tab Performa Keuangan lainnya.",
+            "Menyembunyikan rincian teknis riwayat pembaruan dari pengguna biasa sehingga detail perubahan setiap versi hanya dapat dilihat oleh akun Developer / Admin.",
+            "Menghapus kotak ikon kalender statis yang membingungkan di sebelah pemilih periode Performa Keuangan.",
+            "Mengaktifkan sistem Auto-Update versi aplikasi (sinkronisasi otomatis commit Git, Service Worker cache dinamis, dan pengecekan versi latar belakang).",
+        ],
+    },
     {
         "version": "2.8.8",
         "date_id": "17 November 2026",
@@ -116,6 +128,63 @@ _BASE_RELEASE_HISTORY = [
             "Memisahkan kategori Pemasukan dan Pengeluaran serta menyelaraskan tema terang dan gelap.",
         ],
     },
+    {
+        "version": "2.7.0",
+        "date_id": "29 Oktober 2026",
+        "title": "Sinkronisasi Saldo Lintas Modul & Keamanan Ekspor Data",
+        "highlights": [
+            "Menyinkronkan saldo akun secara dua arah saat mencatat pembayaran utang/piutang, cicilan, dan tabungan target finansial.",
+            "Menambahkan perlindungan anti formula-injection pada ekspor laporan CSV dan Excel.",
+            "Menyeragamkan zona waktu transaksi dan jadwal menggunakan Waktu Indonesia Barat (WIB).",
+        ],
+    },
+    {
+        "version": "2.6.0",
+        "date_id": "27 Oktober 2026",
+        "title": "Format Ribuan Otomatis, Grafik Arus Kas & Login Passkey",
+        "highlights": [
+            "Menambahkan pemformatan titik ribuan otomatis secara langsung saat mengetik nominal Rupiah di seluruh formulir dan modal.",
+            "Memperbarui grafik analitik arus kas, bar alokasi portofolio aset, serta penanda hari aktif pada Kalender Finansial.",
+            "Menghadirkan dukungan autentikasi cepat menggunakan Passkey / Biometrik perangkat.",
+        ],
+    },
+    {
+        "version": "2.5.0",
+        "date_id": "12 Oktober 2026",
+        "title": "Penguatan Validasi Akun, Keamanan Sesi & Optimasi Query",
+        "highlights": [
+            "Memperkuat validasi pendaftaran akun, perlindungan duplikasi username/email, dan keamanan sesi login.",
+            "Mengoptimalkan indeks database dan waktu muat halaman pada Dashboard serta Riwayat Transaksi.",
+            "Menambahkan rangkaian pengujian otomatis menyeluruh untuk menjaga keakuratan perhitungan saldo.",
+        ],
+    },
+    {
+        "version": "2.0.0",
+        "date_id": "4 Oktober 2026",
+        "title": "Antarmuka Modern Shadcn UI, Asisten AI & Identitas Baru Treasury Flow",
+        "highlights": [
+            "Merombak antarmuka aplikasi menggunakan desain modern berbasis Shadcn UI dengan dukungan penuh mode Terang dan Gelap.",
+            "Menghadirkan fitur Asisten AI Keuangan interaktif, pemindai struk belanja otomatis, dan ekspor laporan PDF/Excel.",
+            "Memperbarui identitas visual, logo resmi, dan dukungan instalasi Progressive Web App (PWA).",
+        ],
+    },
+    {
+        "version": "1.5.0",
+        "date_id": "1 Juni 2026",
+        "title": "Modul Performa Keuangan, Target Finansial & Portofolio Aset",
+        "highlights": [
+            "Menambahkan halaman Performa Keuangan untuk memantau Total Kekayaan Bersih (Net Worth), Utang/Piutang, dan Cicilan.",
+            "Menghadirkan fitur pencatatan Target Finansial dan inventaris Portofolio Aset beserta logo institusi bank/dompet digital.",
+        ],
+    },
+    {
+        "version": "1.0.0",
+        "date_id": "14 Desember 2025",
+        "title": "Rilis Perdana Treasury Flow",
+        "highlights": [
+            "Peluncuran awal aplikasi Treasury Flow untuk pencatatan pemasukan, pengeluaran, transfer antar akun, dan ringkasan saldo.",
+        ],
+    },
 ]
 
 
@@ -184,8 +253,6 @@ def _resolve_version_state() -> dict:
     codename = _BASE_CODENAME
 
     try:
-        # Jika version.py sedang dimodifikasi di working tree (belum di-commit),
-        # gunakan _BASE_VERSION yang baru saja diedit secara langsung.
         diff_out = subprocess.check_output(
             ["git", "status", "--porcelain", "--", "version.py"],
             cwd=repo_dir,
@@ -247,18 +314,41 @@ RELEASE_HISTORY = _INITIAL_STATE["history"]
 BUILD_SHA = _detect_build_sha()
 
 
-def get_version_info() -> dict:
+def get_version_info(include_details: bool = True) -> dict:
+    """
+    Mengembalikan informasi versi aplikasi.
+    - Jika include_details=True (untuk Developer / Admin), seluruh judul dan
+      daftar poin perubahan (highlights) dikembalikan lengkap.
+    - Jika include_details=False (untuk pengguna biasa / publik), detail teknis
+      dan poin perubahan disembunyikan agar hanya Developer yang dapat melihatnya.
+    """
     state = _resolve_version_state()
     ver = state["version"]
     r_date = state["release_date"]
     sha = _detect_build_sha()
+
+    if include_details:
+        history_out = state["history"]
+        codename_out = state["codename"]
+    else:
+        history_out = [
+            {
+                "version": item["version"],
+                "date_id": item["date_id"],
+                "public_label": "Pembaruan Sistem & Peningkatan Kualitas",
+            }
+            for item in state["history"]
+        ]
+        codename_out = _PUBLIC_CODENAME
+
     return {
         "version": ver,
         "build": sha,
         "release_date": r_date,
         "release_date_id": _format_release_date_id(r_date),
-        "codename": state["codename"],
+        "codename": codename_out,
         "display": f"v{ver}",
         "full_display": f"v{ver} ({sha})",
-        "history": state["history"],
+        "is_detailed": bool(include_details),
+        "history": history_out,
     }

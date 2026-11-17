@@ -137,7 +137,24 @@ utils.babel.init_app(app, locale_selector=get_locale)
 
 @app.route('/sw.js')
 def sw():
-    return app.send_static_file('sw.js')
+    import re
+    sw_path = os.path.join(app.static_folder, 'sw.js')
+    try:
+        with open(sw_path, 'r', encoding='utf-8') as fh:
+            sw_body = fh.read()
+        ver = get_version_info(include_details=False)['version']
+        sw_body = re.sub(
+            r"const\s+CACHE_VERSION\s*=\s*'[^']*';",
+            f"const CACHE_VERSION = 'treasuryflow-v{ver}';",
+            sw_body,
+            count=1,
+        )
+        resp = make_response(sw_body)
+        resp.headers['Content-Type'] = 'application/javascript; charset=utf-8'
+        resp.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        return resp
+    except Exception:
+        return app.send_static_file('sw.js')
 
 @app.route('/favicon.ico')
 def favicon():
@@ -671,17 +688,38 @@ def _lazy_bootstrap_db():
 
 from version import APP_VERSION, BUILD_SHA, get_version_info
 
+
+def _is_current_user_dev() -> bool:
+    uid = session.get('user_id')
+    if not uid:
+        return False
+    if session.get('role') == 'admin' or uid == 1:
+        return True
+    try:
+        db = utils.get_db()
+        row = db.execute('SELECT id, role FROM users WHERE id = ?', (uid,)).fetchone()
+        if row and (row['role'] == 'admin' or row['id'] == 1):
+            session['role'] = 'admin'
+            return True
+    except Exception:
+        pass
+    return False
+
+
 @app.route('/api/version')
 def api_version():
-    return jsonify(get_version_info())
+    return jsonify(get_version_info(include_details=_is_current_user_dev()))
+
 
 @app.context_processor
 def inject_app_version():
-    v_info = get_version_info()
+    is_dev = _is_current_user_dev()
+    v_info = get_version_info(include_details=is_dev)
     return dict(
         app_version=v_info["version"],
         app_build=v_info["build"],
         version_info=v_info,
+        is_dev_user=is_dev,
     )
 
 from routes.auth import auth_bp

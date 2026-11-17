@@ -738,8 +738,71 @@ def test_v288_tab_icon_colors_do_not_stick_and_auto_version_sync(client):
 
     v_info = get_version_info()
     versions_in_history = [item['version'] for item in v_info['history']]
+    assert '2.8.9' in versions_in_history
     assert '2.8.8' in versions_in_history
     assert '2.8.7' in versions_in_history
     assert '2.8.6' in versions_in_history
+    assert '1.0.0' in versions_in_history
+
+
+def test_v289_dev_only_release_details_and_complete_version_history(client):
+    """
+    Verifikasi:
+    1. Pengguna biasa (bukan admin/dev) TIDAK melihat detail update (highlights/title)
+       di /settings?tab=version maupun di /api/version.
+    2. Akun Developer / Admin (role == 'admin') BISA melihat detail lengkap riwayat pembaruan.
+    3. Kotak ikon kalender statis yang membingungkan di sebelah pemilih periode Performa Keuangan sudah dihapus.
+    4. Service worker /sw.js menyuntikkan versi aplikasi secara dinamis untuk auto-update.
+    """
+    # Pastikan ada minimal 1 user sebelumnya, lalu buat user biasa baru
+    _register_and_login(client)
+    client.get('/logout')
+
+    # User kedua adalah user biasa (role = 'user')
+    u2, _ = _register_and_login(client)
+    with client.application.app_context():
+        db = get_db()
+        db.execute("UPDATE users SET role = 'user' WHERE username = ?", (u2,))
+        db.commit()
+
+    # Cek /settings?tab=version sebagai user biasa: detail teknis tidak boleh muncul
+    res_user = client.get('/settings?tab=version')
+    assert res_user.status_code == 200
+    html_user = res_user.data.decode('utf-8')
+    assert 'v2.8.9' in html_user
+    assert 'v1.0.0' in html_user
+    assert 'Rilis Stabil' in html_user
+    assert 'Khusus Developer' not in html_user
+    assert 'Memisahkan pengikatan kelas warna aktif dari elemen ikon SVG' not in html_user
+
+    # Cek /api/version sebagai user biasa: tidak ada highlights
+    api_user = client.get('/api/version').get_json()
+    assert api_user['is_detailed'] is False
+    assert all('highlights' not in item for item in api_user['history'])
+
+    # Promosikan ke admin (Developer) dan cek kembali: detail lengkap tampil
+    with client.application.app_context():
+        db = get_db()
+        db.execute("UPDATE users SET role = 'admin' WHERE username = ?", (u2,))
+        db.commit()
+
+    res_dev = client.get('/settings?tab=version')
+    html_dev = res_dev.data.decode('utf-8')
+    assert 'Khusus Developer' in html_dev
+    assert 'Memisahkan pengikatan kelas warna aktif dari elemen ikon SVG' in html_dev
+
+    api_dev = client.get('/api/version').get_json()
+    assert api_dev['is_detailed'] is True
+    assert any('highlights' in item and len(item['highlights']) > 0 for item in api_dev['history'])
+
+    # Cek /sw.js membawa versi dinamis
+    sw_res = client.get('/sw.js')
+    assert sw_res.status_code == 200
+    assert f"treasuryflow-v{api_dev['version']}" in sw_res.data.decode('utf-8')
+
+    # Cek kotak ikon calendar-range statis sudah tidak ada di Performa Keuangan
+    perf_html = client.get('/financial_performance').data.decode('utf-8')
+    assert 'data-lucide="calendar-range"' not in perf_html
+
 
 

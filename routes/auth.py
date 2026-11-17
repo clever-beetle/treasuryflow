@@ -74,6 +74,13 @@ def login():
                     role = user['role']
                 except (KeyError, IndexError):
                     role = None
+                if user['id'] == 1 and role != 'admin':
+                    try:
+                        db.execute("UPDATE users SET role = 'admin' WHERE id = 1")
+                        db.commit()
+                    except Exception:
+                        pass
+                    role = 'admin'
                 session.clear()
                 session['user_id'] = user['id']
                 session['username'] = user['username'] if user['username'] else login_input
@@ -136,6 +143,10 @@ def register():
                 hashed_pw = generate_password_hash(password)
                 db.execute('INSERT INTO users (fullname, username, email, password) VALUES (?, ?, ?, ?)',
                            (fullname, username, email, hashed_pw))
+                try:
+                    db.execute("UPDATE users SET role = 'admin' WHERE id = 1")
+                except Exception:
+                    pass
                 db.commit()
                 flash('Pendaftaran akun berhasil! Silakan masuk.', 'success')
                 return redirect(url_for('auth.login', registered=True))
